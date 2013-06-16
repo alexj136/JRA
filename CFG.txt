@@ -1,0 +1,25 @@
+P → D; P | D
+D → def I (A) = E
+A → ID, A | epsilon
+ID → (identifiers)
+E → INT
+  | ID
+  | E + E 
+  | E - E 
+  | E * E
+  | E / E
+  | E % E
+  | ID(EA)
+  | x := E
+  | if BOOL { E } else { E } 
+  | while BOOL { E }
+  | repeat { E } until BOOL
+BOOL → E COMP E
+  | ! E COMP E
+COMP → =
+  | <
+  | >
+  | <=
+  | >=
+EA → epsilon | E, EA
+INT → (integers)
