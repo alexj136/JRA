@@ -1,1 +1,1 @@
-This is the readme for Alex's JRA project
+This is the repository for Alex's JRA project
