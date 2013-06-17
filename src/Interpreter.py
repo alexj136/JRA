@@ -1,26 +1,27 @@
 from AST import *
 
-def interpret_program(tree):
-	function_map = {}
+FUNCTION_MAP = {}
 
-	if issubclass(tree.__class__, Program):
+def interpret_program(program):
+
+	if issubclass(program.__class__, Program):
 		# Load the functions in the program into the function map
-		for fn in tree.fns:
+		for fn in program.fns:
 			if issubclass(fn.__class__, FNDecl):
-				function_map[fn.name] = fn
+				FUNCTION_MAP[fn.name] = fn
 			else:
-				raise Exception('Invalid object: \'' + tree.__class__.__name__ + '\', not a function')
+				raise Exception('Invalid object: \'' + program.__class__.__name__ + '\', not a function')
 
 	else:
-		raise Exception('Cannot interpret object: \'' + tree.__class__.__name__ + '\', not a program')
+		raise Exception('Cannot interpret object: \'' + program.__class__.__name__ + '\', not a program')
 
 	# If the given program has a main function, interpret it
-	if 'main' in function_map:
-		print str(interpret_function(function_map['main'], []))
+	if 'main' in FUNCTION_MAP:
+		print str(interpret_function(FUNCTION_MAP['main'], []))
 
-def interpret_function(function, arg_values):
+def interpret_function(function_name, arg_values):
 	# Begin by creating the list of in-scope variables
-	in_scope_variables = dict(zip(function.arg_names, arg_values))
+	in_scope_variables = dict(zip(FUNCTION_MAP[function_name].arg_names, arg_values))
 
 	# The return variable must be added to the list of in-scope variables
 	in_scope_variables[function.return_identifier.name] = 0
@@ -37,7 +38,7 @@ def interpret_statement(statement, in_scope_variables):
 
 	if issubclass(statement.__class__, Assignment): #ASSIGNMENT
 		# With assignment, we add an entry to the in_scope_variables dictionary
-		in_scope_variables[statement.assignee_identifier] = interpret_expression(statement.expression)
+		in_scope_variables[statement.assignee_identifier] = interpret_expression(statement.expression, in_scope_variables)
 
 	elif issubclass(statement.__class__, For): #FOR-LOOP
 		# Interpret the assignment in the for loop declaration
