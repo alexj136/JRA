@@ -1,7 +1,12 @@
 P → D; P | D
-D → def I (A) = E
-A → ID, A | epsilon
-ID → (identifiers)
+D → fn ID (A) : ID { STMTS }
+A → ID, A | ε
+ID → [a-z | A-Z | _][a-z | A-Z | _ | 0-9 ]*
+STMTS → ST; STMTS | ε
+ST → ID := E
+  | if BOOL { STMTS } else { STMTS } 
+  | while BOOL { STMTS }
+  | for INT : INT { STMTS }
 E → INT
   | ID
   | E + E 
@@ -10,10 +15,6 @@ E → INT
   | E / E
   | E % E
   | ID(EA)
-  | x := E
-  | if BOOL { E } else { E } 
-  | while BOOL { E }
-  | repeat { E } until BOOL
 BOOL → E COMP E
   | ! E COMP E
 COMP → =
@@ -21,5 +22,5 @@ COMP → =
   | >
   | <=
   | >=
-EA → epsilon | E, EA
-INT → (integers)
+EA → ε | E, EA
+INT → [0-9]+
