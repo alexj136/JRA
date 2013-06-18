@@ -55,7 +55,7 @@ def interpret_function(function_name, arg_values):
 
 	An important issue when dealing with interpreted functions is handling
 	return statements. In a compiled language, return statements have the
-	'ability' to manage their own execution - they are machine code statements
+	ability to 'manage' their own execution - they are machine code statements
 	that the CPU will execute. With an interpreted language, a return
 	statement consists of a 'dummy object' with no ability to ensure that the
 	operation it specifies is carried out. To deal with this issue, this
@@ -66,9 +66,9 @@ def interpret_function(function_name, arg_values):
 	interpreted, was a return statement. Accordingly, this will cause all
 	enclosing blocks of code to break, and indicate to the containing function
 	that a return operation has occurred, meaning that there will be an entry in
-	the 'in_scope_variables' list with key 'return', which maps to the value to
-	be returned. The function stops without any further statement interpretation
-	and returns that value to the caller.
+	the 'in_scope_variables' dictionary with key 'return', which maps to the
+	value to be returned. The function stops without any further statement
+	interpretation and returns that value to the caller.
 	"""
 
 	# Check that the called function exists
@@ -102,75 +102,126 @@ def interpret_function(function_name, arg_values):
 	raise Exception('No return statement present in fn: ' + function_name)
 
 def interpret_statement(statement, in_scope_variables):
-	# iterpret_statement returns False except in the case that a 'return'
-	# statement has been evaluated, in which case True is returned
+	"""
+	interpret_statement is a function that interprets a single statement. In the
+	case that the statement to be interpreted is a loop construct, this function
+	will recursively call itself for each statement within that loop construct.
 
-	# The first step is to check which kind of Statement this is:
+	iterpret_statement returns False except in the case that a 'return'
+	statement has been evaluated. If a return statement has been evaluated,
+	either in the immediate given statement, or in any statements that exists
+	within the statement, this function will immediately return True, without
+	evaluating any further sub-statements. The reason for this is given in the
+	doc-string for interpret_function.
 
-	if issubclass(statement.__class__, Assignment): #ASSIGNMENT
+	There are 6 kinds of statement: assignment, print, return, for, while and
+	if. This function begins by checking which of those the given statement is.
+	"""
+
+	if issubclass(statement.__class__, Assignment):
+
 		# With assignment, we add an entry to the in_scope_variables dictionary
 		in_scope_variables[statement.assignee_identifier] = \
 			interpret_expression(statement.expression, in_scope_variables)
+
+		# No return statement has been evaluated, so return false
 		return False
 
-	elif issubclass(statement.__class__, For): #FOR-LOOP
+	elif issubclass(statement.__class__, For):
+
 		# Interpret the assignment in the for loop declaration
 		interpret_statement(statement.assignment, in_scope_variables)
+
 		# Repeatedly execute each sub-statement, and do the specified
 		# incrementation after each iteration
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
 				if interpret_statement(st, dict(in_scope_variables.items())):
+					# If a sub-statement interpretation returns True, a return
+					# operation has been executed, so we must return control up
+					# to the calling function
 					return True
 			interpret_statement(statement.incrementor, in_scope_variables)
+
+		# If we reach this point, the loop finished without a return statement
+		# being evaluated, so return False
 		return False
 
 	elif issubclass(statement.__class__, While):
+
 		# The while loop case is simple - set up a while loop which executes all
 		# sub-statements until the declared condition is false
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
 				if interpret_statement(st, dict(in_scope_variables.items())):
+					# If a sub-statement interpretation returns True, a return
+					# operation has been executed, so we must return control up
+					# to the calling function
 					return True
+
+		# If we reach this point, the loop finished without a return statement
+		# being evaluated, so return False
 		return False
 
 	elif issubclass(statement.__class__, If):
+
 		# If statements are also simple - evaluate the boolean expression, and
 		# if true, do the if-block, otherwise do the else-block
 		if interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.if_statements:
 				if interpret_statement(st, dict(in_scope_variables.items())):
+					# If a sub-statement interpretation returns True, a return
+					# operation has been executed, so we must return control up
+					# to the calling function
 					return True
+
 		else:
 			for st in statement.else_statements:
 				if interpret_statement(st, dict(in_scope_variables.items())):
+					# If a sub-statement interpretation returns True, a return
+					# operation has been executed, so we must return control up
+					# to the calling function
 					return True
+
+		# If we reach this point, the if-statement contents finished without a
+		# return statement being evaluated, so return False
 		return False
 
 	elif issubclass(statement.__class__, Incrementor):
+
 		# To interpret the increment operator, work out what is the appropriate
 		# incrementation action, and apply it to the specified variable
 		if statement.op == '+=':
 			in_scope_variables[statement.assignee] = \
 				in_scope_variables[statement.assignee] + \
 				interpret_expression(statement.expression)
+
 		elif statement.op == '-=':
 			in_scope_variables[statement.assignee] = \
 				in_scope_variables[statement.assignee] - \
 				interpret_expression(statement.expression)
+
 		else:
 			raise Exception('Invalid incrementor\decrementor operation in AST')
+		
+		# No return statement evaluated - return False
 		return False
 
 	elif issubclass(statement.__class__, Print):
-		# Print is super-easy: just evaluate the expression and print the result
+
+		# Print is very simple: just evaluate the expression and print the
+		# result
 		print \
 			str(interpret_expression(statement.expression, in_scope_variables))
+
+		# No return statement evaluated - return False
 		return False
 
 	elif issubclass(statement.__class__, Return):
+
 		# With return, we add a 'return' entry to the in_scope_variables
-		# dictionary
+		# dictionary. This will never conflict with a programmer-declared
+		# variable because 'return' is a reserved word.
 		in_scope_variables['return'] = \
 			interpret_expression(statement.expression, in_scope_variables)
 
@@ -211,24 +262,24 @@ def interpret_expression(expression, in_scope_variables):
 	# right hand side of the operator:
 	if issubclass(expression.__class__, ArithmeticExpr):
 		if expression.op == '+':
-			return interpret_expression(expression.lhs) + \
-				interpret_expression(expression.rhs)
+			return interpret_expression(expression.lhs, in_scope_variables) + \
+				interpret_expression(expression.rhs, in_scope_variables)
 
 		elif expression.op == '-':
-			return interpret_expression(expression.lhs) - \
-				interpret_expression(expression.rhs)
+			return interpret_expression(expression.lhs, in_scope_variables) - \
+				interpret_expression(expression.rhs, in_scope_variables)
 
 		elif expression.op == '*':
-			return interpret_expression(expression.lhs) * \
-				interpret_expression(expression.rhs)
+			return interpret_expression(expression.lhs, in_scope_variables) * \
+				interpret_expression(expression.rhs, in_scope_variables)
 
 		elif expression.op == '/':
-			return interpret_expression(expression.lhs) / \
-				interpret_expression(expression.rhs)
+			return interpret_expression(expression.lhs, in_scope_variables) / \
+				interpret_expression(expression.rhs, in_scope_variables)
 
 		elif expression.op == '%':
-			return interpret_expression(expression.lhs) % \
-				interpret_expression(expression.rhs)
+			return interpret_expression(expression.lhs, in_scope_variables) % \
+				interpret_expression(expression.rhs, in_scope_variables)
 
 		# Anything else is an error
 		else: raise Exception("Invalid arithmetic expression found!")
