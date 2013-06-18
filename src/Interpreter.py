@@ -2,134 +2,289 @@ from AST import *
 
 FUNCTION_MAP = {}
 
-def interpret_program(program):
+def interpret_program(program, program_arguments):
+	"""
+	interpret_program is the 'highest-level' function used to interpret ASTs,
+	intended for external calls.
 
+	A traditional compiler will compile and store generated code for every
+	function that encounters. At runtime, functions that are called will have
+	their target-language code executed. Since interpreters operate 'on the
+	fly', there is no need to compile functions in advance. The AST nodes that
+	correspond to functions are simply stored so that they can be interpreted
+	when the function that they represent is called.
+
+	This function takes a list of functions (a program) as its argument. Its job
+	is simply to store the functions in a dictionary so that they can be
+	accessed by any caller. After this, the main function is executed.
+	"""
+
+	# Check that the passed object is in fact a program
 	if issubclass(program.__class__, Program):
-		# Load the functions in the program into the function map
+		# Load the functions in the program into the function map, checking that
+		# they are in fact function objects
 		for fn in program.fns:
 			if issubclass(fn.__class__, FNDecl):
 				FUNCTION_MAP[fn.name] = fn
 			else:
-				raise Exception('Invalid object: \'' + program.__class__.__name__ + '\', not a function')
+				raise Exception('Invalid object: \'' + \
+					program.__class__.__name__ + '\', not a function')
 
 	else:
-		raise Exception('Cannot interpret object: \'' + program.__class__.__name__ + '\', not a program')
+		raise Exception('Cannot interpret object: \'' + \
+			program.__class__.__name__ + '\', not a program')
 
 	# If the given program has a main function, interpret it
 	if 'main' in FUNCTION_MAP:
-		print str(interpret_function(FUNCTION_MAP['main'], []))
+		return interpret_function('main', program_arguments)
+
+	# If no main function was declared, raise an exception to the caller
+	else:
+		raise Exception('No main function found')
 
 def interpret_function(function_name, arg_values):
-	# Begin by creating the list of in-scope variables
-	in_scope_variables = dict(zip(FUNCTION_MAP[function_name].arg_names, arg_values))
+	"""
+	interpret_function is responsible for the interpretation of the AST objects
+	that correspond to functions. Since a function should have its own variable
+	scope, a dictionary called 'in_scope_variables' is created, which will
+	allow any variables in the scope of this function to be accessed. The
+	initial values in that dictionary are the function's arguments.
 
-	# The return variable must be added to the list of in-scope variables
-	in_scope_variables[function.return_identifier.name] = 0
+	Once the 'in_scope_variables' list has been created, all that remains is to
+	execute the statements that comprise the function.
 
-	# Interpret the statements
+	An important issue when dealing with interpreted functions is handling
+	return statements. In a compiled language, return statements have the
+	'ability' to manage their own execution - they are machine code statements
+	that the CPU will execute. With an interpreted language, a return
+	statement consists of a 'dummy object' with no ability to ensure that the
+	operation it specifies is carried out. To deal with this issue, this
+	implementation requires the interpretation of every single statement to
+	return a boolean. If a statement returns false, no action need be taken,
+	sequential execution of statements can continue. When statement
+	interpretation returns true, it indicates that the statement that was just
+	interpreted, was a return statement. Accordingly, this will cause all
+	enclosing blocks of code to break, and indicate to the containing function
+	that a return operation has occurred, meaning that there will be an entry in
+	the 'in_scope_variables' list with key 'return', which maps to the value to
+	be returned. The function stops without any further statement interpretation
+	and returns that value to the caller.
+	"""
+
+	# Check that the called function exists
+	if not function_name in FUNCTION_MAP:
+		raise Exception('Function: \'' + function_name + \
+			'\' has not been declared')
+
+	# Check that the function has been called with the appropriate number of
+	# arguments
+	if len(arg_values) != len(FUNCTION_MAP[function_name].arg_names):
+		raise Exception('Function: \'' + function_name + '\' takes ' + \
+			str(len(FUNCTION_MAP[function_name].arg_names)) + 'values, ' + \
+			str(len(arg_values)) + ' given')
+
+	# Retrieve the Function object from the map
+	function = FUNCTION_MAP[function_name]
+
+	# Create the list of in-scope variables
+	in_scope_variables = dict(zip(function.arg_names, arg_values))
+
+	# Interpret each statement
 	for st in function.statements:
-		interpret_statement(st, in_scope_variables)
+		if interpret_statement(st, in_scope_variables):
+			# If we have reached this point, a return statement is reached, so
+			# hand the value left in the return variable to the caller
+			return in_scope_variables['return']
 
-	# Return the value left in the return variable
-	return in_scope_variables[function.return_identifier.name]
+	# If the statement interpretation loop finishes without returning, an error
+	# has occurred in that the function had no return statement, so raise an
+	# exception
+	raise Exception('No return statement present in fn: ' + function_name)
 
 def interpret_statement(statement, in_scope_variables):
-	# Check which kind of Statement this is
+	# iterpret_statement returns False except in the case that a 'return'
+	# statement has been evaluated, in which case True is returned
+
+	# The first step is to check which kind of Statement this is:
 
 	if issubclass(statement.__class__, Assignment): #ASSIGNMENT
 		# With assignment, we add an entry to the in_scope_variables dictionary
-		in_scope_variables[statement.assignee_identifier] = interpret_expression(statement.expression, in_scope_variables)
+		in_scope_variables[statement.assignee_identifier] = \
+			interpret_expression(statement.expression, in_scope_variables)
+		return False
 
 	elif issubclass(statement.__class__, For): #FOR-LOOP
 		# Interpret the assignment in the for loop declaration
-		interpret_statement(assignment, in_scope_variables)
-		# Repeatedly execute each substatement, and do the specified
+		interpret_statement(statement.assignment, in_scope_variables)
+		# Repeatedly execute each sub-statement, and do the specified
 		# incrementation after each iteration
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
-				interpret_statement(st, dict(in_scope_variables.items()))
+				if interpret_statement(st, dict(in_scope_variables.items())):
+					return True
 			interpret_statement(statement.incrementor, in_scope_variables)
+		return False
 
 	elif issubclass(statement.__class__, While):
 		# The while loop case is simple - set up a while loop which executes all
-		# substatements until the declared condition is false
+		# sub-statements until the declared condition is false
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
-				interpret_statement(st, dict(in_scope_variables.items()))
+				if interpret_statement(st, dict(in_scope_variables.items())):
+					return True
+		return False
 
 	elif issubclass(statement.__class__, If):
 		# If statements are also simple - evaluate the boolean expression, and
 		# if true, do the if-block, otherwise do the else-block
 		if interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.if_statements:
-				interpret_statement(st, dict(in_scope_variables.items()))
+				if interpret_statement(st, dict(in_scope_variables.items())):
+					return True
 		else:
-			for st in statement.statements:
-				interpret_statement(st, dict(in_scope_variables.items()))
+			for st in statement.else_statements:
+				if interpret_statement(st, dict(in_scope_variables.items())):
+					return True
+		return False
 
 	elif issubclass(statement.__class__, Incrementor):
 		# To interpret the increment operator, work out what is the appropriate
 		# incrementation action, and apply it to the specified variable
 		if statement.op == '+=':
-			in_scope_variables[statement.assignee] = in_scope_variables[statement.assignee] + interpret_expression(statement.expression)
+			in_scope_variables[statement.assignee] = \
+				in_scope_variables[statement.assignee] + \
+				interpret_expression(statement.expression)
 		elif statement.op == '-=':
-			in_scope_variables[statement.assignee] = in_scope_variables[statement.assignee] - interpret_expression(statement.expression)
+			in_scope_variables[statement.assignee] = \
+				in_scope_variables[statement.assignee] - \
+				interpret_expression(statement.expression)
 		else:
-			raise Exception('Invalid incrementor/decrementor operation in AST')
+			raise Exception('Invalid incrementor\decrementor operation in AST')
+		return False
 
 	elif issubclass(statement.__class__, Print):
 		# Print is super-easy: just evaluate the expression and print the result
-		print str(interpret_expression(statement.expression, in_scope_variables))
+		print \
+			str(interpret_expression(statement.expression, in_scope_variables))
+		return False
 
-	# If the statement parameter is not a subclass of Statement, raise an exception
+	elif issubclass(statement.__class__, Return):
+		# With return, we add a 'return' entry to the in_scope_variables
+		# dictionary
+		in_scope_variables['return'] = \
+			interpret_expression(statement.expression, in_scope_variables)
+
+		# By returning true, we force any enclosing loops to finish, so that
+		# control returns to interpret_function, which can then hand the
+		# dictionary value labeled 'return' back to the caller of that function
+		return True
+
+	# If the statement parameter is not a subclass of Statement, raise an
+	# exception
 	else:
-		raise Exception('Cannot interpret object: \'' + tree.__class__.__name__ + '\', not a statement')
+		raise Exception('Cannot interpret object: \'' + \
+			tree.__class__.__name__ + '\', not a statement')
 
 
 def interpret_expression(expression, in_scope_variables):
-	# Check which kind of Expression this is
-	if issubclass(expression.__class__, ArithmeticExpr):
-		# Check which kind of operator this ArithmeticExpr has, and
-		# return 'LHS OP RHS'
-		if expression.op == '+':
-			return expression.lhs + expression.rhs
-		elif expression.op == '-':
-			return expression.lhs - expression.rhs
-		elif expression.op == '*':
-			return expression.lhs * expression.rhs
-		elif expression.op == '/':
-			return expression.lhs / expression.rhs
-		elif expression.op == '%':
-			return expression.lhs % expression.rhs
-		else: # Anything else is an error
-			raise Exception("Invalid arithmetic expression found!")
+	"""
+	interpret_expression is an integer-typed function used to evaluate integer
+	expressions. There are four kinds of integer expression:
 
+		Arithmetic expressions - basic operations on integers such as addition,
+		subtraction, multiplication, division and modulo.
+
+		Identifier - the use of a previously declared (and therefore stored)
+		integer variable
+
+		Integer literal - an definite, explicitly given integer
+
+		Function call - the call to a function which will return an integer
+		value
+
+	The function determines the type of the integer expression, and handles it
+	accordingly.
+	"""
+
+	# To interpret an arithmetic expression, we simply look at the required
+	# arithmetic operation in the passed object, and apply it to the left and
+	# right hand side of the operator:
+	if issubclass(expression.__class__, ArithmeticExpr):
+		if expression.op == '+':
+			return interpret_expression(expression.lhs) + \
+				interpret_expression(expression.rhs)
+
+		elif expression.op == '-':
+			return interpret_expression(expression.lhs) - \
+				interpret_expression(expression.rhs)
+
+		elif expression.op == '*':
+			return interpret_expression(expression.lhs) * \
+				interpret_expression(expression.rhs)
+
+		elif expression.op == '/':
+			return interpret_expression(expression.lhs) / \
+				interpret_expression(expression.rhs)
+
+		elif expression.op == '%':
+			return interpret_expression(expression.lhs) % \
+				interpret_expression(expression.rhs)
+
+		# Anything else is an error
+		else: raise Exception("Invalid arithmetic expression found!")
+
+	# Interpreting an identifier requires looking up the dictionary of in-scope
+	# variables, which is passed as a parameter to this function. We simply
+	# look at the name of the identifier, and lookup the dictionary with that
+	# name. We then hand the value that the dictionary returns to us back up to
+	# the caller.
 	elif issubclass(expression.__class__, Identifier):
-		# If we see an identifier, we lookup in_scope_variables to find its value
 		return in_scope_variables[expression.name]
 
+
+	# Interpreting integer literals is very simple - we retrieve the literal
+	# value from the passed object and hand it back to the caller:
 	elif issubclass(expression.__class__, IntegerLiteral):
-		# Simple case - return the integer literal's value
 		return expression.value
 
 	elif issubclass(expression.__class__, FNCall):
 		return interpret_function(expression.name, expression.arg_vals)
-	else:
-		raise Exception('Invalid expression found!')
+
+	# If a non-integer-expression has been passed, this is an error, so an
+	# exception is generated:
+	else: raise Exception('Invalid expression found!')
 
 def interpret_boolean(bool_expr, in_scope_variables):
-	# Do the appropriate comparison between the LHS and RHS, and return the result
+	"""
+	interpret_boolean is a boolean-typed function used to evaluate boolean
+	expressions. The 'bool_expr' argument has three members: a LHS and RHS
+	expression, and	a boolean operator OP. This purpose of this function is to
+	find  and return the result of 'LHS OP RHS'.
+	"""
+
+	# Make the appropriate comparison between LHS and RHS, and return the result
 	if bool_expr.comparison == '=':
-		return interpret_expression(bool_expr.expr_left) == interpret_expression(bool_expr.expr_right)
-	if bool_expr.comparison == '!=':
-		return interpret_expression(bool_expr.expr_left) != interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left) == \
+			interpret_expression(bool_expr.expr_right)
+
+	elif bool_expr.comparison == '!=':
+		return interpret_expression(bool_expr.expr_left) != \
+			interpret_expression(bool_expr.expr_right)
+
 	elif bool_expr.comparison == '<':
-		return interpret_expression(bool_expr.expr_left) < interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left) < \
+			interpret_expression(bool_expr.expr_right)
+
 	elif bool_expr.comparison == '>':
-		return interpret_expression(bool_expr.expr_left) > interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left) > \
+			interpret_expression(bool_expr.expr_right)
+
 	elif bool_expr.comparison == '<=':
-		return interpret_expression(bool_expr.expr_left) <= interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left) <= \
+			interpret_expression(bool_expr.expr_right)
+
 	elif bool_expr.comparison == '>=':
-		return interpret_expression(bool_expr.expr_left) >= interpret_expression(bool_expr.expr_right)
-	else:
-		raise Exception('Invalid boolean expression found!')
+		return interpret_expression(bool_expr.expr_left) >= \
+			interpret_expression(bool_expr.expr_right)
+
+	else: raise Exception('Invalid boolean expression found!')

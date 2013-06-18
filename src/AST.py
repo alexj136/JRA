@@ -1,22 +1,11 @@
 class Program(object):
-	"""
-	A Program has one attribute: a list of functions
-	"""
 	def __init__(self, fns):
 		self.fns = fns
 
 class FNDecl(object):
-	"""
-	A FN has four attributes:
-		name - a string that identifies the function
-		args - a dictionary that maps variable names to values for all arguments
-		return_identifier - the variable name for the value that will get returned
-		statements - the list of statements that the program contains
-	"""
-	def __init__(self, name, arg_names, return_identifier, statements):
+	def __init__(self, name, arg_names, statements):
 		self.name = name
 		self.arg_names = arg_names
-		self.return_identifier = return_identifier
 		self.statements = statements
 
 class Statement(object):
@@ -46,6 +35,10 @@ class If(Statement):
 		self.else_statements = else_statements
 
 class Print(Statement):
+	def __init__(self, expression):
+		self.expression = expression
+
+class Return(Statement):
 	def __init__(self, expression):
 		self.expression = expression
 

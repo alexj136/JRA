@@ -1,0 +1,13 @@
+MONDAY 17TH JUNE
+- Began an interpreted implementation of the language in python
+- Met with Martin, agreed roughly what I will be doing:
+	- Completing an interpreted implementation of the language in python, with
+	  a test suite
+	- Doing the same again in C
+	- Completing a compiled implementation of the language in C
+	- Integrating the two C implementations in to a runtime environment that
+	  performs some sort of cost-benefit analysis on code to work out if it
+	  should be interpreted or JIT compiled
+TUESDAY 18TH JUNE
+- Read up on lexical analysis
+- Book-keeping of code produced yesterday, including extensive comments

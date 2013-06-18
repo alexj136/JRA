@@ -2,12 +2,13 @@ P → D; P | D
 
 D → fn ID (A) : ID { STMTS }
 
-A → ID, A | ε
+A → ID, A | ID
 
 STMTS → ST; STMTS | ε
 
 ST → ID <- E
   | print E
+  | return E
   | if BOOL { STMTS } else { STMTS } 
   | while BOOL { STMTS }
   | for ID <- E : BOOL : INCR { STMTS }
@@ -27,7 +28,7 @@ E → INT
   | E % E
   | ID(EA)
 
-EA → ε | E, EA
+EA → E, EA | E
 
 BOOL → E COMP E
 
@@ -38,6 +39,6 @@ COMP → =
   | <=
   | >=
 
-ID → [a-z | A-Z | _][a-z | A-Z | _ | 0-9 ]*
+ID → [ a-z | A-Z | _ ][ a-z | A-Z | _ | 0-9 ]*
 
-INT → [0-9]+
+INT → [ 0-9 ]+
