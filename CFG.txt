@@ -22,7 +22,7 @@ INCR → E++
 E → INT
   | ID
   | E + E 
-  | E - E 
+  | E - E
   | E * E
   | E / E
   | E % E
