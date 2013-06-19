@@ -17,26 +17,42 @@ class VariableScope(object):
 	call proliferate().
 	"""
 	def __init__(self):
-		self.variable_map = None
-		self.return_value = None
+		self.var_map = None
+		self.ret_val = None
 
 	@staticmethod
-	def initiate():
+	def initiate(names, values):
 		initial_scope = VariableScope()
-		initial_scope.variable_map = {}
-		initial_scope.return_value = IntWrapper(None)
+		wrapped_values = [IntWrapper(val) for val in values]
+		initial_scope.var_map = dict(zip(names, wrapped_values))
+		initial_scope.ret_val = IntWrapper(None)
 
 	def proliferate(self):
 		new_scope = VariableScope()
-		new_scope.return_value = self.return_value
-		new_scope.variable_map = dict(self.variable_map.items())
+		new_scope.ret_val = self.ret_val
+		new_scope.var_map = dict(self.var_map.items())
 		return new_scope
 
-	def get(self, key):
-		return self.variable_map[key]
+	def has_var(self, var):
+		return var in self.var_map
 
-	def set(self, key, value):
-		self.variable_map[key] = value
+	def get(self, var):
+		return self.var_map[var].value
+
+	def set(self, var, value):
+		if self.has_var(var):
+			self.var_map[var].value = value
+		else:
+			self.var_map[var] = IntWrapper(value)
+
+	def get_return(self):
+		return self.ret_val.value
+
+	def set_return(self, value):
+		self.ret_val.value = value
+
+	def has_return(self):
+		return self.ret_val.value is not None
 
 FUNCTION_MAP = {}
 
@@ -123,24 +139,22 @@ def interpret_function(function_name, arg_values):
 	# Retrieve the Function object from the map
 	function = FUNCTION_MAP[function_name]
 
-	wrapped_arg_values = [IntWrapper(arg) for arg in arg_values]
-
-	# Create the list of in-scope variables
-	in_scope_variables = dict(zip(function.arg_names, wrapped_arg_values))
+	# Create the VariableScope for this function
+	scope = VariableScope.initiate(function.arg_names, wrapped_arg_values)
 
 	# Interpret each statement
-	for st in function.statements:
-		if interpret_statement(st, in_scope_variables):
-			# If we have reached this point, a return statement is reached, so
+	for statement in function.statements:
+		interpret_statement(statement, scope)
+			# If we have reached this point, a return statement has been reached, so
 			# hand the value left in the return variable to the caller
-			return in_scope_variables['return'].value
+		if scope.has_return(): return scope.get_return()
 
 	# If the statement interpretation loop finishes without returning, an error
 	# has occurred in that the function had no return statement, so raise an
 	# exception
 	raise Exception('No return statement present in fn: ' + function_name)
 
-def interpret_statement(statement, in_scope_variables):
+def interpret_statement(statement, scope):
 	"""
 	interpret_statement is a function that interprets a single statement. In the
 	case that the statement to be interpreted is a loop construct, this function
@@ -159,50 +173,29 @@ def interpret_statement(statement, in_scope_variables):
 
 	if issubclass(statement.__class__, Assignment):
 
-		# With assignment, we add an entry to the in_scope_variables dictionary
-		if statement.assignee_identifier.name in in_scope_variables:
-			# If the variable already exists in this scope, simply replace the
-			# value contained within the wrapper that the variable name maps to
-			# with the value of the given expression
-			in_scope_variables[statement.assignee_identifier.name].value = \
-				interpret_expression(statement.expression, in_scope_variables)
-		else:
-			# If the variable doesn't exist, we need to wrap up the result of
-			# the expression in a new wrapper and put it in the dictionary
-			in_scope_variables[statement.assignee_identifier.name] = IntWrapper(
-				interpret_expression(statement.expression, in_scope_variables))
-
-		# No return statement has been evaluated, so return false
-		return False
+		# With assignment, we add the variable to the scope
+		scope.set(statement.assignee_identifier.name,
+			interpret_expression(statement.expression, scope))
 
 	elif issubclass(statement.__class__, For):
 
 		# Interpret the assignment in the for loop declaration
-		interpret_statement(statement.assignment, in_scope_variables)
+		interpret_statement(statement.assignment, scope)
 
-		# Make a shallow copy of the in_scope_variables dictionary to pass to
-		# the recursive call (we need a reference to it in case it returns
-		# something)
-		new_scope_vars = dict(in_scope_variables.items())
+		# Proliferate the scope object for the new scope
+		new_scope = scope.proliferate()
 
 		# Repeatedly execute each sub-statement, and do the specified
 		# incrementation after each iteration
-		while interpret_boolean(statement.bool_expr, in_scope_variables):
+		while interpret_boolean(statement.bool_expr, scope):
 			for st in statement.statements:
-				if interpret_statement(st, new_scope_vars):
-					# If a sub-statement interpretation returns True, a return
-					# operation has been executed, so we must return control up
-					# to the calling function
-					if 'return' in new_scope_vars:
-						in_scope_variables['return'] = new_scope_vars['return']
-					else: raise Exception('Return statement evaluated but no \
-							return value found')
-					return True
-			interpret_statement(statement.incrementor, in_scope_variables)
-
-		# If we reach this point, the loop finished without a return statement
-		# being evaluated, so return False
-		return False
+				interpret_statement(st, new_scope)
+				# If a return value is found after any statement, we must break
+				# out of both loops and return to the calling function
+				if scope.has_return(): break
+			else:
+				interpret_statement(statement.incrementor, scope)
+			if scope.has_return(): break
 
 	elif issubclass(statement.__class__, While):
 
@@ -210,15 +203,11 @@ def interpret_statement(statement, in_scope_variables):
 		# sub-statements until the declared condition is false
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
-				if interpret_statement(st, dict(in_scope_variables.items())):
+				interpret_statement(st, dict(in_scope_variables.items())):
 					# If a sub-statement interpretation returns True, a return
 					# operation has been executed, so we must return control up
 					# to the calling function
 					return True
-
-		# If we reach this point, the loop finished without a return statement
-		# being evaluated, so return False
-		return False
 
 	elif issubclass(statement.__class__, If):
 
