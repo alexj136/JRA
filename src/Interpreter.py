@@ -1,5 +1,43 @@
 from AST import *
 
+class IntWrapper(object):
+	"""
+	Integer wrapper class that is used by the in_scope_variables dictionaries.
+	Prevents the primitive being copied when a dictionary is copied so that
+	changes to already-live variables are maintained when scope changes.
+	"""
+	def __init__(self, value):
+		self.value = value
+
+class VariableScope(object):
+	"""
+	Keeps track of the variables in scope at a particular nesting level. The
+	__init__() method should not be called directly. To begin an entirely new
+	scope, call the static method 'initiate()'. When a new scope is required,
+	call proliferate().
+	"""
+	def __init__(self):
+		self.variable_map = None
+		self.return_value = None
+
+	@staticmethod
+	def initiate():
+		initial_scope = VariableScope()
+		initial_scope.variable_map = {}
+		initial_scope.return_value = IntWrapper(None)
+
+	def proliferate(self):
+		new_scope = VariableScope()
+		new_scope.return_value = self.return_value
+		new_scope.variable_map = dict(self.variable_map.items())
+		return new_scope
+
+	def get(self, key):
+		return self.variable_map[key]
+
+	def set(self, key, value):
+		self.variable_map[key] = value
+
 FUNCTION_MAP = {}
 
 def interpret_program(program, program_arguments):
@@ -39,8 +77,7 @@ def interpret_program(program, program_arguments):
 		return interpret_function('main', program_arguments)
 
 	# If no main function was declared, raise an exception to the caller
-	else:
-		raise Exception('No main function found')
+	else: raise Exception('No main function found')
 
 def interpret_function(function_name, arg_values):
 	"""
@@ -86,15 +123,17 @@ def interpret_function(function_name, arg_values):
 	# Retrieve the Function object from the map
 	function = FUNCTION_MAP[function_name]
 
+	wrapped_arg_values = [IntWrapper(arg) for arg in arg_values]
+
 	# Create the list of in-scope variables
-	in_scope_variables = dict(zip(function.arg_names, arg_values))
+	in_scope_variables = dict(zip(function.arg_names, wrapped_arg_values))
 
 	# Interpret each statement
 	for st in function.statements:
 		if interpret_statement(st, in_scope_variables):
 			# If we have reached this point, a return statement is reached, so
 			# hand the value left in the return variable to the caller
-			return in_scope_variables['return']
+			return in_scope_variables['return'].value
 
 	# If the statement interpretation loop finishes without returning, an error
 	# has occurred in that the function had no return statement, so raise an
@@ -121,8 +160,17 @@ def interpret_statement(statement, in_scope_variables):
 	if issubclass(statement.__class__, Assignment):
 
 		# With assignment, we add an entry to the in_scope_variables dictionary
-		in_scope_variables[statement.assignee_identifier.name] = \
-			interpret_expression(statement.expression, in_scope_variables)
+		if statement.assignee_identifier.name in in_scope_variables:
+			# If the variable already exists in this scope, simply replace the
+			# value contained within the wrapper that the variable name maps to
+			# with the value of the given expression
+			in_scope_variables[statement.assignee_identifier.name].value = \
+				interpret_expression(statement.expression, in_scope_variables)
+		else:
+			# If the variable doesn't exist, we need to wrap up the result of
+			# the expression in a new wrapper and put it in the dictionary
+			in_scope_variables[statement.assignee_identifier.name] = IntWrapper(
+				interpret_expression(statement.expression, in_scope_variables))
 
 		# No return statement has been evaluated, so return false
 		return False
@@ -132,14 +180,23 @@ def interpret_statement(statement, in_scope_variables):
 		# Interpret the assignment in the for loop declaration
 		interpret_statement(statement.assignment, in_scope_variables)
 
+		# Make a shallow copy of the in_scope_variables dictionary to pass to
+		# the recursive call (we need a reference to it in case it returns
+		# something)
+		new_scope_vars = dict(in_scope_variables.items())
+
 		# Repeatedly execute each sub-statement, and do the specified
 		# incrementation after each iteration
 		while interpret_boolean(statement.bool_expr, in_scope_variables):
 			for st in statement.statements:
-				if interpret_statement(st, dict(in_scope_variables.items())):
+				if interpret_statement(st, new_scope_vars):
 					# If a sub-statement interpretation returns True, a return
 					# operation has been executed, so we must return control up
 					# to the calling function
+					if 'return' in new_scope_vars:
+						in_scope_variables['return'] = new_scope_vars['return']
+					else: raise Exception('Return statement evaluated but no \
+							return value found')
 					return True
 			interpret_statement(statement.incrementor, in_scope_variables)
 
@@ -202,8 +259,8 @@ def interpret_statement(statement, in_scope_variables):
 		# With return, we add a 'return' entry to the in_scope_variables
 		# dictionary. This will never conflict with a programmer-declared
 		# variable because 'return' is a reserved word.
-		in_scope_variables['return'] = \
-			interpret_expression(statement.expression, in_scope_variables)
+		in_scope_variables['return'] = IntWrapper(
+			interpret_expression(statement.expression, in_scope_variables))
 
 		# By returning true, we force any enclosing loops to finish, so that
 		# control returns to interpret_function, which can then hand the
@@ -216,6 +273,18 @@ def interpret_statement(statement, in_scope_variables):
 		raise Exception('Cannot interpret object: \'' + \
 			tree.__class__.__name__ + '\', not a statement')
 
+def interpret_nested_block(statements, in_scope_variables):
+	for statement in statements:
+		if interpret_statement(statement, new_scope_vars):
+			# If a sub-statement interpretation returns True, a return
+			# operation has been executed, so we must return control up
+			# to the calling function
+			if 'return' in new_scope_vars:
+				in_scope_variables['return'] = new_scope_vars['return']
+			else: raise Exception('Return statement evaluated but no \
+					return value found')
+			return True
+	return False
 
 def interpret_expression(expression, in_scope_variables):
 	"""
@@ -273,7 +342,7 @@ def interpret_expression(expression, in_scope_variables):
 	# name. We then hand the value that the dictionary returns to us back up to
 	# the caller.
 	elif issubclass(expression.__class__, Identifier):
-		return in_scope_variables[expression.name]
+		return in_scope_variables[expression.name].value
 
 
 	# Interpreting integer literals is very simple - we retrieve the literal

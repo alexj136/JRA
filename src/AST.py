@@ -1,11 +1,17 @@
 class Program(object):
 	def __init__(self, fns):
+		# List of FNDecl objects
 		self.fns = fns
 
 class FNDecl(object):
 	def __init__(self, name, arg_names, statements):
+		# String: name that this function can be called with
 		self.name = name
+
+		# List of Strings: names of the arguments to this function
 		self.arg_names = arg_names
+
+		# List of Statement objects
 		self.statements = statements
 
 class Statement(object):
@@ -21,20 +27,35 @@ class Assignment(Statement):
 
 class For(Statement):
 	def __init__(self, assignment, bool_expr, incrementor, statements):
+		# Assignment object
 		self.assignment = assignment
+
+		# BoolExpression object
 		self.bool_expr = bool_expr
+
+		# Assignment object
 		self.incrementor = incrementor
+
+		# List of Statement objects
 		self.statements = statements
 
 class While(Statement):
 	def __init__(self, bool_expr, statements):
+		# BoolExpression object
 		self.bool_expr = bool_expr
+
+		# List of Statement objects
 		self.statements = statements
 
 class If(Statement):
 	def __init__(self, bool_expr, if_statements, else_statements):
+		# BoolExpression object
 		self.bool_expr = bool_expr
+
+		# List of Statement objects
 		self.if_statements = if_statements
+
+		# List if Statement objects
 		self.else_statements = else_statements
 
 class Print(Statement):

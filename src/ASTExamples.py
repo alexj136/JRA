@@ -1,9 +1,8 @@
 from Interpreter import *
 from AST import *
 
+print 'FUNCTION CALLS (NO ARGUMENTS) TEST'
 """
-PROGRAM TO TEST FUNCTION CALLS
-
 fn main() {
 	return hundred();
 }
@@ -20,12 +19,12 @@ fncall_test = Program([
 		Return(IntegerLiteral(100))
 	])
 ])
+print 'RESULT: ' + str(interpret_program(fncall_test, []))
 
-print str(interpret_program(fncall_test, []))
 
+print '================================================='
+print 'FUNCTION CALLS (WITH ARGUMENTS) AND ADDITION TEST'
 """
-TEST OF FUNCTION CALLS (WITH ARGUMENTS) AND ADDITION
-
 fn main() {
 	return binary_add(4, 5);
 }
@@ -42,12 +41,12 @@ binary_add = Program([
 		Return(ArithmeticExpr(Identifier('num1'), '+', Identifier('num2')))
 	])
 ])
+print 'RESULT: ' + str(interpret_program(binary_add, []))
 
-print str(interpret_program(binary_add, []))
 
+print '================================================='
+print 'PRINT TEST'
 """
-PRINT TEST
-
 fn main(num) {
 	print num;
 	return num + 1;
@@ -59,11 +58,12 @@ add_one = Program([
 		Return(ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1)))
 	])
 ])
+print 'RESULT: ' + str(interpret_program(add_one, [4]))
 
-print str(interpret_program(add_one, [4]))
 
+print '================================================='
+print 'ASSIGNMENT AND ADDITION TEST'
 """
-TEST OF ASSIGNMENT AND ADDITION
 
 fn main(num) {
 	num = num + 1;
@@ -77,12 +77,12 @@ assign_test = Program([
 		Return(Identifier('num'))
 	])
 ])
+print 'RESULT: ' + str(interpret_program(assign_test, [7]))
 
-print str(interpret_program(assign_test, [7]))
 
+print '================================================='
+print 'WHILE LOOP TEST'
 """
-WHILE LOOP TEST
-
 fn main(num) {
 	while(num < 10) {
 		num = num + 1;
@@ -98,8 +98,56 @@ while_test = Program([
 				ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1))),
 			Print(Identifier('num'))
 		]),
-		Return(IntegerLiteral('num'))
+		Return(Identifier('num'))
 	])
 ])
+print 'RESULT: ' + str(interpret_program(while_test, [1]))
 
-#print str(interpret_program(while_test, [1]))
+
+print '================================================='
+print 'FOR LOOP TEST'
+"""
+fn main() {
+	for i = 20, i < 30, i = i + 1 {
+		print i;
+	}
+	return 999;
+}
+"""
+for_test = Program([
+	FNDecl('main', [], [
+		For(Assignment(Identifier('i'), IntegerLiteral(20)),
+			BoolExpression(Identifier('i'), '<', IntegerLiteral(30)),
+			Assignment(Identifier('i'), ArithmeticExpr(Identifier('i'), '+',
+				IntegerLiteral(1))), [
+
+			Print(Identifier('i'))
+		]),
+		Return(IntegerLiteral(999))
+	])
+])
+print 'RESULT: ' + str(interpret_program(for_test, []))
+
+
+print '================================================='
+print 'IF TEST'
+"""
+fn main(num) {
+	if(num < 10) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+"""
+if_test = Program([
+	FNDecl('main', ['num'], [
+		If(BoolExpression(Identifier('num'), '<', IntegerLiteral(10)), [
+			Return(IntegerLiteral(1))
+		], [
+			Return(IntegerLiteral(0))
+		]),
+	])
+])
+print 'RESULT: ' + str(interpret_program(if_test, [1]))
