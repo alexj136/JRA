@@ -121,7 +121,7 @@ def interpret_statement(statement, in_scope_variables):
 	if issubclass(statement.__class__, Assignment):
 
 		# With assignment, we add an entry to the in_scope_variables dictionary
-		in_scope_variables[statement.assignee_identifier] = \
+		in_scope_variables[statement.assignee_identifier.name] = \
 			interpret_expression(statement.expression, in_scope_variables)
 
 		# No return statement has been evaluated, so return false
@@ -187,26 +187,6 @@ def interpret_statement(statement, in_scope_variables):
 		# return statement being evaluated, so return False
 		return False
 
-	elif issubclass(statement.__class__, Incrementor):
-
-		# To interpret the increment operator, work out what is the appropriate
-		# incrementation action, and apply it to the specified variable
-		if statement.op == '+=':
-			in_scope_variables[statement.assignee] = \
-				in_scope_variables[statement.assignee] + \
-				interpret_expression(statement.expression)
-
-		elif statement.op == '-=':
-			in_scope_variables[statement.assignee] = \
-				in_scope_variables[statement.assignee] - \
-				interpret_expression(statement.expression)
-
-		else:
-			raise Exception('Invalid incrementor\decrementor operation in AST')
-		
-		# No return statement evaluated - return False
-		return False
-
 	elif issubclass(statement.__class__, Print):
 
 		# Print is very simple: just evaluate the expression and print the
@@ -253,6 +233,9 @@ def interpret_expression(expression, in_scope_variables):
 		Function call - the call to a function which will return an integer
 		value
 
+		Incrementor - increment or decrements an expression and then evaluates
+		the resulting expression
+
 	The function determines the type of the integer expression, and handles it
 	accordingly.
 	"""
@@ -298,8 +281,14 @@ def interpret_expression(expression, in_scope_variables):
 	elif issubclass(expression.__class__, IntegerLiteral):
 		return expression.value
 
+	# To interpret a function call, evaluate the passed arguments, and then pass
+	# them, with the name of the function being called, to interpret_function,
+	# which will retrieve the correct function object from the function map,
+	# and interpret it with the arguments as initial in-scope variables.
 	elif issubclass(expression.__class__, FNCall):
-		return interpret_function(expression.name, expression.arg_vals)
+		evaluated_args = [interpret_expression(arg, in_scope_variables) \
+			for arg in expression.arg_vals]
+		return interpret_function(expression.name, evaluated_args)
 
 	# If a non-integer-expression has been passed, this is an error, so an
 	# exception is generated:
@@ -315,27 +304,27 @@ def interpret_boolean(bool_expr, in_scope_variables):
 
 	# Make the appropriate comparison between LHS and RHS, and return the result
 	if bool_expr.comparison == '=':
-		return interpret_expression(bool_expr.expr_left) == \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) ==\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	elif bool_expr.comparison == '!=':
-		return interpret_expression(bool_expr.expr_left) != \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) !=\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	elif bool_expr.comparison == '<':
-		return interpret_expression(bool_expr.expr_left) < \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) <\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	elif bool_expr.comparison == '>':
-		return interpret_expression(bool_expr.expr_left) > \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) >\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	elif bool_expr.comparison == '<=':
-		return interpret_expression(bool_expr.expr_left) <= \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) <=\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	elif bool_expr.comparison == '>=':
-		return interpret_expression(bool_expr.expr_left) >= \
-			interpret_expression(bool_expr.expr_right)
+		return interpret_expression(bool_expr.expr_left, in_scope_variables) >=\
+			interpret_expression(bool_expr.expr_right, in_scope_variables)
 
 	else: raise Exception('Invalid boolean expression found!')

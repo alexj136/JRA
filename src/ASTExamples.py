@@ -2,27 +2,30 @@ from Interpreter import *
 from AST import *
 
 """
+PROGRAM TO TEST FUNCTION CALLS
+
 fn main() {
-	return hundred(4);
+	return hundred();
 }
 
-fn hundred(num) {
+fn hundred() {
 	return 100;
 }
-
 """
-hundred = Program([
+fncall_test = Program([
 	FNDecl('main', [], [
-		Return(FNCall('hundred', [IntegerLiteral(4)]))
+		Return(FNCall('hundred', []))
 	]),
-	FNDecl('hundred', ['num'], [
+	FNDecl('hundred', [], [
 		Return(IntegerLiteral(100))
 	])
 ])
 
-print str(interpret_program(hundred, []))
+print str(interpret_program(fncall_test, []))
 
 """
+TEST OF FUNCTION CALLS (WITH ARGUMENTS) AND ADDITION
+
 fn main() {
 	return binary_add(4, 5);
 }
@@ -30,7 +33,6 @@ fn main() {
 fn binary_add(num1, num2) {
 	return num1 + num2;
 }
-
 """
 binary_add = Program([
 	FNDecl('main', [], [
@@ -42,3 +44,62 @@ binary_add = Program([
 ])
 
 print str(interpret_program(binary_add, []))
+
+"""
+PRINT TEST
+
+fn main(num) {
+	print num;
+	return num + 1;
+}
+"""
+add_one = Program([
+	FNDecl('main', ['num'], [
+		Print(Identifier('num')),
+		Return(ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1)))
+	])
+])
+
+print str(interpret_program(add_one, [4]))
+
+"""
+TEST OF ASSIGNMENT AND ADDITION
+
+fn main(num) {
+	num = num + 1;
+	return num;
+}
+"""
+assign_test = Program([
+	FNDecl('main', ['num'], [
+		Assignment(Identifier('num'),
+			ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1))),
+		Return(Identifier('num'))
+	])
+])
+
+print str(interpret_program(assign_test, [7]))
+
+"""
+WHILE LOOP TEST
+
+fn main(num) {
+	while(num < 10) {
+		num = num + 1;
+		print num;
+	}
+	return 0;
+}
+"""
+while_test = Program([
+	FNDecl('main', ['num'], [
+		While(BoolExpression(Identifier('num'), '<', IntegerLiteral(10)), [
+			Assignment(Identifier('num'),
+				ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1))),
+			Print(Identifier('num'))
+		]),
+		Return(IntegerLiteral('num'))
+	])
+])
+
+#print str(interpret_program(while_test, [1]))

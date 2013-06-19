@@ -13,7 +13,10 @@ class Statement(object):
 
 class Assignment(Statement):
 	def __init__(self, assignee_identifier, expression):
+		# Identifier object
 		self.assignee_identifier = assignee_identifier
+
+		# Expression object
 		self.expression = expression
 
 class For(Statement):
@@ -36,22 +39,25 @@ class If(Statement):
 
 class Print(Statement):
 	def __init__(self, expression):
+		# Expression object
 		self.expression = expression
 
 class Return(Statement):
 	def __init__(self, expression):
+		# Expression object
 		self.expression = expression
 
-class Incrementor(Statement):
-	def __init__(self, assignee, op, expression):
-		self.assignee = assignee
-		self.op = op
-		self.expression = expression
+
 
 class BoolExpression(object):
 	def __init__(self, expr_left, comparison, expr_right):
+		# Expression object
 		self.expr_left = expr_left
+
+		# String: '=', '!=', '<', '>', '<=' or '>='
 		self.comparison = comparison
+
+		#Expression object
 		self.expr_right = expr_right
 
 class Expression(object):
@@ -59,19 +65,29 @@ class Expression(object):
 
 class ArithmeticExpr(Expression):
 	def __init__(self, lhs, op, rhs):
+		# Expression object
 		self.lhs = lhs
+
+		# String: '+', '-', '*', '/' or '%'
 		self.op = op
+
+		# Expression object
 		self.rhs = rhs
 
 class Identifier(Expression):
 	def __init__(self, name):
+		# String: declared name
 		self.name = name
 
 class IntegerLiteral(Expression):
 	def __init__(self, value):
+		# Integer value
 		self.value = value
 
 class FNCall(Expression):
 	def __init__(self, name, arg_vals):
+		# String: declared name of function being called
 		self.name = name
+
+		# List of expression objects
 		self.arg_vals = arg_vals

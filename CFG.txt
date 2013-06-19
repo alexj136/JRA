@@ -1,6 +1,6 @@
-P → D; P | D
+PROG → FUNC; PROG | FUNC
 
-D → fn ID (A) : ID { STMTS }
+FUNC → fn ID(A) { STMTS }
 
 A → ID, A | ID
 
