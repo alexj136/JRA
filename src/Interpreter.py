@@ -2,20 +2,23 @@ from AST import *
 
 class IntWrapper(object):
 	"""
-	Integer wrapper class that is used by the in_scope_variables dictionaries.
-	Prevents the primitive being copied when a dictionary is copied so that
-	changes to already-live variables are maintained when scope changes.
+	Integer wrapper class that is used by VariableScope objects to prevent
+	primitives being copied when a VariableScope is proliferated, so that
+	changes to already-live variables are maintained when the scope reverts.
 	"""
 	def __init__(self, value):
 		self.value = value
 
 class VariableScope(object):
 	"""
-	Keeps track of the variables in scope at a particular nesting level. The
-	__init__() method should not be called directly. To begin an entirely new
-	scope, call the static method 'initiate()'. When a new scope is required,
-	call proliferate().
+	This class is used to keep track of the variables in scope at a particular
+	nesting level. The __init__() method should not be called directly. To begin
+	an entirely new scope, call the static method 'initiate()'. When a new scope
+	is required, call proliferate().
+	This class can also be used to determine if a statement has caused a
+	function to return, and to record the return value.
 	"""
+
 	def __init__(self):
 		self.var_map = None
 		self.ret_val = None
@@ -26,6 +29,7 @@ class VariableScope(object):
 		wrapped_values = [IntWrapper(val) for val in values]
 		initial_scope.var_map = dict(zip(names, wrapped_values))
 		initial_scope.ret_val = IntWrapper(None)
+		return initial_scope
 
 	def proliferate(self):
 		new_scope = VariableScope()
@@ -37,7 +41,11 @@ class VariableScope(object):
 		return var in self.var_map
 
 	def get(self, var):
-		return self.var_map[var].value
+		if var in self.var_map:
+			return self.var_map[var].value
+		else:
+			raise Exception(
+				'Variable \'' + var + '\' is not declared in this scope')
 
 	def set(self, var, value):
 		if self.has_var(var):
@@ -46,7 +54,10 @@ class VariableScope(object):
 			self.var_map[var] = IntWrapper(value)
 
 	def get_return(self):
-		return self.ret_val.value
+		if self.ret_val.value is not None:
+			return self.ret_val.value
+		else:
+			raise Exception('Return value not present')
 
 	def set_return(self, value):
 		self.ret_val.value = value
@@ -99,12 +110,12 @@ def interpret_function(function_name, arg_values):
 	"""
 	interpret_function is responsible for the interpretation of the AST objects
 	that correspond to functions. Since a function should have its own variable
-	scope, a dictionary called 'in_scope_variables' is created, which will
-	allow any variables in the scope of this function to be accessed. The
-	initial values in that dictionary are the function's arguments.
+	scope, a object of type VariableScope is created, which will allow access to
+	any variables in the scope of this function. The initial values in a
+	VariableScope are the function's arguments.
 
-	Once the 'in_scope_variables' list has been created, all that remains is to
-	execute the statements that comprise the function.
+	Once the VariableScope has been created, all that remains is to	execute the
+	statements that comprise the function.
 
 	An important issue when dealing with interpreted functions is handling
 	return statements. In a compiled language, return statements have the
@@ -112,15 +123,14 @@ def interpret_function(function_name, arg_values):
 	that the CPU will execute. With an interpreted language, a return
 	statement consists of a 'dummy object' with no ability to ensure that the
 	operation it specifies is carried out. To deal with this issue, this
-	implementation requires the interpretation of every single statement to
-	return a boolean. If a statement returns false, no action need be taken,
-	sequential execution of statements can continue. When statement
-	interpretation returns true, it indicates that the statement that was just
-	interpreted, was a return statement. Accordingly, this will cause all
-	enclosing blocks of code to break, and indicate to the containing function
-	that a return operation has occurred, meaning that there will be an entry in
-	the 'in_scope_variables' dictionary with key 'return', which maps to the
-	value to be returned. The function stops without any further statement
+	implementation checks if a return operation has occurred after every
+	statement. If a statement is not a return, no action need be taken,
+	sequential execution of statements can continue. When a return statement is
+	reached, this is recorded by calling set_return() method of the
+	VariableScope object. Accordingly, this will cause all enclosing blocks of
+	code to break, and indicate to the containing function that a return
+	operation has occurred, meaning that there will be a stored return value in
+	the VariableScope object. The function stops without any further statement
 	interpretation and returns that value to the caller.
 	"""
 
@@ -140,13 +150,14 @@ def interpret_function(function_name, arg_values):
 	function = FUNCTION_MAP[function_name]
 
 	# Create the VariableScope for this function
-	scope = VariableScope.initiate(function.arg_names, wrapped_arg_values)
+	scope = VariableScope.initiate(function.arg_names, arg_values)
 
 	# Interpret each statement
 	for statement in function.statements:
 		interpret_statement(statement, scope)
-			# If we have reached this point, a return statement has been reached, so
-			# hand the value left in the return variable to the caller
+
+		# If a return value is found after any statement, we must break out of
+		# the loop and return to the calling function
 		if scope.has_return(): return scope.get_return()
 
 	# If the statement interpretation loop finishes without returning, an error
@@ -160,12 +171,11 @@ def interpret_statement(statement, scope):
 	case that the statement to be interpreted is a loop construct, this function
 	will recursively call itself for each statement within that loop construct.
 
-	iterpret_statement returns False except in the case that a 'return'
-	statement has been evaluated. If a return statement has been evaluated,
-	either in the immediate given statement, or in any statements that exists
-	within the statement, this function will immediately return True, without
-	evaluating any further sub-statements. The reason for this is given in the
-	doc-string for interpret_function.
+	iterpret_statement proceeds a 'return' statement has been evaluated. If a
+	return statement has been evaluated, either in the immediate given
+	statement, or in any statements that exists	within the statement, all loops
+	will break, without evaluating any further sub-statements. The reason for
+	this is given in the doc-string for interpret_function.
 
 	There are 6 kinds of statement: assignment, print, return, for, while and
 	if. This function begins by checking which of those the given statement is.
@@ -179,82 +189,79 @@ def interpret_statement(statement, scope):
 
 	elif issubclass(statement.__class__, For):
 
+		# Proliferate the scope object for the new scope
+		new_scope = scope.proliferate()
+
 		# Interpret the assignment in the for loop declaration
-		interpret_statement(statement.assignment, scope)
+		interpret_statement(statement.assignment, new_scope)
+
+		# Repeatedly execute each sub-statement, and do the specified
+		# incrementation after each iteration
+		while interpret_boolean(statement.bool_expr, new_scope):
+			for st in statement.statements:
+				interpret_statement(st, new_scope)
+
+				# If a return value is found after any statement, we must break
+				# out of the loop and return to the calling function
+				if new_scope.has_return(): break
+			if new_scope.has_return(): break
+
+			# If we reach this statement, we have not reached a return, so
+			# increment the loop control variable for the next iteration
+			interpret_statement(statement.incrementor, new_scope)
+
+	elif issubclass(statement.__class__, While):
 
 		# Proliferate the scope object for the new scope
 		new_scope = scope.proliferate()
 
-		# Repeatedly execute each sub-statement, and do the specified
-		# incrementation after each iteration
-		while interpret_boolean(statement.bool_expr, scope):
+		# The while loop case is simple - set up a while loop which executes all
+		# sub-statements until the declared condition is false, or a return
+		# statement is evaluated
+		while interpret_boolean(statement.bool_expr, new_scope):
 			for st in statement.statements:
 				interpret_statement(st, new_scope)
-				# If a return value is found after any statement, we must break
-				# out of both loops and return to the calling function
-				if scope.has_return(): break
-			else:
-				interpret_statement(statement.incrementor, scope)
-			if scope.has_return(): break
-
-	elif issubclass(statement.__class__, While):
-
-		# The while loop case is simple - set up a while loop which executes all
-		# sub-statements until the declared condition is false
-		while interpret_boolean(statement.bool_expr, in_scope_variables):
-			for st in statement.statements:
-				interpret_statement(st, dict(in_scope_variables.items())):
-					# If a sub-statement interpretation returns True, a return
-					# operation has been executed, so we must return control up
-					# to the calling function
-					return True
+				
+				# If a sub-statement executes a return statement, so we must
+				# break, returning control up to the calling function
+				if new_scope.has_return(): break
+			if new_scope.has_return(): break
 
 	elif issubclass(statement.__class__, If):
 
+		# Proliferate the scope object for the new scope
+		new_scope = scope.proliferate()
+
 		# If statements are also simple - evaluate the boolean expression, and
 		# if true, do the if-block, otherwise do the else-block
-		if interpret_boolean(statement.bool_expr, in_scope_variables):
+		if interpret_boolean(statement.bool_expr, new_scope):
 			for st in statement.if_statements:
-				if interpret_statement(st, dict(in_scope_variables.items())):
-					# If a sub-statement interpretation returns True, a return
-					# operation has been executed, so we must return control up
-					# to the calling function
-					return True
+				interpret_statement(st, new_scope)
+				
+				# If a sub-statement executes a return statement, so we must
+				# break, returning control up to the calling function
+				if new_scope.has_return(): break
 
 		else:
 			for st in statement.else_statements:
-				if interpret_statement(st, dict(in_scope_variables.items())):
-					# If a sub-statement interpretation returns True, a return
-					# operation has been executed, so we must return control up
-					# to the calling function
-					return True
-
-		# If we reach this point, the if-statement contents finished without a
-		# return statement being evaluated, so return False
-		return False
+				interpret_statement(st, new_scope)
+				
+				# If a sub-statement executes a return statement, so we must
+				# break, returning control up to the calling function
+				if new_scope.has_return(): break
 
 	elif issubclass(statement.__class__, Print):
 
-		# Print is very simple: just evaluate the expression and print the
-		# result
-		print \
-			str(interpret_expression(statement.expression, in_scope_variables))
-
-		# No return statement evaluated - return False
-		return False
+		# Print is simple, just evaluate the expression and print the result
+		print str(interpret_expression(statement.expression, scope))
 
 	elif issubclass(statement.__class__, Return):
 
-		# With return, we add a 'return' entry to the in_scope_variables
-		# dictionary. This will never conflict with a programmer-declared
-		# variable because 'return' is a reserved word.
-		in_scope_variables['return'] = IntWrapper(
-			interpret_expression(statement.expression, in_scope_variables))
-
-		# By returning true, we force any enclosing loops to finish, so that
-		# control returns to interpret_function, which can then hand the
-		# dictionary value labeled 'return' back to the caller of that function
-		return True
+		# With return, we have to call the set_return() method of the scope
+		# object. If this statement is embedded in an if, for or while, it will
+		# be detected, and no further statements in that function will be
+		# executed
+		scope.set_return(interpret_expression(statement.expression, scope))
 
 	# If the statement parameter is not a subclass of Statement, raise an
 	# exception
@@ -262,20 +269,7 @@ def interpret_statement(statement, scope):
 		raise Exception('Cannot interpret object: \'' + \
 			tree.__class__.__name__ + '\', not a statement')
 
-def interpret_nested_block(statements, in_scope_variables):
-	for statement in statements:
-		if interpret_statement(statement, new_scope_vars):
-			# If a sub-statement interpretation returns True, a return
-			# operation has been executed, so we must return control up
-			# to the calling function
-			if 'return' in new_scope_vars:
-				in_scope_variables['return'] = new_scope_vars['return']
-			else: raise Exception('Return statement evaluated but no \
-					return value found')
-			return True
-	return False
-
-def interpret_expression(expression, in_scope_variables):
+def interpret_expression(expression, scope):
 	"""
 	interpret_expression is an integer-typed function used to evaluate integer
 	expressions. There are four kinds of integer expression:
@@ -294,6 +288,9 @@ def interpret_expression(expression, in_scope_variables):
 		Incrementor - increment or decrements an expression and then evaluates
 		the resulting expression
 
+		Ternary - evaluates to one of two possible expressions based on the
+		value of a boolean
+
 	The function determines the type of the integer expression, and handles it
 	accordingly.
 	"""
@@ -303,35 +300,33 @@ def interpret_expression(expression, in_scope_variables):
 	# right hand side of the operator:
 	if issubclass(expression.__class__, ArithmeticExpr):
 		if expression.op == '+':
-			return interpret_expression(expression.lhs, in_scope_variables) + \
-				interpret_expression(expression.rhs, in_scope_variables)
+			return interpret_expression(expression.lhs, scope) + \
+				interpret_expression(expression.rhs, scope)
 
 		elif expression.op == '-':
-			return interpret_expression(expression.lhs, in_scope_variables) - \
-				interpret_expression(expression.rhs, in_scope_variables)
+			return interpret_expression(expression.lhs, scope) - \
+				interpret_expression(expression.rhs, scope)
 
 		elif expression.op == '*':
-			return interpret_expression(expression.lhs, in_scope_variables) * \
-				interpret_expression(expression.rhs, in_scope_variables)
+			return interpret_expression(expression.lhs, scope) * \
+				interpret_expression(expression.rhs, scope)
 
 		elif expression.op == '/':
-			return interpret_expression(expression.lhs, in_scope_variables) / \
-				interpret_expression(expression.rhs, in_scope_variables)
+			return interpret_expression(expression.lhs, scope) / \
+				interpret_expression(expression.rhs, scope)
 
 		elif expression.op == '%':
-			return interpret_expression(expression.lhs, in_scope_variables) % \
-				interpret_expression(expression.rhs, in_scope_variables)
+			return interpret_expression(expression.lhs, scope) % \
+				interpret_expression(expression.rhs, scope)
 
 		# Anything else is an error
 		else: raise Exception("Invalid arithmetic expression found!")
 
-	# Interpreting an identifier requires looking up the dictionary of in-scope
-	# variables, which is passed as a parameter to this function. We simply
-	# look at the name of the identifier, and lookup the dictionary with that
-	# name. We then hand the value that the dictionary returns to us back up to
-	# the caller.
+	# Interpreting an identifier requires querying the scope, which is passed as
+	# a parameter to this function. We look it up with the name of the
+	# identifier, and the scope hands back the corresponding value.
 	elif issubclass(expression.__class__, Identifier):
-		return in_scope_variables[expression.name].value
+		return scope.get(expression.name)
 
 
 	# Interpreting integer literals is very simple - we retrieve the literal
@@ -344,15 +339,24 @@ def interpret_expression(expression, in_scope_variables):
 	# which will retrieve the correct function object from the function map,
 	# and interpret it with the arguments as initial in-scope variables.
 	elif issubclass(expression.__class__, FNCall):
-		evaluated_args = [interpret_expression(arg, in_scope_variables) \
+		evaluated_args = [interpret_expression(arg, scope) \
 			for arg in expression.arg_vals]
 		return interpret_function(expression.name, evaluated_args)
+
+	# To interpret a ternary, we evaluate the boolean, returning the
+	# interpretation of the true part if the boolean is true, and the false part
+	# otherwise
+	elif issubclass(expression.__class__, Ternary):
+		if interpret_boolean(expression.bool_expr, scope):
+			return interpret_expression(expression.true_exp, scope)
+		else:
+			return interpret_expression(expression.false_exp, scope)
 
 	# If a non-integer-expression has been passed, this is an error, so an
 	# exception is generated:
 	else: raise Exception('Invalid expression found!')
 
-def interpret_boolean(bool_expr, in_scope_variables):
+def interpret_boolean(bool_expr, scope):
 	"""
 	interpret_boolean is a boolean-typed function used to evaluate boolean
 	expressions. The 'bool_expr' argument has three members: a LHS and RHS
@@ -362,27 +366,27 @@ def interpret_boolean(bool_expr, in_scope_variables):
 
 	# Make the appropriate comparison between LHS and RHS, and return the result
 	if bool_expr.comparison == '=':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) ==\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) == \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	elif bool_expr.comparison == '!=':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) !=\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) != \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	elif bool_expr.comparison == '<':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) <\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) < \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	elif bool_expr.comparison == '>':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) >\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) > \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	elif bool_expr.comparison == '<=':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) <=\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) <= \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	elif bool_expr.comparison == '>=':
-		return interpret_expression(bool_expr.expr_left, in_scope_variables) >=\
-			interpret_expression(bool_expr.expr_right, in_scope_variables)
+		return interpret_expression(bool_expr.expr_left, scope) >= \
+			interpret_expression(bool_expr.expr_right, scope)
 
 	else: raise Exception('Invalid boolean expression found!')

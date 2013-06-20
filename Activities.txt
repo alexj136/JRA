@@ -11,3 +11,5 @@ MONDAY 17TH JUNE
 TUESDAY 18TH JUNE
 - Read up on lexical analysis
 - Book-keeping of code produced yesterday, including extensive comments
+WEDNESDAY 19TH JUNE
+- Debugging & refactoring of AST interpreter

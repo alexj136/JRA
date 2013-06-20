@@ -112,3 +112,14 @@ class FNCall(Expression):
 
 		# List of expression objects
 		self.arg_vals = arg_vals
+
+class Ternary(Expression):
+	def __init__(self, bool_expr, true_exp, false_exp):
+		# BoolExpression object
+		self.bool_expr = bool_expr
+
+		# Expression object
+		self.true_exp = true_exp
+
+		# Expression object
+		self.false_exp = false_exp
