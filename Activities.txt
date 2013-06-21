@@ -13,3 +13,7 @@ TUESDAY 18TH JUNE
 - Book-keeping of code produced yesterday, including extensive comments
 WEDNESDAY 19TH JUNE
 - Debugging & refactoring of AST interpreter
+THURSDAY
+- A few more touches to AST interpreter
+- Began implementation of lexer: sketched DFA and began implementing DFA as a 2D
+  array

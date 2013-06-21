@@ -2,7 +2,7 @@ from Interpreter import *
 from AST import *
 
 print 'FUNCTION CALLS (NO ARGUMENTS) TEST'
-"""
+fncall_test_str = """
 fn main() {
 	return hundred();
 }
@@ -11,7 +11,7 @@ fn hundred() {
 	return 100;
 }
 """
-fncall_test = Program([
+fncall_test_AST = Program([
 	FNDecl('main', [], [
 		Return(FNCall('hundred', []))
 	]),
@@ -19,7 +19,7 @@ fncall_test = Program([
 		Return(IntegerLiteral(100))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(fncall_test, []))
+print 'RESULT: ' + str(interpret_program(fncall_test_AST, []))
 
 
 print '================================================='
@@ -33,7 +33,7 @@ fn binary_add(num1, num2) {
 	return num1 + num2;
 }
 """
-binary_add = Program([
+binary_add_AST = Program([
 	FNDecl('main', [], [
 		Return(FNCall('binary_add', [IntegerLiteral(4), IntegerLiteral(5)]))
 	]),
@@ -41,7 +41,7 @@ binary_add = Program([
 		Return(ArithmeticExpr(Identifier('num1'), '+', Identifier('num2')))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(binary_add, []))
+print 'RESULT: ' + str(interpret_program(binary_add_AST, []))
 
 
 print '================================================='
@@ -52,32 +52,31 @@ fn main(num) {
 	return num + 1;
 }
 """
-add_one = Program([
+add_one_AST = Program([
 	FNDecl('main', ['num'], [
 		Print(Identifier('num')),
 		Return(ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1)))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(add_one, [4]))
+print 'RESULT: ' + str(interpret_program(add_one_AST, [4]))
 
 
 print '================================================='
 print 'ASSIGNMENT AND ADDITION TEST'
 """
-
 fn main(num) {
 	num = num + 1;
 	return num;
 }
 """
-assign_test = Program([
+assign_test_AST = Program([
 	FNDecl('main', ['num'], [
 		Assignment(Identifier('num'),
 			ArithmeticExpr(Identifier('num'), '+', IntegerLiteral(1))),
 		Return(Identifier('num'))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(assign_test, [7]))
+print 'RESULT: ' + str(interpret_program(assign_test_AST, [7]))
 
 
 print '================================================='
@@ -91,7 +90,7 @@ fn main(num) {
 	return 0;
 }
 """
-while_test = Program([
+while_test_AST = Program([
 	FNDecl('main', ['num'], [
 		While(BoolExpression(Identifier('num'), '<', IntegerLiteral(10)), [
 			Assignment(Identifier('num'),
@@ -101,7 +100,7 @@ while_test = Program([
 		Return(Identifier('num'))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(while_test, [1]))
+print 'RESULT: ' + str(interpret_program(while_test_AST, [1]))
 
 
 print '================================================='
@@ -114,7 +113,7 @@ fn main() {
 	return 999;
 }
 """
-for_test = Program([
+for_test_AST = Program([
 	FNDecl('main', [], [
 		For(Assignment(Identifier('i'), IntegerLiteral(20)),
 			BoolExpression(Identifier('i'), '<', IntegerLiteral(30)),
@@ -126,7 +125,7 @@ for_test = Program([
 		Return(IntegerLiteral(999))
 	])
 ])
-print 'RESULT: ' + str(interpret_program(for_test, []))
+print 'RESULT: ' + str(interpret_program(for_test_AST, []))
 
 
 print '================================================='
@@ -141,7 +140,7 @@ fn main(num) {
 	}
 }
 """
-if_test = Program([
+if_test_AST = Program([
 	FNDecl('main', ['num'], [
 		If(BoolExpression(Identifier('num'), '<', IntegerLiteral(10)), [
 			Return(IntegerLiteral(1))
@@ -150,4 +149,4 @@ if_test = Program([
 		]),
 	])
 ])
-print 'RESULT: ' + str(interpret_program(if_test, [1]))
+print 'RESULT: ' + str(interpret_program(if_test_AST, [1]))
