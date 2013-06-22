@@ -8,6 +8,10 @@ class Token(object):
 	def __str__(self):
 		return 'T_' + self.type + ('' if self.info is None else '_' + self.info)
 
+class LexerError(object):
+	def __init__(self, offending_syntax):
+		self.offending_syntax = offending_syntax
+
 transition_table = [#                                                 abcdjkx
 # e   f   g   h   i   l   m   n   o   p   q   r   s   t   u   v   w   yzCAPS_   0-9   {   }   (   )   *   /   %   ,   ;   ?   :   <   >   =   +   -   !
 [ 49,  1, 49, 49,  4, 49, 49, 49, 49,  2, 49,  3, 49, 49, 49, 49,  5, 49,       48,   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 23, 26, 36, 28, 31, 34], # state 0
@@ -123,6 +127,10 @@ def get_next_token(text):
 		# Update the current_state variable
 		current_state = next_state
 
+	# Return null/None as the token if the input was an empty string:
+	if final_state is None or current_state == 0:
+		return (None, text)
+
 	# The info for the token only needs recording if it's an ID or INT
 	info = None if string_builder in valueless_tokens else string_builder
 
@@ -132,7 +140,8 @@ def get_next_token(text):
 
 #----------TESTING-----------------
 
-print get_next_token('')
+print get_next_token('^')
+print get_next_token('!')
 
 fncall_test_str = """
 fn main() {
@@ -150,7 +159,7 @@ for x in range(20):
 
 
 import random
-some_valid_tokens = valueless_tokens + ['oaisejd', 'asjd', 'boo']
+some_valid_tokens = valueless_tokens + ['oaisejd', 'asjd', 'boo',]
 boop = ''
 for x in range(70):
 	boop = boop + some_valid_tokens[random.randint(0, len(some_valid_tokens)-1)]
