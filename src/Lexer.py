@@ -1,9 +1,15 @@
 import string
 
 class LexerResult(object):
+	"""
+	Empty class for Token & LexerResult to extend
+	"""
 	pass
 
 class Token(LexerResult):
+	"""
+	Representation of a token object, with __str__ method for printing etc.
+	"""
 	def __init__(self, type, info):
 		self.type = type
 		self.info = info
@@ -12,12 +18,17 @@ class Token(LexerResult):
 		return 'T_' + self.type + ('' if self.info is None else '_' + self.info)
 
 class LexerError(LexerResult):
+	"""
+	Class that denotes lexical errors in a program
+	"""
 	def __init__(self, bad_syntax):
 		self.bad_syntax = bad_syntax
 
 	def __str__(self):
-		return 'Syntax error: \'' + self.bad_syntax + '\' is not valid syntax'
+		return 'Lexical error: \'' + self.bad_syntax + '\' is not a valid lexeme'
 
+# The transition table represents the finite state machine that describes the
+# syntax of the language
 transition_table = [#                                                 abcdjkx
 # e   f   g   h   i   l   m   n   o   p   q   r   s   t   u   v   w   yzCAPS_   0-9   {   }   (   )   *   /   %   ,   ;   ?   :   <   >   =   +   -   !
 [ 49,  1, 49, 49,  4, 49, 49, 49, 49,  2, 49,  3, 49, 49, 49, 49,  5, 49,       48,   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 23, 26, 36, 28, 31, 34], # state 0
@@ -71,6 +82,9 @@ transition_table = [#                                                 abcdjkx
 [ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,       48,   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], # state 48
 [ 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49,       49,   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]] # state 49
 
+# The char_indices dictionary maps characters in the language to columns in the
+# transition table so that the table can be 'traversed' like a finite state
+# machine
 char_indices = {
 	'a': 17, 'b': 17, 'c': 17, 'd': 17, 'e':  0, 'f':  1, 'g':  2,
 	'h':  3, 'i':  4, 'j': 17, 'k': 17, 'l':  5, 'm':  6, 'n':  7,
@@ -85,6 +99,8 @@ char_indices = {
 	':': 26, ';': 27, '?': 28, ',': 29, '<': 30, '>': 31, '=': 32,
 	'+': 33, '-': 34, '!': 35 }
 
+# final_mapping maps final states to token types so that after processing some
+# text, we can determine what token we have seen by passing in the final state
 final_mapping = {
 	0:    -1, 1:      'ID', 2:     'ID', 3:   'ID', 4:  'ID', 
 	5:  'ID', 6:      'ID', 7:    'FOR', 8:   'ID', 9:  'ID', 
@@ -102,6 +118,12 @@ valueless_tokens = ['fn', 'for', 'if', 'while', 'print', 'return', '<', '<-',
 	')', '*', '/', '%',',', ';', '?', ':']
 
 def get_next_token(text):
+	"""
+	Retrieves the first token present in the given text. Also trims any
+	processed text from the input text. The Token (or LexerError) found is
+	returned in a tuple with the remaining text:
+	(Token_or_LexerError, remaining_text)
+	"""
 
 	string_builder = ''
 	final_state = 0
@@ -160,44 +182,29 @@ def get_next_token(text):
 	else: return (Token(final_mapping[final_state], info), text)
 
 def lex(text):
+	"""
+	Scans some text, and returns either a list of Tokens, if there were no
+	lexical errors, or a list of LexerErrors, if lexical errors were found
+	"""
 	tokens = []
 	errors = []
 
+	# Get the first token
 	next_token, text = get_next_token(text)
 
+	# Loop while we haven't finished processing the tex
 	while next_token is not None:
+
+		# If the token is valid, add it to the token list
 		if issubclass(next_token.__class__, Token):
 			tokens.append(next_token)
+
+		# If not, add it to the errors list
 		else:
 			errors.append(next_token)
+
+		# Get the next token
 		next_token, text = get_next_token(text)
 
+	# Return the tokens if there were no errors, otherwise return the errors
 	return tokens if len(errors) == 0 else errors
-
-#----------TESTING-----------------
-
-fncall_test_str = """
-fn main() {
-	return hundred();
-}
-
-fn hundred() {
-	return 100;
-}
-"""
-
-tokens = lex(fncall_test_str)
-for item in tokens:
-	print item
-
-print '##########################'
-
-import random
-more = valueless_tokens + ['foobar', 'asdf', 'qwerty', '!', '^', '^^^^']
-boop = ''
-for x in range(7):
-	boop = boop + more[random.randint(0, len(more)-1)]
-
-tokens = lex(boop)
-for item in tokens:
-	print item

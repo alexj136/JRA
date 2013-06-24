@@ -8,12 +8,22 @@ MONDAY 17TH JUNE
 	- Integrating the two C implementations in to a runtime environment that
 	  performs some sort of cost-benefit analysis on code to work out if it
 	  should be interpreted or JIT compiled
+
 TUESDAY 18TH JUNE
 - Read up on lexical analysis
 - Book-keeping of code produced yesterday, including extensive comments
+
 WEDNESDAY 19TH JUNE
 - Debugging & refactoring of AST interpreter
-THURSDAY
+
+THURSDAY 20TH JUNE
 - A few more touches to AST interpreter
 - Began implementation of lexer: sketched DFA and began implementing DFA as a 2D
   array
+
+FRIDAY 21ST JUNE
+- Continued lexer implementation
+
+MONDAY 24TH JUNE
+- Finished lexer implementation
+- Read up on parsing

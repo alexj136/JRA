@@ -26,6 +26,7 @@ E → INT
   | E * E
   | E / E
   | E % E
+  | (E)
   | BOOL ? E : E
   | ID(EA)
 
