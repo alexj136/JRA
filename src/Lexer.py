@@ -1,6 +1,9 @@
 import string
 
-class Token(object):
+class LexerResult(object):
+	pass
+
+class Token(LexerResult):
 	def __init__(self, type, info):
 		self.type = type
 		self.info = info
@@ -8,9 +11,12 @@ class Token(object):
 	def __str__(self):
 		return 'T_' + self.type + ('' if self.info is None else '_' + self.info)
 
-class LexerError(object):
-	def __init__(self, offending_syntax):
-		self.offending_syntax = offending_syntax
+class LexerError(LexerResult):
+	def __init__(self, bad_syntax):
+		self.bad_syntax = bad_syntax
+
+	def __str__(self):
+		return 'Syntax error: \'' + self.bad_syntax + '\' is not valid syntax'
 
 transition_table = [#                                                 abcdjkx
 # e   f   g   h   i   l   m   n   o   p   q   r   s   t   u   v   w   yzCAPS_   0-9   {   }   (   )   *   /   %   ,   ;   ?   :   <   >   =   +   -   !
@@ -98,11 +104,15 @@ valueless_tokens = ['fn', 'for', 'if', 'while', 'print', 'return', '<', '<-',
 def get_next_token(text):
 
 	string_builder = ''
-	final_state = None
+	final_state = 0
 	current_state = 0
 
 	# Clear leading whitespace from input
 	text = text.lstrip(string.whitespace)
+	
+	# If there is no text left after clearing the whitespace, return None as
+	# there are no tokens left
+	if text == '': return (None, None)
 
 	while current_state != -1 and len(text) > 0 and \
 		text[0] in char_indices.keys():
@@ -127,21 +137,44 @@ def get_next_token(text):
 		# Update the current_state variable
 		current_state = next_state
 
-	# Return null/None as the token if the input was an empty string:
-	if final_state is None or current_state == 0:
-		return (None, text)
+	# At this point we have finished walking through the finite state machine.
+	# Now the result of the walk must be analysed and the appropriate output
+	# returned.
 
-	# The info for the token only needs recording if it's an ID or INT
+	# The info for the token only needs recording if it's an ID, INT or invalid
+	# syntax
 	info = None if string_builder in valueless_tokens else string_builder
 
-	# Return a tuple with the new token, and the remaining text that has not
-	# been processed
-	return (Token(final_mapping[final_state], info), text)
+	# Return null/None as the token if the input was an empty string or
+	# lead with characters not found in the alphabet of the language:
+	if final_mapping[final_state] == -1:
+
+		#The while loop allows all erroneous text to be processed in one go
+		while len(text) > 0 and text[0] not in char_indices.keys():
+			info = info + text[0]
+			text = text[1:]
+		return (LexerError(info), text)
+
+	# Otherwise, return a tuple with the new token, and the remaining text that
+	# has not been processed
+	else: return (Token(final_mapping[final_state], info), text)
+
+def lex(text):
+	tokens = []
+	errors = []
+
+	next_token, text = get_next_token(text)
+
+	while next_token is not None:
+		if issubclass(next_token.__class__, Token):
+			tokens.append(next_token)
+		else:
+			errors.append(next_token)
+		next_token, text = get_next_token(text)
+
+	return tokens if len(errors) == 0 else errors
 
 #----------TESTING-----------------
-
-print get_next_token('^')
-print get_next_token('!')
 
 fncall_test_str = """
 fn main() {
@@ -153,16 +186,18 @@ fn hundred() {
 }
 """
 
-for x in range(20):
-	token, fncall_test_str = get_next_token(fncall_test_str)
-	print token
+tokens = lex(fncall_test_str)
+for item in tokens:
+	print item
 
+print '##########################'
 
 import random
-some_valid_tokens = valueless_tokens + ['oaisejd', 'asjd', 'boo',]
+more = valueless_tokens + ['foobar', 'asdf', 'qwerty', '!', '^', '^^^^']
 boop = ''
-for x in range(70):
-	boop = boop + some_valid_tokens[random.randint(0, len(some_valid_tokens)-1)]
-for x in range(70):
-	atok, boop = get_next_token(boop)
-	print atok
+for x in range(7):
+	boop = boop + more[random.randint(0, len(more)-1)]
+
+tokens = lex(boop)
+for item in tokens:
+	print item
