@@ -1,0 +1,3 @@
+PROG → FUNC PROG | ε
+
+FUNC → fn ID(A) { STMTS }

@@ -1,18 +1,18 @@
-PROG → FUNC; PROG | FUNC
+PROG → FUNC PROG | ε
 
 FUNC → fn ID(A) { STMTS }
 
 A → ID, A | ID
 
-STMTS → ST; STMTS | ε
+STMTS → ST STMTS | ε
 
 ST → ID <- E
-  | print E
-  | return E
+  | print E;
+  | return E;
+  | INCR;
   | if BOOL { STMTS } else { STMTS } 
   | while BOOL { STMTS }
   | for ID <- E, BOOL, INCR { STMTS }
-  | INCR
 
 INCR → E++
   | E--
