@@ -27,3 +27,7 @@ FRIDAY 21ST JUNE
 MONDAY 24TH JUNE
 - Finished lexer implementation
 - Read up on parsing
+
+TUESDAY 25TH JUNE
+- Implemented a simple example parser for the language 'begin prog; prog; end'
+  from the lecture slides
