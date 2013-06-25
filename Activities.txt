@@ -32,3 +32,6 @@ TUESDAY 25TH JUNE
 - Implemented a simple example parser for the language 'begin prog; prog; end'
   from the lecture slides
 - Restuctured project folder/hg repo
+- Began parser implementation
+- Realised I forgot to incorporate 'else' into the lexical spec, so I will have
+  to change the transition table in the lexer
