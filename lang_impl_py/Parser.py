@@ -94,24 +94,196 @@ def parse_Statement(token_list):
 		return Print(parse_Expression(token_list))
 
 	elif next_token.type == 'if':
-		pass
-	elif next_token.type == 'while':
-		pass
-	elif next_token.type == 'for':
-		pass
+		
+		# Parse the BoolExpression, assert that it is a BoolExpression
+		bool_expr = parse_BoolExpression(token_list)
+		if not issubclass(bool_expr.__class__, BoolExpression):
+			raise Exception('Boolean expression required ' + \
+				'in for-loop declaration')
 
-	# If the token is an identifier, this indicates an INCR statement (something
-	# with a ++, --, += or -=). The parse_INCR function requires said
-	# identifier to be present, so stick it back on the list and call parse_INCR
+		# Retrieve the next token, check it's an open-curly-bracket
+		next_token = token_list.pop(0)
+		check_valid(['{'], next_token.type)
+
+		# Create a list for the if's statements
+		if_statements = []
+
+		# Parse statements until the end of the if-block is reached
+		while next_token.type != '}':
+			if_statements.append(parse_Statement(token_list))
+
+			# Parse the semicolon
+			next_token = token_list.pop(0)
+			check_valid([';'], next_token.type)
+
+			# Peek at the next token for purposes of loop-control
+			next_token = token_list[0]
+
+		# Eat the '}'. No need to check that it is a '}' because we would
+		# never have left the loop if it wasn't
+		next_token = token_list.pop(0)
+
+		# Retrieve the next token, check it's an 'else'
+		next_token = token_list.pop(0)
+		check_valid(['else'], next_token.type)
+
+		# Retrieve the next token, check it's an open-curly-bracket
+		next_token = token_list.pop(0)
+		check_valid(['{'], next_token.type)
+
+		# Create a list for the else's statements
+		else_statements = []
+
+		# Again, parse statements until the end of the else-block is reached
+		while next_token.type != '}':
+			else_statements.append(parse_Statement(token_list))
+
+			# Parse the semicolon
+			next_token = token_list.pop(0)
+			check_valid([';'], next_token.type)
+
+			# Peek at the next token for purposes of loop-control
+			next_token = token_list[0]
+
+		# Eat the final '}'. No need to check that it is a '}' because we would
+		# never have left the loop if it wasn't
+		next_token = token_list.pop(0)
+
+		# Return an If ASTNode representing the parsed if-statement
+		return If(bool_expr, if_statements, else_statements)
+
+	elif next_token.type == 'while':
+		
+		# Parse the BoolExpression, assert that it is a BoolExpression
+		bool_expr = parse_BoolExpression(token_list)
+		if not issubclass(bool_expr.__class__, BoolExpression):
+			raise Exception('Boolean expression required ' + \
+				'in for-loop declaration')
+
+		# Retrieve the next token, check it's an open-curly-bracket
+		next_token = token_list.pop(0)
+		check_valid(['{'], next_token.type)
+
+		# Create a list for the while-loop's statements
+		statements = []
+
+		# Parse statements until the end of the while-loop is reached
+		while next_token.type != '}':
+			statements.append(parse_Statement(token_list))
+
+			# Parse the semicolon
+			next_token = token_list.pop(0)
+			check_valid([';'], next_token.type)
+
+			# Peek at the next token for purposes of loop-control
+			next_token = token_list[0]
+
+		# Eat the '}'. No need to check that it is a '}' because we would
+		# never have left the loop if it wasn't
+		next_token = token_list.pop(0)
+
+		# Return a While ASTNode that corresponds to the parsed while-loop
+		return While(bool_expr, statements)
+
+	elif next_token.type == 'for':
+
+		# Parse the assignment statement of the for loop, checking that it is in
+		# fact an assignment (parse_Statement can return other stuff)
+		assignment = parse_Statement(token_list)
+		if not issubclass(assignment.__class__, Assignment):
+			raise Exception('Assignment statement required ' + \
+				'in for-loop declaration')
+
+		# Pop the comma, making sure that it is a comma
+		next_token = token_list.pop(0)
+		check_valid([','], next_token.type)
+
+		# Parse the BoolExpression, assert that it is a BoolExpression
+		bool_expr = parse_BoolExpression(token_list)
+		if not issubclass(bool_expr.__class__, BoolExpression):
+			raise Exception('Boolean expression required ' + \
+				'in for-loop declaration')
+
+		# Pop the second comma, making sure that it is a comma
+		next_token = token_list.pop(0)
+		check_valid([','], next_token.type)
+
+		# Parse the 'incrementor' - an Assignment - from the token list. Also
+		# ensure that it applies to the same variable that was declared in the
+		# for-loop's assignment, and again, assert its assignyness
+		incrementor = parse_Statement(token_list)
+		if not issubclass(incrementor.__class__, Assignment):
+			raise Exception('Incrementation of control variable required ' + \
+				'in for-loop declaration')
+
+		# Retrieve the next token, check it's an open-curly-bracket
+		next_token = token_list.pop(0)
+		check_valid(['{'], next_token.type)
+
+		# Create a list for the for-loop's statements
+		statements = []
+
+		# Repeatedly parse statements until a '}' is seen (note that '}'s within
+		# the for-loop that do not end this loop will be handled by the call to
+		# parse_Statement that initiates the inner block of code, and will not
+		# cause the iteration to end early)
+		while next_token.type != '}':
+			statements.append(parse_Statement(token_list))
+
+			# Parse the semicolon
+			next_token = token_list.pop(0)
+			check_valid([';'], next_token.type)
+
+			# Peek at the next token for purposes of loop-control
+			next_token = token_list[0]
+
+		# Eat the final '}'. No need to check that it is a '}' because we would
+		# never have left the loop if it wasn't
+		next_token = token_list.pop(0)
+
+		# Return a For ASTNode representing the parsed for-loop
+		return For(assignment, bool_expr, incrementor, statements)
+
+	# If the token is an identifier, this indicates an assignment statement
+	# - something with a ++, --, +=, -=, or an explicit ID <- E.
 	elif next_token.type == 'ID':
-		token_list.insert(0, next_token)
-		return parse_INCR(token_list)
+
+		# Record the name of the ID
+		assignee = next_token.info
+
+		# Grab the next token - will be one of the 5 assignment operators if the
+		# syntax is valid
+		next_token = token_list.pop(0)
+
+		# Switch on the assignment operator type so as to build the appropriate
+		# syntax tree
+		if next_token.type == '++':
+			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
+				'+', IntegerLiteral(1)))
+
+		elif next_token.type == '--':
+			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
+				'-', IntegerLiteral(1)))
+
+		elif next_token.type == '+=':
+			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
+				'+', parse_Expression(token_list)))
+
+		elif next_token.type == '-=':
+			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
+				'-', parse_Expression(token_list)))
+
+		elif next_token.type == '<-':
+			return Assignment(assignee, parse_Expression(token_list))
+
+		else: raise Exception('Unknown error occured - ' + \
+			'could not parse valid assignment statement')
 
 	else: raise Exception('Unknown error occured -' + \
 		'could not parse valid statement')
 
-def parse_INCR(token_list):
+def parse_Expression(token_list):
 	pass
 
-def parse_Expression(token_list):
+def parse_BoolExpression(token_list):
 	pass

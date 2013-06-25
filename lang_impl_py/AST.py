@@ -1,9 +1,12 @@
-class Program(object):
+class ASTNode(object):
+	pass
+
+class Program(ASTNode):
 	def __init__(self, fns):
 		# List of FNDecl objects
 		self.fns = fns
 
-class FNDecl(object):
+class FNDecl(ASTNode):
 	def __init__(self, name, arg_names, statements):
 		# String: name that this function can be called with
 		self.name = name
@@ -70,7 +73,7 @@ class Return(Statement):
 
 
 
-class BoolExpression(object):
+class BoolExpression(ASTNode):
 	def __init__(self, expr_left, comparison, expr_right):
 		# Expression object
 		self.expr_left = expr_left
