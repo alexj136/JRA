@@ -103,10 +103,10 @@ char_indices = {
 # text, we can determine what token we have seen by passing in the final state
 final_mapping = {
 	0:    -1, 1:      'ID', 2:     'ID', 3:   'ID', 4:  'ID', 
-	5:  'ID', 6:      'ID', 7:    'FOR', 8:   'ID', 9:  'ID', 
-	10: 'ID', 11:  'PRINT', 12:    'ID', 13:  'ID', 14: 'ID', 
-	15: 'ID', 16: 'RETURN', 17:    'FN', 18:  'IF', 19: 'ID', 
-	20: 'ID', 21:     'ID', 22: 'WHILE', 23:   '<', 24: '<-', 
+	5:  'ID', 6:      'ID', 7:    'for', 8:   'ID', 9:  'ID', 
+	10: 'ID', 11:  'print', 12:    'ID', 13:  'ID', 14: 'ID', 
+	15: 'ID', 16: 'return', 17:    'fn', 18:  'if', 19: 'ID', 
+	20: 'ID', 21:     'ID', 22: 'while', 23:   '<', 24: '<-', 
 	25: '<=', 26:      '>', 27:    '>=', 28:   '+', 29: '++', 
 	30: '+=', 31:      '-', 32:    '--', 33:  '-=', 34:   -1, 
 	35: '!=', 36:      '=', 37:     '{', 38:   '}', 39:  '(', 

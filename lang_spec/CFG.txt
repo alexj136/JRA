@@ -14,10 +14,10 @@ ST → ID <- E
   | while BOOL { STMTS }
   | for ID <- E, BOOL, INCR { STMTS }
 
-INCR → E++
-  | E--
-  | E += E
-  | E -= E
+INCR → ID++
+  | ID--
+  | ID += E
+  | ID -= E
 
 E → INT
   | ID
