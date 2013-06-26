@@ -35,3 +35,7 @@ TUESDAY 25TH JUNE
 - Began parser implementation
 - Realised I forgot to incorporate 'else' into the lexical spec, so I will have
   to change the transition table in the lexer
+
+WEDNESDAY 26TH JUNE
+- Incorporated 'else' keyword into FSM table in lexer
+- Investigated using graphviz/dot to produce an FSM diagram for documentation

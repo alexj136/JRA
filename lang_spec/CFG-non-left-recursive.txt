@@ -1,3 +1,46 @@
 PROG → FUNC PROG | ε
 
 FUNC → fn ID(A) { STMTS }
+
+A → ID, A | ID
+
+STMTS → ST STMTS | ε
+
+ST → ID <- E
+  | print E;
+  | return E;
+  | INCR;
+  | if BOOL { STMTS } else { STMTS } 
+  | while BOOL { STMTS }
+  | for ID <- E, BOOL, INCR { STMTS }
+
+INCR → ID++
+  | ID--
+  | ID += E
+  | ID -= E
+
+E → INT E'
+  | ID E'
+  | (E) E'
+  | ID(EA) E'
+
+E' → ε
+  | + E
+  | - E
+  | * E
+  | / E
+  | % E
+  | COMP E ? E : E
+
+EA → E, EA | E
+
+COMP → =
+  | !=
+  | <
+  | >
+  | <=
+  | >=
+
+ID → [ a-z | A-Z | _ ][ a-z | A-Z | _ | 0-9 ]*
+
+INT → [ 0-9 ]+
