@@ -1,5 +1,23 @@
 from AST import *
 
+arithmetic_ops = ['+', '-', '*', '/', '%']
+boolean_ops = ['=', '!=', '<', '>', '<=', '>=']
+
+class EPrime(object):
+	"""
+	Temporary store for the E' productions of the grammar that can be easily
+	converted into ASTNodes
+	"""
+	def __init__(self, op, exp, true_exp=None, false_exp=None):
+		self.op = op
+		self.exp = exp
+		self.true_exp = true_exp
+		self.false_exp = false_exp
+
+	def is_ternary(self):
+		return self.true_exp == None and self.false_exp == None
+
+
 def check_valid(expected, found):
 	"""
 	Checks that found is in expected, and if not, raises an exception with a
@@ -247,10 +265,21 @@ def parse_expression(token_list):
 	next_token = token_list.pop(0)
 
 	if next_token.type == 'ID':
-		pass
+		return Identifier(next_token.info)
+
 	elif next_token.type == 'INT':
 		return IntegerLiteral(int(next_token.info))
+
 	elif next_token.type == '(':
+		inner_exp = parse_expression(token_list)
+
+		# Process the close-bracket
+		next_token = token_list.pop(0)
+		check_valid([')'], next_token.type)
+
+		return inner_exp
+
+	elif next_token.type = ';':
 		pass
 	else:
 		pass
@@ -259,31 +288,38 @@ def parse_e_prime(token_list):
 
 	next_token = token_list.pop(0)
 
-	if next_token.type == '+':
-		pass
-	elif next_token.type == '-':
-		pass
-	elif next_token.type == '*':
-		pass
-	elif next_token.type == '/':
-		pass
-	elif next_token.type == '%':
-		pass
-	elif next_token.type == '=':
-		pass
-	elif next_token.type == '!=':
-		pass
-	elif next_token.type == '<':
-		pass
-	elif next_token.type == '>':
-		pass
-	elif next_token.type == '<=':
-		pass
-	elif next_token.type == '>=':
-		pass
-	else:
-		pass
+	if next_token.type in arithmetic_ops:
+		return EPrime(next_token.type, parse_expression(token_list))
 
+	elif next_token.type in boolean_ops:
+		# Record the op type
+		op = next_token.type
+
+		# Parse the initial expression
+		exp = parse_expression(token_list)
+
+		# Grab the next token
+		next_token = token_list.pop(0)
+
+		# If it's a ternary...
+		if next_token.type == '?'
+			# Grab the expression the ternary evaluates to when true
+			true_exp = parse_expression(token_list)
+
+			# Grab the colon
+			next_token = token_list.pop(0)
+			check_valid([':'], next_token.type)
+
+			# Grab false expression
+			false_exp = parse_expression(token_list)
+
+			# Return a ternary EPrime with extra expressions
+			return EPrime(op, exp, true_exp=true_exp, false_exp=false_exp)
+
+		# If it's not a ternary, return an EPrime object without true_exp and
+		# false_exp values
+		else: return EPrime(op, exp)
+		
 def parse_ternary(token_list):
 	pass
 

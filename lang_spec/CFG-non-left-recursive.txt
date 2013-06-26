@@ -10,9 +10,9 @@ ST → ID <- E
   | print E;
   | return E;
   | INCR;
-  | if BOOL { STMTS } else { STMTS } 
-  | while BOOL { STMTS }
-  | for ID <- E, BOOL, INCR { STMTS }
+  | if E COMP E { STMTS } else { STMTS } 
+  | while E COMP E { STMTS }
+  | for ID <- E, E COMP E, INCR { STMTS }
 
 INCR → ID++
   | ID--
