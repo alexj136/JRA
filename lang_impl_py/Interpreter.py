@@ -67,7 +67,7 @@ class VariableScope(object):
 
 FUNCTION_MAP = {}
 
-def interpret_program(program, program_arguments):
+def interpret_program(program, program_arguments, REPL=False):
 	"""
 	interpret_program is the 'highest-level' function used to interpret ASTs,
 	intended for external calls.
@@ -100,8 +100,11 @@ def interpret_program(program, program_arguments):
 			program.__class__.__name__ + '\', not a program')
 
 	# If the given program has a main function, interpret it
-	if 'main' in FUNCTION_MAP:
+	if not REPL and 'main' in FUNCTION_MAP:
 		return interpret_function('main', program_arguments)
+
+	elif REPL:
+		raise Exception('REPL not yet implemented')
 
 	# If no main function was declared, raise an exception to the caller
 	else: raise Exception('No main function found')
@@ -235,7 +238,7 @@ def interpret_statement(statement, scope):
 		# If statements are also simple - evaluate the boolean expression, and
 		# if true, do the if-block, otherwise do the else-block
 		if interpret_boolean(statement.bool_expr, new_scope):
-			for st in statement.if_statements:
+			for st in statement.statements:
 				interpret_statement(st, new_scope)
 				
 				# If a sub-statement executes a return statement, so we must

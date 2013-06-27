@@ -6,7 +6,7 @@ boolean_ops = ['=', '!=', '<', '>', '<=', '>=']
 class EPrime(object):
 	"""
 	Temporary store for the E' productions of the grammar that can be easily
-	converted into ASTNodes
+	converted into ASTNodes.
 	"""
 	def __init__(self, op, exp, true_exp=None, false_exp=None):
 		self.op = op
@@ -15,16 +15,21 @@ class EPrime(object):
 		self.false_exp = false_exp
 
 	def is_ternary(self):
-		return self.true_exp == None and self.false_exp == None
+		return (self.true_exp is not None) and (self.false_exp is not None)
+
+	def __str__(self):
+		return 'op = ' + str(self.op) + ', exp = ' + str(self.exp) + \
+			('' if not self.is_ternary else (', true_exp = ' + \
+				str(self.true_exp) + ', false_exp = ' + str(self.false_exp)))
 
 
 def check_valid(expected, found):
 	"""
 	Checks that found is in expected, and if not, raises an exception with a
-	friendly error message
+	friendly error message.
 	"""
 	if found not in expected:
-		str_bldr = expected.pop(len(expected - 1))
+		str_bldr = expected.pop(len(expected) - 1)
 		if expected != []:
 			str_bldr = expected.pop(len(expected - 1)) + ' or ' + str_bldr
 			while expected != []:
@@ -32,6 +37,12 @@ def check_valid(expected, found):
 		raise Exception('\'' + found + '\' found, ' + str_bldr + ' expected')
 
 def semicolon_expected(token_list):
+	"""
+	Called by parse_statement to determine if the statement about to be parsed
+	should have a sem after it. This is true in the case of a print, return or
+	assignment (assignment statements always begin with an ID, and no other
+	kind of statement does), false otherwise.
+	"""
 	return True if \
 		token_list[0].type == 'print' or \
 		token_list[0].type == 'return' or \
@@ -39,15 +50,35 @@ def semicolon_expected(token_list):
 	else False
 
 def parse_program(token_list):
-
+	"""
+	This function is the entry point for the parser. It is responsible for
+	maing calls to parse_function for each function in the program, putting
+	each function into a list, wrapping that list into a Program object and
+	returning that Program object.
+	"""
 	function_list = []
 
 	while token_list != []:
 		function_list.append(parse_function(token_list))
 
-	return Program(fuction_list)
+	return Program(function_list)
 
 def parse_function(token_list):
+	"""
+	This function is responsible for parsing an entire function, and returning
+	that function in AST form as an FNDecl object. To acheive this, the
+	following steps occur:
+		- Process the 'fn' declaration
+		- Record the function's name
+		- Process the open-bracket that proceeds the arguments list
+		- Record the argument names, while processing the delimiting commas
+		- Process the close-bracket that ends the argument list
+		- Process the opening curly-bracket
+		- Iteratively process each statement in the function
+		- Process the closing curly-bracket
+	During these steps, the FNDecl ASTNode object is built up, and at the end it
+	is returned to the caller.
+	"""
 
 	# Retrieve the first token, check that it's an FN
 	next_token = token_list.pop(0)
@@ -82,16 +113,17 @@ def parse_function(token_list):
 		next_token = token_list.pop(0)
 		check_valid([',', ')'], next_token.type)
 
-	# Retrieve the next token, check it's an open-curly-bracket
-	next_token = token_list.pop(0)
-	check_valid(['{'], next_token.type)
-
 	# Create a list for the function's statements
 	statements = parse_statement_block(token_list)
 
-	return FNDecl(name, arg_names, statements)
+	return FNDecl(function_name, arg_names, statements)
 
 def parse_statement(token_list):
+	"""
+	This function is responsible for parsing a single statement. There are 6
+	types of statement, each of which is handled differently, but in each case
+	a Statement object is returned.
+	"""
 
 	# Retrieve the next token, and check that it's valid
 	next_token = token_list.pop(0)
@@ -118,6 +150,10 @@ def parse_statement(token_list):
 		# Return the generated ASTNode
 		return return_statement
 
+	# An if-statement requires a boolean expression of the form 'E COMP E' to be
+	# parsed, followed by a statement block, which a call to 
+	# parse_statement_block() handles, after which an 'else' token should be
+	# parsed, and finally a futher statement block.
 	elif next_token.type == 'if':
 		
 		# Parse the BoolExpression, assert that it is a BoolExpression
@@ -127,7 +163,7 @@ def parse_statement(token_list):
 				'in for-loop declaration')
 
 		# Create a list for the if's statements
-		if_statements = parse_statement_block(token_list)
+		statements = parse_statement_block(token_list)
 
 		# Retrieve the next token, check it's an 'else'
 		next_token = token_list.pop(0)
@@ -137,8 +173,10 @@ def parse_statement(token_list):
 		else_statements = parse_statement_block(token_list)
 
 		# Return an If ASTNode representing the parsed if-statement
-		return If(bool_expr, if_statements, else_statements)
+		return If(bool_expr, statements, else_statements)
 
+	# While loops are simpler than if-statements to parse: just a boolean and
+	# a single statement block to handle.
 	elif next_token.type == 'while':
 		
 		# Parse the BoolExpression, assert that it is a BoolExpression
@@ -153,6 +191,9 @@ def parse_statement(token_list):
 		# Return a While ASTNode that corresponds to the parsed while-loop
 		return While(bool_expr, statements)
 
+	# For loops require parsing an assignment, a boolean expression, and a
+	# further assignment statement, separated by commas, and finally the
+	# statement block.
 	elif next_token.type == 'for':
 
 		# Parse the assignment statement of the for loop, checking that it is in
@@ -264,34 +305,68 @@ def parse_expression(token_list):
 
 	next_token = token_list.pop(0)
 
-	if next_token.type == 'ID':
-		return Identifier(next_token.info)
+	left_part = None
+
+	if next_token.type == 'ID' and token_list[0].type == '(':
+		token_list.pop(0)
+		arguments = []
+		while not next_token.type == ')':
+			arguments.append(parse_expression(token_list))
+
+			# Get the next token - should be a ',' if there are more args, or a
+			# ')' if not
+			next_token = token_list.pop(0)
+			check_valid([',', ')'], next_token.type)
+
+	elif next_token.type == 'ID':
+		left_part = Identifier(next_token.info)
 
 	elif next_token.type == 'INT':
-		return IntegerLiteral(int(next_token.info))
+		left_part = IntegerLiteral(int(next_token.info))
 
 	elif next_token.type == '(':
-		inner_exp = parse_expression(token_list)
+		left_part = parse_expression(token_list)
 
 		# Process the close-bracket
 		next_token = token_list.pop(0)
 		check_valid([')'], next_token.type)
 
-		return inner_exp
+	else: raise Exception('Could not parse E production')
 
-	elif next_token.type = ';':
-		pass
-	else:
-		pass
+	e_prime = parse_e_prime(token_list)
+
+	if e_prime is None:
+		return left_part
+
+	elif e_prime.op in arithmetic_ops and not e_prime.is_ternary():
+		return ArithmeticExpr(left_part, e_prime.op, e_prime.exp)
+
+	elif e_prime.op in boolean_ops and e_prime.is_ternary():
+		return Ternary(
+			BoolExpression(left_part, e_prime.op, e_prime.exp),
+			e_prime.true_exp,
+			e_prime.false_exp)
+
+	elif e_prime.op in boolean_ops:
+		return BoolExpression(left_part, e_prime.op, e_prime.exp)
+
+	else: raise Exception('E\' production parsed incorrectly: ' + str(e_prime))
 
 def parse_e_prime(token_list):
 
-	next_token = token_list.pop(0)
+	# Peek at the next token (don't pop it yet - it might be needed elsewhere)
+	next_token = token_list[0]
 
 	if next_token.type in arithmetic_ops:
+		# We can pop the token in this case
+		token_list.pop(0)
+
 		return EPrime(next_token.type, parse_expression(token_list))
 
 	elif next_token.type in boolean_ops:
+		# We can pop the token in this case
+		token_list.pop(0)
+
 		# Record the op type
 		op = next_token.type
 
@@ -302,7 +377,10 @@ def parse_e_prime(token_list):
 		next_token = token_list.pop(0)
 
 		# If it's a ternary...
-		if next_token.type == '?'
+		if next_token.type == '?':
+			# We can pop the token in this case
+			token_list.pop(0)
+
 			# Grab the expression the ternary evaluates to when true
 			true_exp = parse_expression(token_list)
 
@@ -319,9 +397,10 @@ def parse_e_prime(token_list):
 		# If it's not a ternary, return an EPrime object without true_exp and
 		# false_exp values
 		else: return EPrime(op, exp)
-		
-def parse_ternary(token_list):
-	pass
 
-def parse_boolean(token_list):
-	pass
+	# Any of these tokens indicate the epsilon production, so return None
+	elif next_token.type == ';' or next_token.type == '}' or \
+		next_token.type == ',' or next_token.type == ')':
+		return None
+
+	else: raise Exception('Unable to parse E\' production')
