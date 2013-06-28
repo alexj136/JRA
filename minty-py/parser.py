@@ -304,8 +304,17 @@ def parse_expression(token_list):
 	left_part = None
 
 	if next_token.type == 'ID' and token_list[0].type == '(':
+		# Record the name of the function
+		fn_name = next_token.info
+
+		# Get rid of the open bracket, we don't need it
 		token_list.pop(0)
+
+		# Create a list for the passed arguments (expressions) to go in
 		arguments = []
+
+		# Keep processing an arg, then a comma, until the close-bracket is
+		# reached. The args are added to the list, the commas are thrown away
 		while not next_token.type == ')':
 			arguments.append(parse_expression(token_list))
 
@@ -313,6 +322,8 @@ def parse_expression(token_list):
 			# ')' if not
 			next_token = token_list.pop(0)
 			check_valid([',', ')'], next_token.type)
+		
+		left_part = FNCall(fn_name, arguments)
 
 	elif next_token.type == 'ID':
 		left_part = Identifier(next_token.info)

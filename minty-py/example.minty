@@ -1,7 +1,11 @@
-fn main(num) {
-	while num < 10 {
-		print num;
-		num++;
+fn main(hello) {
+	for i <- 1, i < 10, i++ {
+		print i;
 	}
+	zero <- pv(hello);
+	return hello;
+}
+fn pv(var) {
+	print var + 10;
 	return 0;
 }

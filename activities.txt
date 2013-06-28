@@ -40,3 +40,11 @@ WEDNESDAY 26TH JUNE
 - Incorporated 'else' keyword into FSM table in lexer
 - Investigated using graphviz/dot to produce an FSM diagram for documentation
 - Continued parser implementation
+
+THURSDAY 27TH JUNE
+- Continued parser implementation
+
+FRIDAY 28TH JUNE
+- Finished initial parser implementation
+- Bug fixing in parser
+- Unit tested lexer, began unit testing parser
