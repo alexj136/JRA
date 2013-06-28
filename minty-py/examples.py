@@ -1,5 +1,5 @@
-from Lexer import lex, valueless_tokens
-from Interpreter import *
+from lexer import lex, valueless_tokens
+from interpreter import *
 from AST import *
 
 print 'FUNCTION CALLS (NO ARGUMENTS) TEST'

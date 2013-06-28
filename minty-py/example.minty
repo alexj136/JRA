@@ -1,0 +1,7 @@
+fn main(num) {
+	while num < 10 {
+		print num;
+		num++;
+	}
+	return 0;
+}

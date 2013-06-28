@@ -121,6 +121,17 @@ class Expression(ASTNode):
 
 class BoolExpression(Expression):
 	def __init__(self, expr_left, comparison, expr_right):
+		# Ensure types are correct
+		if not issubclass(expr_left.__class__, Expression):
+			raise Exception(expr_left.__class__.__name__ + ' object found ' + \
+				'in BoolExpression, Expression expected')
+		if comparison not in ['=', '!=', '<', '>', '<=', '>=']:
+			raise Exception(comparison.__class__.__name__ + ' object found' + \
+				'in BoolExpression, comparison operator string expected')
+		if not issubclass(expr_right.__class__, Expression):
+			raise Exception(expr_right.__class__.__name__ + ' object found ' + \
+				'in BoolExpression, Expression expected')
+
 		# Expression object
 		self.expr_left = expr_left
 
@@ -132,6 +143,17 @@ class BoolExpression(Expression):
 
 class ArithmeticExpr(Expression):
 	def __init__(self, lhs, op, rhs):
+		# Ensure types are correct
+		if not issubclass(lhs.__class__, Expression):
+			raise Exception(lhs.__class__.__name__ + ' object found ' + \
+				'in ArithmeticExpr, Expression expected')
+		if op not in ['+', '-', '*', '/', '%']:
+			raise Exception(op.__class__.__name__ + ' object found' + \
+				'in ArithmeticExpr, arithmetic operator string expected')
+		if not issubclass(rhs.__class__, Expression):
+			raise Exception(rhs.__class__.__name__ + ' object found ' + \
+				'in ArithmeticExpr, Expression expected')
+
 		# Expression object
 		self.lhs = lhs
 
@@ -143,16 +165,34 @@ class ArithmeticExpr(Expression):
 
 class Identifier(Expression):
 	def __init__(self, name):
+		# Ensure types are correct
+		if not issubclass(name.__class__, str):
+			raise Exception('\'' + name.__class__.__name__ + \
+				'\' object found in Identifier.name, str expected')
+
 		# String: declared name
 		self.name = name
 
 class IntegerLiteral(Expression):
 	def __init__(self, value):
+		# Ensure types are correct
+		if not issubclass(value.__class__, int):
+			raise Exception(value.__class__.__name__ + ' object found in ' + \
+				'IntegerLiteral, int expected')
+
 		# Integer value
 		self.value = value
 
 class FNCall(Expression):
 	def __init__(self, name, arg_vals):
+		# Ensure types are correct
+		if not issubclass(name.__class__, str):
+			raise Exception('\'' + name.__class__.__name__ + \
+				'\' object found in FNCall.name, str expected')
+		if not all([issubclass(arg.__class__, Expression) for arg in arg_vals]):
+			raise Exception('Non-Expression object in argument list \
+				for FNCall: ' + name)
+
 		# String: declared name of function being called
 		self.name = name
 
@@ -161,6 +201,17 @@ class FNCall(Expression):
 
 class Ternary(Expression):
 	def __init__(self, bool_expr, true_exp, false_exp):
+		# Ensure types are correct
+		if not issubclass(bool_expr.__class__, BoolExpression):
+			raise Exception(bool_expr.__class__.__name__ + ' object found ' + \
+				'in Ternary.bool_expr, BoolExpression expected')
+		if not issubclass(true_exp.__class__, Expression):
+			raise Exception(true_exp.__class__.__name__ + ' object found' + \
+				'in Ternary.true_exp, Expression expected')
+		if not issubclass(false_exp.__class__, Expression):
+			raise Exception(false_exp.__class__.__name__ + ' object found ' + \
+				'in Ternary.false_exp, Expression expected')
+
 		# BoolExpression object
 		self.bool_expr = bool_expr
 

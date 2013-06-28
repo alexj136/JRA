@@ -67,7 +67,7 @@ class VariableScope(object):
 
 FUNCTION_MAP = {}
 
-def interpret_program(program, program_arguments, REPL=False):
+def interpret_program(program, args, REPL=False):
 	"""
 	interpret_program is the 'highest-level' function used to interpret ASTs,
 	intended for external calls.
@@ -101,7 +101,7 @@ def interpret_program(program, program_arguments, REPL=False):
 
 	# If the given program has a main function, interpret it
 	if not REPL and 'main' in FUNCTION_MAP:
-		return interpret_function('main', program_arguments)
+		return interpret_function('main', [int(arg) for arg in args])
 
 	elif REPL:
 		raise Exception('REPL not yet implemented')

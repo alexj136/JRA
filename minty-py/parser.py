@@ -31,23 +31,10 @@ def check_valid(expected, found):
 	if found not in expected:
 		str_bldr = expected.pop(len(expected) - 1)
 		if expected != []:
-			str_bldr = expected.pop(len(expected - 1)) + ' or ' + str_bldr
+			str_bldr = expected.pop(len(expected) - 1) + ' or ' + str_bldr
 			while expected != []:
-				str_bldr = expected.pop(len(expected - 1)) + ', ' + str_bldr
+				str_bldr = expected.pop(len(expected) - 1) + ', ' + str_bldr
 		raise Exception('\'' + found + '\' found, ' + str_bldr + ' expected')
-
-def semicolon_expected(token_list):
-	"""
-	Called by parse_statement to determine if the statement about to be parsed
-	should have a sem after it. This is true in the case of a print, return or
-	assignment (assignment statements always begin with an ID, and no other
-	kind of statement does), false otherwise.
-	"""
-	return True if \
-		token_list[0].type == 'print' or \
-		token_list[0].type == 'return' or \
-		token_list[0].type == 'ID' \
-	else False
 
 def parse_program(token_list):
 	"""
@@ -127,7 +114,7 @@ def parse_statement(token_list):
 
 	# Retrieve the next token, and check that it's valid
 	next_token = token_list.pop(0)
-	check_valid(['print', 'for', 'return',
+	check_valid(['print', 'for', 'return', 'if',
 		'while', 'for', 'ID'], next_token.type)
 
 	# If the token is a print, parse the corresponding expression and return it
@@ -157,7 +144,7 @@ def parse_statement(token_list):
 	elif next_token.type == 'if':
 		
 		# Parse the BoolExpression, assert that it is a BoolExpression
-		bool_expr = parse_boolean(token_list)
+		bool_expr = parse_expression(token_list)
 		if not issubclass(bool_expr.__class__, BoolExpression):
 			raise Exception('Boolean expression required ' + \
 				'in for-loop declaration')
@@ -180,7 +167,7 @@ def parse_statement(token_list):
 	elif next_token.type == 'while':
 		
 		# Parse the BoolExpression, assert that it is a BoolExpression
-		bool_expr = parse_boolean(token_list)
+		bool_expr = parse_expression(token_list)
 		if not issubclass(bool_expr.__class__, BoolExpression):
 			raise Exception('Boolean expression required ' + \
 				'in for-loop declaration')
@@ -208,7 +195,7 @@ def parse_statement(token_list):
 		check_valid([','], next_token.type)
 
 		# Parse the BoolExpression, assert that it is a BoolExpression
-		bool_expr = parse_boolean(token_list)
+		bool_expr = parse_expression(token_list)
 		if not issubclass(bool_expr.__class__, BoolExpression):
 			raise Exception('Boolean expression required ' + \
 				'in for-loop declaration')
@@ -245,23 +232,26 @@ def parse_statement(token_list):
 		# Switch on the assignment operator type so as to build the appropriate
 		# syntax tree
 		if next_token.type == '++':
-			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
-				'+', IntegerLiteral(1)))
+			return Assignment(Identifier(assignee),
+				ArithmeticExpr(Identifier(assignee), '+', IntegerLiteral(1)))
 
 		elif next_token.type == '--':
-			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
-				'-', IntegerLiteral(1)))
+			return Assignment(Identifier(assignee),
+				ArithmeticExpr(Identifier(assignee), '-', IntegerLiteral(1)))
 
 		elif next_token.type == '+=':
-			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
-				'+', parse_expression(token_list)))
+			return Assignment(Identifier(assignee),
+				ArithmeticExpr(Identifier(assignee), '+',
+					parse_expression(token_list)))
 
 		elif next_token.type == '-=':
-			return Assignment(assignee, ArithmeticExpr(Identifier(assignee),
-				'-', parse_expression(token_list)))
+			return Assignment(Identifier(assignee),
+				ArithmeticExpr(Identifier(assignee), '-',
+					parse_expression(token_list)))
 
 		elif next_token.type == '<-':
-			return Assignment(assignee, parse_expression(token_list))
+			return Assignment(Identifier(assignee),
+				parse_expression(token_list))
 
 		else: raise Exception('Unknown error occured - ' + \
 			'could not parse valid assignment statement')
@@ -270,6 +260,12 @@ def parse_statement(token_list):
 		'could not parse valid statement')
 
 def parse_statement_block(token_list):
+	"""
+	Parses a block of statements encased in curly brackets. Returns a list that
+	contains a Statement object for each statement in the block, by calling
+	parse_statement for each of them.
+	"""
+
 	# Create a list for the block's statements
 	statements = []
 
@@ -283,7 +279,7 @@ def parse_statement_block(token_list):
 	while next_token.type != '}':
 
 		# See if we need to process a semicolon after the statement
-		expecting_semicolon = semicolon_expected(token_list)
+		expecting_semicolon = token_list[0].type in ['print', 'return', 'ID']
 
 		statements.append(parse_statement(token_list))
 
@@ -373,8 +369,8 @@ def parse_e_prime(token_list):
 		# Parse the initial expression
 		exp = parse_expression(token_list)
 
-		# Grab the next token
-		next_token = token_list.pop(0)
+		# Peek at the next token
+		next_token = token_list[0]
 
 		# If it's a ternary...
 		if next_token.type == '?':
@@ -398,9 +394,5 @@ def parse_e_prime(token_list):
 		# false_exp values
 		else: return EPrime(op, exp)
 
-	# Any of these tokens indicate the epsilon production, so return None
-	elif next_token.type == ';' or next_token.type == '}' or \
-		next_token.type == ',' or next_token.type == ')':
-		return None
-
-	else: raise Exception('Unable to parse E\' production')
+	# Any other tokens indicates the epsilon production, so return None
+	else: return None
