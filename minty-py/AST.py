@@ -10,6 +10,13 @@ class Program(ASTNode):
 		# List of FNDecl objects
 		self.fns = fns
 
+	def __eq__(self, other):
+		return isinstance(other, Program) and \
+			other.fns == self.fns
+
+	def __str__(self):
+		return '\n'.join(map(str, self.fns))
+
 class FNDecl(ASTNode):
 	def __init__(self, name, arg_names, statements):
 		# Ensure types are correct
@@ -32,6 +39,16 @@ class FNDecl(ASTNode):
 		# List of Statement objects
 		self.statements = statements
 
+	def __eq__(self, other):
+		return isinstance(other, FNDecl) and \
+			other.name == self.name and \
+			other.arg_names == self.arg_names and \
+			other.statements == self.statements
+
+	def __str__(self):
+		return 'fn ' + self.name + '(' + ','.join(self.arg_names) + ') {\n' + \
+			'\n'.join(map(str, self.statements)) + '\n}'
+
 class Statement(ASTNode):
 	pass
 
@@ -52,6 +69,10 @@ class ControlStatement(Statement):
 		# List of Statement objects
 		self.statements = statements
 
+	def __eq__(self, other):
+		return issubclass(other.__class__, ControlStatement) and \
+			other.bool_expr == self.bool_expr and \
+			other.statements == self.statements
 
 class For(ControlStatement):
 	def __init__(self, assignment, bool_expr, incrementor, statements):
@@ -69,9 +90,28 @@ class For(ControlStatement):
 		# Assignment object
 		self.incrementor = incrementor
 
+	def __eq__(self, other):
+		return isinstance(other, For) and \
+			super(For, self).__eq__(other) and \
+			other.assignment == self.assignment and \
+			other.incrementor == self.incrementor
+
+	def __str__(self):
+		return 'for ' + str(self.assignment) + ', ' + \
+			str(self.bool_expr) + ', ' + str(self.incrementor) + \
+			' {\n' + '\n'.join(map(str, self.statements)) + '\n}'
+
 class While(ControlStatement):
 	def __init__(self, bool_expr, statements):
 		ControlStatement.__init__(self, bool_expr, statements)
+
+	def __eq__(self, other):
+		return isinstance(other, While) and \
+			super(While, self).__eq__(other)
+
+	def __str__(self):
+		return 'while ' + str(self.bool_expr) + ' {\n' + \
+			'\n'.join(map(str, self.statements)) + '\n}'
 
 class If(ControlStatement):
 	def __init__(self, bool_expr, statements, else_statements):
@@ -85,6 +125,16 @@ class If(ControlStatement):
 		# List if Statement objects
 		self.else_statements = else_statements
 
+	def __eq__(self, other):
+		return isinstance(other, If) and \
+			super(If, self).__eq__(other) and \
+			other.else_statements == self.else_statements
+
+	def __str__(self):
+		return 'for ' + str(self.bool_expr) + ', ' + ' {\n' + \
+			'\n'.join(map(str, self.statements)) + '\n} else {\n' + \
+			'\n'.join(map(str, self.else_statements)) + '\n}'
+
 class StatementWithExpr(Statement):
 	def __init__(self, expression):
 
@@ -96,9 +146,20 @@ class StatementWithExpr(Statement):
 		# Expression object
 		self.expression = expression
 
+	def __eq__(self, other):
+		return issubclass(other.__class__, StatementWithExpr) and \
+			other.expression == self.expression
+
 class Print(StatementWithExpr):
 	def __init__(self, expression):
 		StatementWithExpr.__init__(self, expression)
+
+	def __eq__(self, other):
+		return isinstance(other, Print) and \
+			super(Print, self).__eq__(other)
+
+	def __str__(self):
+		return 'print ' + str(self.expression) + ';'
 
 class Assignment(StatementWithExpr):
 	def __init__(self, assignee_identifier, expression):
@@ -112,9 +173,24 @@ class Assignment(StatementWithExpr):
 		# Identifier object
 		self.assignee_identifier = assignee_identifier
 
+	def __eq__(self, other):
+		return isinstance(other, Assignment) and \
+			super(Assignment, self).__eq__(other) and \
+			other.assignee_identifier == self.assignee_identifier
+
+	def __str__(self):
+		return assignee_identifier + ' <- ' + str(self.expression) + ';'
+
 class Return(StatementWithExpr):
 	def __init__(self, expression):
 		StatementWithExpr.__init__(self, expression)
+
+	def __eq__(self, other):
+		return isinstance(other, Return) and \
+			super(Return, self).__eq__(other)
+
+	def __str__(self):
+		return 'return ' + str(self.expression) + ';'
 
 class Expression(ASTNode):
 	pass
@@ -141,6 +217,15 @@ class BoolExpression(Expression):
 		#Expression object
 		self.expr_right = expr_right
 
+	def __eq__(self, other):
+		return isinstance(other, BoolExpression) and \
+			other.expr_left == self.expr_left and \
+			other.comparison == self.comparison and \
+			other.expr_right == self.expr_right
+
+	def __str__(self):
+		return str(self.expr_left) + ' ' + self.op + ' ' + str(self.expr_right)
+
 class ArithmeticExpr(Expression):
 	def __init__(self, lhs, op, rhs):
 		# Ensure types are correct
@@ -163,6 +248,15 @@ class ArithmeticExpr(Expression):
 		# Expression object
 		self.rhs = rhs
 
+	def __eq__(self, other):
+		return isinstance(other, ArithmeticExpr) and \
+			other.lhs == self.lhs and \
+			other.op == self.op and \
+			other.rhs == self.rhs
+
+	def __str__(self):
+		return str(self.lhs) + ' ' + self.op + ' ' + str(self.rhs)
+
 class Identifier(Expression):
 	def __init__(self, name):
 		# Ensure types are correct
@@ -173,6 +267,13 @@ class Identifier(Expression):
 		# String: declared name
 		self.name = name
 
+	def __eq__(self, other):
+		return isinstance(other, Identifier) and \
+			other.name == self.name
+
+	def __str__(self):
+		return self.name
+
 class IntegerLiteral(Expression):
 	def __init__(self, value):
 		# Ensure types are correct
@@ -182,6 +283,13 @@ class IntegerLiteral(Expression):
 
 		# Integer value
 		self.value = value
+
+	def __eq__(self, other):
+		return isinstance(other, IntegerLiteral) and \
+			other.value == self.value
+
+	def __str__(self):
+		return str(self.value)
 
 class FNCall(Expression):
 	def __init__(self, name, arg_vals):
@@ -198,6 +306,14 @@ class FNCall(Expression):
 
 		# List of expression objects
 		self.arg_vals = arg_vals
+
+	def __eq__(self, other):
+		return isinstance(other, FNCall) and \
+			other.name == self.name and \
+			other.arg_vals == self.arg_vals
+
+	def __str__(self):
+		return self.name + '(' + ', '.join(map(str, self.arg_vals)) + ')'
 
 class Ternary(Expression):
 	def __init__(self, bool_expr, true_exp, false_exp):
@@ -220,3 +336,13 @@ class Ternary(Expression):
 
 		# Expression object
 		self.false_exp = false_exp
+
+	def __eq__(self, other):
+		return isinstance(other, Ternary) and \
+			other.bool_expr == self.bool_expr and \
+			other.true_exp == self.true_exp and \
+			other.false_exp == self.false_exp
+
+	def __str__(self):
+		return str(self.bool_expr) + ' ? ' + str(self.true_exp) + ' : ' + \
+			str(self.false_exp)

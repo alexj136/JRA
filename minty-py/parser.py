@@ -85,20 +85,20 @@ def parse_function(token_list):
 	# Create a list for the argument names to be stored in
 	arg_names = []
 
+	# Grab the first token in the argument list
+	next_token = token_list.pop(0)
+
 	# Keep looking for argument names until we hit a ')' or an exception
 	while next_token.type != ')':
 
-		# Retrieve the next token - should be an ID
-		next_token = token_list.pop(0)
-		check_valid(['ID'], next_token.type)
+		# The only valid tokens at this point are IDs and commas to delimit them
+		check_valid([',', 'ID'], next_token.type)
 
 		# Add the ID to the list of argument names
-		arg_names.append(next_token.info)
+		if next_token.type == 'ID': arg_names.append(next_token.info)
 
-		# Process the next token - make sure it's a ',' (incurs further
-		# iteration) or ')' (ends iteration)
+		# Retrieve the next token
 		next_token = token_list.pop(0)
-		check_valid([',', ')'], next_token.type)
 
 	# Create a list for the function's statements
 	statements = parse_statement_block(token_list)
@@ -293,11 +293,26 @@ def parse_statement_block(token_list):
 
 	# Eat the final '}'. No need to check that it is a '}' because we would
 	# never have left the loop if it wasn't
-	next_token = token_list.pop(0)
+	token_list.pop(0)
 
 	return statements
 
 def parse_expression(token_list):
+	"""
+	This function, along with the parse_e_prime function, perform the job of
+	parsing expressions according to the context-free grammar specified in the
+	file CFG-parsable.txt, which can be found in the minty-spec directory of
+	the project repository. This function handles the following productions:
+
+	E -> INT E'
+		| ID E'
+		| (E) E'
+		| ID(EA) E'
+
+	Accordingly, this function will look for the part of the production that
+	comes before the E' part, and try to parse it, before making a call to
+	parse_e_prime to parse the E' part.
+	"""
 
 	next_token = token_list.pop(0)
 
@@ -313,6 +328,10 @@ def parse_expression(token_list):
 		# Create a list for the passed arguments (expressions) to go in
 		arguments = []
 
+		# Peek at the top of the token_list, otherwise we might enter the
+		# argument-collecting loop erroneously
+		next_token = token_list[0]
+
 		# Keep processing an arg, then a comma, until the close-bracket is
 		# reached. The args are added to the list, the commas are thrown away
 		while not next_token.type == ')':
@@ -322,7 +341,10 @@ def parse_expression(token_list):
 			# ')' if not
 			next_token = token_list.pop(0)
 			check_valid([',', ')'], next_token.type)
-		
+
+		# Clear the ')' from the token list
+		token_list.pop(0)
+
 		left_part = FNCall(fn_name, arguments)
 
 	elif next_token.type == 'ID':
@@ -338,7 +360,8 @@ def parse_expression(token_list):
 		next_token = token_list.pop(0)
 		check_valid([')'], next_token.type)
 
-	else: raise Exception('Could not parse E production')
+	else: raise Exception('Could not parse E production, \'' + \
+		next_token.type + '\' not expected')
 
 	e_prime = parse_e_prime(token_list)
 
@@ -360,7 +383,36 @@ def parse_expression(token_list):
 	else: raise Exception('E\' production parsed incorrectly: ' + str(e_prime))
 
 def parse_e_prime(token_list):
+	"""
+	This function, along with the parse_e_prime function, perform the job of
+	parsing expressions according to the context-free grammar specified in the
+	file CFG-parsable.txt, which can be found in the minty-spec directory of
+	the project repository. This function handles the following productions:
+	
+	E' -> (epsilon)
+		| + E
+		| - E
+		| * E
+		| / E
+		| % E
+		| COMP E ? E : E
 
+	It also handles the 'COMP E' parts of the following productions:
+
+	ST -> if E COMP E { STMTS } else { STMTS } 
+		| while E COMP E { STMTS }
+		| for ID <- E, E COMP E, INCR { STMTS }
+
+	Accordingly, this function will look for an operator (either an arithmetic
+	operator, or a boolean comparison) and in the case of an arithmetic operator
+	it will then try to parse a single expression. If a boolean operation is
+	found (produced by the COMP nonterminal) then the function will attempt to
+	find a '?' indicating a ternary (although its absence is not an error).
+		It will return an EPrime object, which represents the production. EPrime
+	objects are not ASTNodes but are temporary stores for objects that
+	parse_expression will build into ASTNodes.
+	"""
+	
 	# Peek at the next token (don't pop it yet - it might be needed elsewhere)
 	next_token = token_list[0]
 

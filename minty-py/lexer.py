@@ -189,8 +189,9 @@ def get_next_token(text):
 
 def lex(text):
 	"""
-	Scans some text, and returns either a list of Tokens, if there were no
-	lexical errors, or a list of LexerErrors, if lexical errors were found
+	Scans some text by repeatedly calling get_next_token, and returns either a
+	list of Tokens, if there were no lexical errors, or a list of LexerErrors,
+	if lexical errors were found.
 	"""
 	tokens = []
 	errors = []

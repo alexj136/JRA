@@ -48,3 +48,7 @@ FRIDAY 28TH JUNE
 - Finished initial parser implementation
 - Bug fixing in parser
 - Unit tested lexer, began unit testing parser
+
+MONDAY 1ST JULY
+- Continued debugging and unit-testing parser
+- Implemented printing and equality-checking of AST objects
