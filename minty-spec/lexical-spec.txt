@@ -1,0 +1,35 @@
+This document defines the lexical structure of the minty language
+
+String   | Meaning
+======================================
+fn       | function declaration
+return   | return statement
+print    | print statement
+if       | if statement
+while    | while loop
+for      | for loop
+<-       | assignment
+=        | boolean 'equals'
+!=       | boolean 'not-equals'
+<        | boolean 'less-than'
+>        | boolean 'greater-than'
+<=       | boolean 'less-or-equal'
+>=       | boolean 'greater-or-equal'
+{        | open statement-block
+}        | close statement-block
+(        | 
+)        | 
+,        | 
++        | 
+*        | 
+/        | 
+%        | 
+++       | 
+--       | 
++=       | 
+-=       | 
+;        | 
+?        | 
+:        | 
++        | 
+-        | 

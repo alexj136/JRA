@@ -1,20 +1,130 @@
 digraph finite_state_machine {
+
 	rankdir=LR;
 	size="8,5"
-	node [shape = doublecircle]; q0 q3 q4 q8;
+
+	node [shape = doublecircle];
+	q0 "q1\nID" "q2\nID" "q3\nID" "q4\nID" "q5\nID" "q6\nID" "q7\nfor" "q8\nID" "q9\nID" "q10\nID"
+	"q11\nprint" "q12\nID" "q13\nID" "q14\nID" "q15\nID" "q16\nreturn" "q17\nfn" "q18\nif" "q19\nID" "q20\nID"
+	"q21\nID" "q22\nwhile" "q23\n<" "q24\n<-" "q25\n<=" "q26\n>" "q27\n>=" "q28\n+" "q29\n++" "q30\n+="
+	"q31\n-" "q32\n--" "q33\n-=" "q35\n!=" "q36\n=" "q37\n{" "q38\n}" "q39\n(" "q40\n)"
+	"q41\n*" "q42\n/" "q43\n%" "q44\n," "q45\n;" "q46\n?" "q47\n:" "q48\nINT" "q49\nID"
+	"q50\nID" "q51\nID" "q52\nID" "q53\nelse";
+
 	node [shape = circle];
-	q0 -> q2 [ label = "SS(B)" ];
-	q0 -> q1 [ label = "SS(S)" ];
-	q1 -> q3 [ label = "S($end)" ];
-	q2 -> q6 [ label = "SS(b)" ];
-	q2 -> q5 [ label = "SS(a)" ];
-	q2 -> q4 [ label = "S(A)" ];
-	q5 -> q7 [ label = "S(b)" ];
-	q5 -> q5 [ label = "S(a)" ];
-	q6 -> q6 [ label = "S(b)" ];
-	q6 -> q5 [ label = "S(a)" ];
-	q7 -> q8 [ label = "S(b)" ];
-	q7 -> q5 [ label = "S(a)" ];
-	q8 -> q6 [ label = "S(b)" ];
-	q8 -> q5 [ label = "S(a)" ];
+
+	q0 -> "q1\nID" [ label = "f" ];
+	q0 -> "q2\nID" [ label = "p" ];
+	q0 -> "q3\nID" [ label = "r" ];
+	q0 -> "q4\nID" [ label = "i" ];
+	q0 -> "q5\nID" [ label = "w" ];
+	q0 -> "q23\n<" [ label = "<" ];
+	q0 -> "q26\n>" [ label = ">" ];
+	q0 -> "q28\n+" [ label = "+" ];
+	q0 -> "q31\n-" [ label = "-" ];
+	q0 -> q34 [ label = "!" ];
+	q0 -> "q36\n=" [ label = "=" ];
+	q0 -> "q37\n{" [ label = "{" ];
+	q0 -> "q38\n}" [ label = "}" ];
+	q0 -> "q39\n(" [ label = "(" ];
+	q0 -> "q40\n)" [ label = ")" ];
+	q0 -> "q41\n*" [ label = "*" ];
+	q0 -> "q42\n/" [ label = "/" ];
+	q0 -> "q43\n%" [ label = "%" ];
+	q0 -> "q44\n," [ label = "," ];
+	q0 -> "q45\n;" [ label = ";" ];
+	q0 -> "q46\n?" [ label = "?" ];
+	q0 -> "q47\n:" [ label = ":" ];
+	q0 -> "q48\nINT" [ label = "0-9" ];
+	q0 -> "q49\nID" [ label = "a-d,g-h,j-o,q,s-v,x-z,A-Z,_" ];
+	q0 -> "q50\nID" [ label = "e" ];
+
+	"q1\nID" -> "q6\nID" [ label = "o" ];
+	"q1\nID" -> "q17\nfn" [ label = "n" ];
+	"q1\nID" -> "q49\nID" [ label = "a-m,p-z,A-Z,0-9,_" ];
+
+	"q2\nID" -> "q8\nID" [ label = "r" ];
+	"q2\nID" -> "q49\nID" [ label = "a-q,s-z,A-Z,0-9,_" ];
+
+	"q3\nID" -> "q12\nID" [ label = "e" ];
+	"q3\nID" -> "q49\nID" [ label = "a-d,f-z,A-Z,0-9,_" ];
+
+	"q4\nID" -> "q18\nif" [ label = "f" ];
+	"q4\nID" -> "q49\nID" [ label = "a-e,g-z,A-Z,0-9,_" ];
+
+	"q5\nID" -> "q19\nID" [ label = "h" ];
+	"q5\nID" -> "q49\nID" [ label = "a-g,i-z,A-Z,0-9,_" ];
+
+	"q6\nID" -> "q7\nfor" [ label = "r" ];
+	"q6\nID" -> "q49\nID" [ label = "a-q,s-z,A-Z,0-9,_" ];
+
+	"q7\nfor" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // FOR
+
+	"q8\nID" -> "q9\nID" [ label = "i" ];
+	"q8\nID" -> "q49\nID" [ label = "a-h,j-z,A-Z,0-9,_" ];
+
+	"q9\nID" -> "q10\nID" [ label = "n" ];
+	"q9\nID" -> "q49\nID" [ label = "a-m,o-z,A-Z,0-9,_" ];
+
+	"q10\nID" -> "q11\nprint" [ label = "t" ];
+	"q10\nID" -> "q49\nID" [ label = "a-s,u-z,A-Z,0-9,_" ];
+
+	"q11\nprint" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // PRINT
+
+	"q12\nID" -> "q13\nID" [ label = "t" ];
+	"q12\nID" -> "q49\nID" [ label = "a-s,u-z,A-Z,0-9,_" ];
+
+	"q13\nID" -> "q14\nID" [ label = "u" ];
+	"q13\nID" -> "q49\nID" [ label = "a-t,v-z,A-Z,0-9,_" ];
+
+	"q14\nID" -> "q15\nID" [ label = "r" ];
+	"q14\nID" -> "q49\nID" [ label = "a-q,s-z,A-Z,0-9,_" ];
+
+	"q15\nID" -> "q16\nreturn" [ label = "n" ];
+	"q15\nID" -> "q49\nID" [ label = "a-m,o-z,A-Z,0-9,_" ];
+
+	"q16\nreturn" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // RETURN
+
+	"q17\nfn" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // FN
+
+	"q18\nif" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // IF
+
+	"q19\nID" -> "q20\nID" [ label = "i" ];
+	"q19\nID" -> "q49\nID" [ label = "a-h,j-z,A-Z,0-9,_" ];
+
+	"q20\nID" -> "q21\nID" [ label = "l" ];
+	"q20\nID" -> "q49\nID" [ label = "a-k,m-z,A-Z,0-9,_" ];
+
+	"q21\nID" -> "q22\nwhile" [ label = "e" ];
+	"q21\nID" -> "q49\nID" [ label = "a-d,f-z,A-Z,0-9,_" ];
+
+	"q22\nwhile" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // WHILE
+
+	"q23\n<" -> "q24\n<-" [ label = "-" ]; // <-
+	"q23\n<" -> "q25\n<=" [ label = "=" ]; // <=
+
+	"q26\n>" -> "q27\n>=" [ label = "=" ]; // >=
+
+	"q28\n+" -> "q29\n++" [ label = "+" ]; // ++
+	"q28\n+" -> "q30\n+=" [ label = "=" ]; // +=
+
+	"q31\n-" -> "q32\n--" [ label = "-" ]; // --
+	"q31\n-" -> "q33\n-=" [ label = "=" ]; // -=
+
+	q34 -> "q35\n!=" [ label = "=" ]; // !=
+
+	"q48\nINT" -> "q48\nINT" [ label = "0-9" ]; // INT
+
+	"q49\nID" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // ID
+
+	"q50\nID" -> "q51\nID" [ label = "l" ];
+	"q50\nID" -> "q49\nID" [ label = "a-k,m-z,A-Z,0-9,_" ];
+
+	"q51\nID" -> "q52\nID" [ label = "s" ];
+	"q51\nID" -> "q49\nID" [ label = "a-r,t-z,A-Z,0-9,_" ];
+
+	"q52\nID" -> "q53\nelse" [ label = "e" ];
+	"q52\nID" -> "q49\nID" [ label = "a-d,f-z,A-Z,0-9,_" ];
+
+	"q53\nelse" -> "q49\nID" [ label = "a-z,A-Z,0-9,_" ]; // ELSE
 }

@@ -1,7 +1,7 @@
 import unittest, sys
 sys.path.insert(0, "..")
 from lexer import lex
-from parser import parse_program
+from parser import *
 from AST import *
 
 class TestParser(unittest.TestCase):
@@ -148,7 +148,6 @@ class TestParser(unittest.TestCase):
 				Return(IntegerLiteral(999))
 			])
 		])
-		print str(for_AST)
 		self.assertTrue(parse_program(for_prog) == for_AST)
 
 		# Tests that if-statements are parsed correctly
@@ -172,6 +171,23 @@ class TestParser(unittest.TestCase):
 			])
 		])
 		self.assertTrue(parse_program(if_prog) == if_AST)
+
+	def test_expressions(self):
+
+		# Tests that the big arithmetic expression shown below is parsed
+		# correctly. The semicolon is required for the recursive calls to
+		# terminate
+		arithmetic = lex("1 + 2 * 3 / 4 - 5 % 6 < 7 ? 8 : 9;")
+		arithmetic_AST = ArithmeticExpr(IntegerLiteral(1), '+',
+			ArithmeticExpr(IntegerLiteral(2), '*',
+				ArithmeticExpr(IntegerLiteral(3), '/',
+					ArithmeticExpr(IntegerLiteral(4), '-',
+						ArithmeticExpr(IntegerLiteral(5), '%',
+							Ternary(BoolExpression(
+								IntegerLiteral(6), '<', IntegerLiteral(7)),
+								IntegerLiteral(8), IntegerLiteral(9)))))))
+		self.assertTrue(parse_expression(arithmetic) == arithmetic_AST)
+		print str(arithmetic_AST)
 
 # Run the tests
 if __name__ == '__main__':
