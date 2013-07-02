@@ -1,7 +1,18 @@
+"""
+The classes in this file represent elements of a program, such as functions,
+statements and expressions. The ASTNode objects are built into ASTs by the
+parser, and the program that an AST represents can then be executed by the
+interpreter.
+"""
+
 class ASTNode(object):
 	pass
 
 class Program(ASTNode):
+	"""
+	A program object is essentially just a list of FNDecl objects
+	"""
+
 	def __init__(self, fns):
 		# Ensure that the given list contains only functions
 		if not all([issubclass(fn.__class__, FNDecl) for fn in fns]):
@@ -46,8 +57,8 @@ class FNDecl(ASTNode):
 			other.statements == self.statements
 
 	def __str__(self):
-		return 'fn ' + self.name + '(' + ','.join(self.arg_names) + ') {\n' + \
-			'\n'.join(map(str, self.statements)) + '\n}'
+		return 'fn ' + self.name + '(' + ','.join(self.arg_names) + \
+			') {\n' + '\n'.join(map(str, self.statements)) + '\n}'
 
 class Statement(ASTNode):
 	pass
@@ -179,7 +190,8 @@ class Assignment(StatementWithExpr):
 			other.assignee_identifier == self.assignee_identifier
 
 	def __str__(self):
-		return assignee_identifier + ' <- ' + str(self.expression) + ';'
+		return str(self.assignee_identifier) + ' <- ' + str(self.expression) + \
+			';'
 
 class Return(StatementWithExpr):
 	def __init__(self, expression):
@@ -224,20 +236,21 @@ class BoolExpression(Expression):
 			other.expr_right == self.expr_right
 
 	def __str__(self):
-		return str(self.expr_left) + ' ' + self.op + ' ' + str(self.expr_right)
+		return '(' + str(self.expr_left) + ' ' + self.comparison + ' ' \
+			+ str(self.expr_right) + ')'
 
 class ArithmeticExpr(Expression):
 	def __init__(self, lhs, op, rhs):
 		# Ensure types are correct
 		if not issubclass(lhs.__class__, Expression):
-			raise Exception(lhs.__class__.__name__ + ' object found ' + \
-				'in ArithmeticExpr, Expression expected')
+			raise Exception('\'' + lhs.__class__.__name__ + \
+				'\' object found in ArithmeticExpr, Expression expected')
 		if op not in ['+', '-', '*', '/', '%']:
 			raise Exception(op.__class__.__name__ + ' object found' + \
 				'in ArithmeticExpr, arithmetic operator string expected')
 		if not issubclass(rhs.__class__, Expression):
-			raise Exception(rhs.__class__.__name__ + ' object found ' + \
-				'in ArithmeticExpr, Expression expected')
+			raise Exception('\'' + rhs.__class__.__name__ + \
+				'\' object found in ArithmeticExpr, Expression expected')
 
 		# Expression object
 		self.lhs = lhs
@@ -255,7 +268,7 @@ class ArithmeticExpr(Expression):
 			other.rhs == self.rhs
 
 	def __str__(self):
-		return str(self.lhs) + ' ' + self.op + ' ' + str(self.rhs)
+		return '(' + str(self.lhs) + ' ' + self.op + ' ' + str(self.rhs) + ')'
 
 class Identifier(Expression):
 	def __init__(self, name):
@@ -344,5 +357,5 @@ class Ternary(Expression):
 			other.false_exp == self.false_exp
 
 	def __str__(self):
-		return str(self.bool_expr) + ' ? ' + str(self.true_exp) + ' : ' + \
-			str(self.false_exp)
+		return '(' + str(self.bool_expr) + ' ? ' + str(self.true_exp) + \
+			' : ' + str(self.false_exp) + ')'

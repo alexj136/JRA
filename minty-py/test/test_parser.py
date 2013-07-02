@@ -6,13 +6,12 @@ from AST import *
 
 class TestParser(unittest.TestCase):
 	
-	def test_simple_parse(self):
+	def test_parse_program(self):
 		"""
 		Tests that the parser gives the correct ASTs for certain programs. It
 		assumes that the lexer produces the correct set of tokens for the
 		program strings shown.
 		"""
-
 
 		# Test parsing a very simple program that immidiately returns 0
 		basic_prog = lex('fn main() { return 0; }')
@@ -79,17 +78,35 @@ class TestParser(unittest.TestCase):
 		self.assertTrue(parse_program(print_prog) == print_AST)
 
 		# Test that a big expression is parsed correctly
-		big_exp_prog="""
+		big_exp_prog=lex("""
 		fn main() {
 			return 1 + 2 + 3 < 4 ? 1 : 2 * 2 / 7 % 6;
 		}
-		"""
+		""")
 		big_exp_AST = Program([
-			FNDecl('main', [], [#NOT DONE - WILL FAIL TEST
-				Return(ArithmeticExpr(
-					Identifier('num'), '+', IntegerLiteral(1)))
+			FNDecl('main', [], [
+				Return(
+					ArithmeticExpr(IntegerLiteral(1), '+',
+						ArithmeticExpr(IntegerLiteral(2), '+',
+							Ternary(
+								BoolExpression(IntegerLiteral(3), '<',
+									IntegerLiteral(4)),
+								IntegerLiteral(1),
+								ArithmeticExpr(IntegerLiteral(2), '*',
+									ArithmeticExpr(IntegerLiteral(2), '/',
+										ArithmeticExpr(
+											IntegerLiteral(7), '%',
+											IntegerLiteral(6)
+										)
+									)
+								)
+							)
+						)
+					)
+				)
 			])
 		])
+		self.assertTrue(parse_program(big_exp_prog) == big_exp_AST)
 
 		# Tests that while-loops are parsed correctly
 		while_prog = lex("""
@@ -106,7 +123,7 @@ class TestParser(unittest.TestCase):
 					Identifier('num'), '<', IntegerLiteral(10)), [
 					Print(Identifier('num'))
 				]),
-				Return(Identifier('num'))
+				Return(IntegerLiteral(0))
 			])
 		])
 		self.assertTrue(parse_program(while_prog) == while_AST)
@@ -114,7 +131,7 @@ class TestParser(unittest.TestCase):
 		# Tests that for-loops are parsed correctly
 		for_prog = lex("""
 		fn main() {
-			for i = 20, i < 30, i = i + 1 {
+			for i <- 20, i < 30, i <- i + 1 {
 				print i;
 			}
 			return 999;
@@ -126,12 +143,12 @@ class TestParser(unittest.TestCase):
 					BoolExpression(Identifier('i'), '<', IntegerLiteral(30)),
 					Assignment(Identifier('i'), ArithmeticExpr(Identifier('i'),
 						'+', IntegerLiteral(1))), [
-
 					Print(Identifier('i'))
 				]),
 				Return(IntegerLiteral(999))
 			])
 		])
+		print str(for_AST)
 		self.assertTrue(parse_program(for_prog) == for_AST)
 
 		# Tests that if-statements are parsed correctly

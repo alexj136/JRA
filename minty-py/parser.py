@@ -335,12 +335,19 @@ def parse_expression(token_list):
 		# Keep processing an arg, then a comma, until the close-bracket is
 		# reached. The args are added to the list, the commas are thrown away
 		while not next_token.type == ')':
+
 			arguments.append(parse_expression(token_list))
 
-			# Get the next token - should be a ',' if there are more args, or a
-			# ')' if not
-			next_token = token_list.pop(0)
+			# Peek at the next token - should be a ',' if there are more args,
+			# or a ')' if not
+			next_token = token_list[0]
 			check_valid([',', ')'], next_token.type)
+
+			# If the next token is a ',', we can pop it, and look for the next
+			# argument. It it's a '(' we cannot pop it here - it must be done
+			# outside the loop in case no arguments are found at all and the
+			# loop is never entered
+			if next_token.type == ',': token_list.pop(0)
 
 		# Clear the ')' from the token list
 		token_list.pop(0)
