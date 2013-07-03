@@ -52,3 +52,15 @@ FRIDAY 28TH JUNE
 MONDAY 1ST JULY
 - Continued debugging and unit-testing parser
 - Implemented printing and equality-checking of AST objects
+
+TUESDAY 2ND JULY
+- Continued debugging and unit-testing parser
+- Finished graphviz FSM diagram
+
+WEDNESDAY 3RD JULY
+- Wrote up a breif lexical specification for minty
+- Unit-tested interpreter
+- 'Put to bed' the python implementation of minty. Could have...
+	- Put more comments in AST.py
+	- Made a more feature-rich front-end
+- Worked through some C tutorial exercises to refresh my knowledge of C
