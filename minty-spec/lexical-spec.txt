@@ -1,7 +1,7 @@
 This document defines the lexical structure of the minty language
 
-String   | Meaning
-======================================
+String   | Meaning               
+====================================================
 fn       | function declaration
 return   | return statement
 print    | print statement
@@ -17,19 +17,18 @@ for      | for loop
 >=       | boolean 'greater-or-equal'
 {        | open statement-block
 }        | close statement-block
-(        | 
-)        | 
-,        | 
-+        | 
-*        | 
-/        | 
-%        | 
-++       | 
---       | 
-+=       | 
--=       | 
-;        | 
-?        | 
-:        | 
-+        | 
--        | 
+(        | open-bracket
+)        | close-bracket                  
+,        | comma       
++        | addition operator
+-        | subtraction operator
+*        | multiplication operator
+/        | integer division operator
+%        | modulo operator
++=       | incrementation operator
+-=       | decrementation operator
+++       | 'increment by one' operator
+--       | 'decrement by one' operator
+;        | statement delimiter
+?        | ternary operator (precedes true-clause)
+:        | ternary operator (precedes false-clause)

@@ -1,0 +1,27 @@
+fn main() {
+	return crunch_numbers(5, 10);
+}
+
+fn crunch_numbers(a, b) {
+	for i <- a, i < 10, i++ {
+		b <- do_some_stuff(b);
+	}
+	return b;
+}
+
+fn do_some_stuff(a) {
+	b <- 0;
+	while a < 100 {
+		b <- do_some_more_stuff(a);
+		a++;
+	}
+	return b;
+}
+
+fn do_some_more_stuff(a) {
+	if a < 500 {
+		return do_some_more_stuff(a + 211);
+	} else {
+		return a - 5000;
+	}
+}

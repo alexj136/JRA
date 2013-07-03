@@ -4,7 +4,7 @@ from interpreter import *
 from sys import argv
 
 if len(argv) < 2:
-	print 'Incorrect number file arguments supplied'
+	print 'Incorrect number of file arguments supplied'
 
 else:
 	src_file = open(argv[1], 'r')

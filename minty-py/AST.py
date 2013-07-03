@@ -10,7 +10,7 @@ class ASTNode(object):
 
 class Program(ASTNode):
 	"""
-	A program object is essentially just a list of FNDecl objects
+	A program object is essentially just a list of FNDecl objects.
 	"""
 
 	def __init__(self, fns):
@@ -29,6 +29,12 @@ class Program(ASTNode):
 		return '\n'.join(map(str, self.fns))
 
 class FNDecl(ASTNode):
+	"""
+	An FNDecl object contains a name (a string), argument names (a list of
+	strings) and a list of statement objects that comprise the body of the
+	function.
+	"""
+
 	def __init__(self, name, arg_names, statements):
 		# Ensure types are correct
 		if not issubclass(name.__class__, str):
@@ -64,6 +70,13 @@ class Statement(ASTNode):
 	pass
 
 class ControlStatement(Statement):
+	"""
+	A ControlStatement is a superclass for if-statements, for-loops and
+	while-loops, and contains a boolean expression and a list of statements.
+	The while-loop does not require any extra data structures, but if-statements
+	and for-loops have extra fields for the extra data they require.
+	"""
+	
 	def __init__(self, bool_expr, statements):
 		# Ensure types are correct
 		if not issubclass(bool_expr.__class__, BoolExpression):
@@ -86,6 +99,13 @@ class ControlStatement(Statement):
 			other.statements == self.statements
 
 class For(ControlStatement):
+	"""
+	A for-loop has an assignment statement, a boolean expression, an
+	'incrementor' statements, which is essentially just another assignment
+	statement, which is called after each iteration. It is named 'incrementor'
+	to distinguish it from the initial assignment.
+	"""
+
 	def __init__(self, assignment, bool_expr, incrementor, statements):
 		ControlStatement.__init__(self, bool_expr, statements)
 
@@ -113,6 +133,12 @@ class For(ControlStatement):
 			' {\n' + '\n'.join(map(str, self.statements)) + '\n}'
 
 class While(ControlStatement):
+	"""
+	A while-loop contains no extra information on top of the ControlStatement
+	class, and so just hands the passed values up to the constructor of
+	ControlStatement.
+	"""
+
 	def __init__(self, bool_expr, statements):
 		ControlStatement.__init__(self, bool_expr, statements)
 
@@ -125,6 +151,13 @@ class While(ControlStatement):
 			'\n'.join(map(str, self.statements)) + '\n}'
 
 class If(ControlStatement):
+	"""
+	An if statement contains a boolean expression, and two sets of statements,
+	the first of which is executed if the boolean expression evaluates to true,
+	and the second of which is executed if the boolean expression evaluates to
+	false.
+	"""
+	
 	def __init__(self, bool_expr, statements, else_statements):
 		ControlStatement.__init__(self, bool_expr, statements)
 
@@ -142,7 +175,7 @@ class If(ControlStatement):
 			other.else_statements == self.else_statements
 
 	def __str__(self):
-		return 'for ' + str(self.bool_expr) + ', ' + ' {\n' + \
+		return 'if ' + str(self.bool_expr) + ' {\n' + \
 			'\n'.join(map(str, self.statements)) + '\n} else {\n' + \
 			'\n'.join(map(str, self.else_statements)) + '\n}'
 

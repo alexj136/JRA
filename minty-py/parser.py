@@ -273,6 +273,10 @@ def parse_statement_block(token_list):
 	next_token = token_list.pop(0)
 	check_valid(['{'], next_token.type)
 
+	# Peek at the next token - otherwise we will enter the loop on an empty
+	# statement block which will cause an exception
+	next_token = token_list[0]
+
 	# Repeatedly parse statements until a '}' is seen (note that '}'s within
 	# the block that do not end this loop will be handled by a recursive call to
 	# parse_statement_block, and will not cause the iteration to end early)

@@ -172,6 +172,37 @@ class TestParser(unittest.TestCase):
 		])
 		self.assertTrue(parse_program(if_prog) == if_AST)
 
+		# Test of the parser on a fibonacci program
+		fib_prog = lex("""
+		fn main(x) { return fibonacci(x); }
+
+		fn fibonacci(x) {
+			if x = 0 {
+				return 0;
+			}
+			else {} if x = 1 {
+				return 1;
+			}
+			else {
+				return fibonacci(x - 1) + fibonacci(x - 2);
+			}
+		}
+		""")
+		fib_AST = Program([FNDecl('main', ['x'], [Return(FNCall('fibonacci',
+			[Identifier('x')]))]),
+			FNDecl('fibonacci', ['x'], [
+				If(BoolExpression(Identifier('x'), '=', IntegerLiteral(0)),
+					[Return(IntegerLiteral(0))], []),
+				If(BoolExpression(Identifier('x'), '=', IntegerLiteral(1)), [
+					Return(IntegerLiteral(1))], [
+					Return(ArithmeticExpr(FNCall('fibonacci', [
+						ArithmeticExpr(Identifier('x'), '-',
+							IntegerLiteral(1))]), '+',
+						FNCall('fibonacci', [
+							ArithmeticExpr(Identifier('x'), '-',
+								IntegerLiteral(2))])))])])])
+		self.assertTrue(parse_program(fib_prog) == fib_AST)
+
 	def test_expressions(self):
 
 		# Tests that the big arithmetic expression shown below is parsed
@@ -187,7 +218,6 @@ class TestParser(unittest.TestCase):
 								IntegerLiteral(6), '<', IntegerLiteral(7)),
 								IntegerLiteral(8), IntegerLiteral(9)))))))
 		self.assertTrue(parse_expression(arithmetic) == arithmetic_AST)
-		print str(arithmetic_AST)
 
 # Run the tests
 if __name__ == '__main__':
