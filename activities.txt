@@ -64,3 +64,7 @@ WEDNESDAY 3RD JULY
 	- Put more comments in AST.py
 	- Made a more feature-rich front-end
 - Worked through some C tutorial exercises to refresh my knowledge of C
+
+THURSDAY 4TH JULY
+- Did more reading/tutorials on C
+- Began implementing the lexer in C
