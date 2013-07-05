@@ -68,3 +68,7 @@ WEDNESDAY 3RD JULY
 THURSDAY 4TH JULY
 - Did more reading/tutorials on C
 - Began implementing the lexer in C
+
+FRIDAY 5TH JULY
+- Did more reading/tutorials on C
+- Continued C implementation of lexer
