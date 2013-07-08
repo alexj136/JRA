@@ -3,19 +3,99 @@
 #include <string.h>
 #include <malloc.h>
  
-/* This file contains functions that are used for lexical analysis.
+/* 
+ * This file contains functions that are used for lexical analysis.
  */
 
-int in_valueless_tokens(char str[]);
-int char_indices(char letter);
-int string_equal(char *str1, char *str2);
-
-/* Struct used to represent a token
+/* 
+ * Struct used to represent a token
  */
-typedef struct Token {
+typedef struct {
 	char *type;
 	char *info;
-};
+} Token;
+
+/*
+ * 'Constructor' for Token structs. Tokens can indicate errors as well as valid
+ * tokens. Errors simply have "ERROR" in their type field, whereas valid tokens
+ * have token type names. Takes pointers to info & type strings, and uses them
+ * to create heap-allocated copies. If they were not copies, the struct would
+ * not be the only owner of the strings, which would potentially cause problems.
+ */
+Token *Token_init(char *type, char *info) {
+	// Allocate heap space for this Token
+	Token *token = malloc(sizeof(Token));
+
+	// Copy & allocate the type string
+	token->type = strdup(type);
+
+	// Copy and allocate the info string
+	token->info = strdup(info);
+
+	// Return a pointer to this Token
+	return token;
+}
+
+void Token_set_type(Token *token, char *type) {
+	free(token->type);
+	token->type = strdup(type);
+}
+
+void Token_set_info(Token *token, char *info) {
+	free(token->info);
+	token->info = strdup(info);
+}
+
+void Token_free(Token *token) {
+	free(token->type);
+	free(token->info);
+	free(token);
+}
+
+void Token_print(Token *token) {
+	printf("T_%s", token->type);
+	if(*(token->info) != '\0') printf("_%s\n", token->info);
+	else printf("\n");
+}
+
+/*
+ * TokenNode struct represents a node in a linked list of tokens. Thus it
+ * contains a pointer to a Token and a pointer to another TokenNode.
+ */
+typedef struct {
+	Token *token;
+	struct TokenNode *child_node;
+} TokenNode;
+
+/*
+ * Constructs a root TokenNode object
+ */
+TokenNode *TokenNode_init_root(Token *root_token) {
+	TokenNode *root_node = malloc(sizeof(TokenNode));
+	root_node->token = root_token;
+	root_node->child_node = NULL;
+	return root_node;
+}
+
+/*
+ * Constructs a TokenNode as a child of the passed node
+ */
+TokenNode *TokenNode_init(TokenNode *parent_node, Token *new_token) {
+	TokenNode *new_node = malloc(sizeof(TokenNode));
+	parent_node->child_node = new_node;
+	new_node->token = new_token;
+	new_node->child_node = NULL;
+	return new_node;
+}
+
+/*
+ * Frees the given TokenNode and all child TokenNodes
+ */
+void TokenNode_free(TokenNode *node) {
+	TokenNode_free(node->child_node);
+	Token_free(node->token);
+	free(node);
+}
 
 int transition_table[54][36] = {//                                     abcdjkx
 // e   f   g   h   i   l   m   n   o   p   q   r   s   t   u   v   w   yzCAPS_   0-9   {   }   (   )   *   /   %   ,   ;   ?   :   <   >   =   +   -   !
@@ -74,7 +154,8 @@ int transition_table[54][36] = {//                                     abcdjkx
 {  53, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49,       49,   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },  // state 52
 {  49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49,       49,   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }}; // state 53
 
-/* Maps possible input characters to columns in the finite state machine table.
+/* 
+ * Maps possible input characters to columns in the finite state machine table.
  * If a character that does not belong in the alphabet of the language, -1 is
  * returned to indicate an error.
  */
@@ -122,7 +203,8 @@ int char_indices(char letter) {
 	else return -1;
 }
 
-/* Maps final states to strings that represent token types, for example, if
+/* 
+ * Maps final states to strings that represent token types, for example, if
  * the FSM traversal finished on final state 3, the token type would be "ID"
  * because final_mapping[3] = "ID".
  */
@@ -134,36 +216,41 @@ char *final_mapping[] = {
 	"INT", "ID", "ID", "ID", "ID", "else"
 };
 
-int in_valueless_tokens(char str[]) {
-	if (string_equal(str, "fn")    || string_equal(str, "for")    ||
-		string_equal(str, "if")    || string_equal(str, "while")  ||
-		string_equal(str, "print") || string_equal(str, "return") ||
-		string_equal(str, "else")  || string_equal(str, "<")      ||
-		string_equal(str, "<-")    || string_equal(str, "<=")     ||
-		string_equal(str, ">")     || string_equal(str, ">=")     ||
-		string_equal(str, "+")     || string_equal(str, "++")     ||
-		string_equal(str, "+=")    || string_equal(str, "-")      ||
-		string_equal(str, "--")    || string_equal(str, "-=")     ||
-		string_equal(str, "!=")    || string_equal(str, "=")      ||
-		string_equal(str, "{")     || string_equal(str, "}")      ||
-		string_equal(str, "(")     || string_equal(str, ")")      ||
-		string_equal(str, "*")     || string_equal(str, "/")      ||
-		string_equal(str, "%%")    || string_equal(str, ",")      ||
-		string_equal(str, ";")     || string_equal(str, ";")      ||
-		string_equal(str, "?")     || string_equal(str, ":")) return 1;
-		else return 0;
-}
+char *valueless_tokens[] = {
+	"fn", "for", "if", "while", "print", "return", "else", "<", "<-", "<=", ">",
+	">=", "+", "++", "+=", "-", "--", "-=", "!=", "=", "{", "}", "(", ")", "*",
+	"/", "%%",",", ";", "?", ":"
+};
 
-
-/* Function that decides if two strings are equal. Returns 1 (true) if they are
+/* 
+ * Function that decides if two strings are equal. Returns 1 (true) if they are
  * the same, or 0 (false) if they differ.
  */
-int string_equal(char *str1, char *str2) {
-	return !strncmp(str1, str2,
-		(strlen(str1) >= strlen(str2)) ? strlen(str1) : strlen(str2));
+int str_equal(char *str1, char *str2) {
+	// If they have different lengths, we can say immidiately that they differ
+	if(strlen(str1) != strlen(str2)) return 0;
+	// If they are she same length, we must use strncmp to compare them. strncmp
+	// returns 0 for identical strings, and other ints for different ones, so we
+	// negate the result.
+	else return !strncmp(str1, str2, strlen(str1));
 }
 
-/* Trims the leading whitespace from a string, for example, "    \n  \t hello"
+/*
+ * Does simple sequential search to determine if a given string is in the
+ * valueless_tokens array
+ */
+int in_valueless_tokens(char *token) {
+	int found = 0;
+	int i = 0;
+	while(!found && i < 31/*length of valueless_tokens*/) {
+		if(str_equal(valueless_tokens[i], token)) found = 1;
+		i++;
+	}
+	return found;
+}
+
+/* 
+ * Trims the leading whitespace from a string, for example, "    \n  \t hello"
  * becomes "hello", "  four  \n", becomes "four  \n". If a string has only
  * whitespace and a null terminator, only the null terminator will remain. If
  * no null terminator is reached, an error will occur.
@@ -177,35 +264,46 @@ char *trim_whitespace(char *str) {
 	return str;
 }
 
-int input_left(char *str) {
-	return *str == '\0';
-}
-
-//WILL CHANGE - TAKE STR FROM HEAP, ALLOCATE NEW MEM & MOVE, THEN ADD NEW CHAR,
-//THEN FREE OLD STR
-/* Takes a char array (stack-allocated) and returns a pointer to a value-equal
+/* 
+ * Takes a pointer to a char array and returns a pointer to a value-equal
  * string (but for the appended character) on the heap. Will cause a memory leak
  * if the string at the returned pointer is not freed when appropriate.
  * May cause an error if appending exceeds the size of the given array.
  */
-char str_append(char *str, char c) {
-	int i = 0;
-	while(str[i] != '\0') i++;
-	str[i] = c;
+char *str_append(char *str, char c) {
+	// Allocate the appropriate amount of memory for the new string - this is
+	// the size of the old string, inlucing the null terminator, plus one.
+	char *new_str = malloc((strlen(str) + 2) * sizeof(char));
+	
+	// Copy the caracters from the old string into the new one, but not the null
+	// terminator
+	int i;
+	for(i = 0; i < strlen(str); i++) new_str[i] = str[i];
 
-	// We allocate with the size of the original string, not +1, because we
-	// assumed in the first place that the passed array had extra space for
-	// the new character
-	char *str_ptr = malloc(sizeof(str))
+	// Write the new char after the contents of the old string
+	new_str[strlen(str)] = c;
+
+	// Write the null terminator
+	new_str[strlen(str) + 1] = '\0';
+
+	// Free the old string from memory
+	free(str);
+
+	// Return the pointer to the new string
+	return new_str;
 }
 
-char *get_next_token(char *input) {
+Token *get_next_token(char *input) {
+
+	// Create an empty token
+	Token *next_token = Token_init("", "");
 
 	// Char array to build the token array into
-	char token_arr[32] = "";
+	char *token_str = malloc(sizeof(char));
+	*token_str = '\0';
 
 	// The state number for the final state after FSM traversal
-	int final_state;
+	int final_state = 0;
 
 	// The state in the FSM that we are currently in, during traversal
 	int current_state = 0;
@@ -213,39 +311,85 @@ char *get_next_token(char *input) {
 	// Trim the leading whitespace from the input
 	input = trim_whitespace(input);
 
-	while(current_state != -1 && *input != '\0') {
+	while(current_state != -1 && char_indices(input[0])) {
 
+		// Get the next char from the input
+		char next_char = *input;
+
+		// Determinethe state that processing the next char will lead to
+		int next_state = 
+			transition_table[current_state][char_indices(next_char)];
+
+		// If the next state produces a valid token...
+		if(next_state != -1) {
+			// Add the next char to the current string
+			token_str = str_append(token_str, next_char);
+
+			// Record the current state as final
+			final_state = next_state;
+
+			// Advance the input pointer to the next character
+			input++;
+		}
+
+		// Update the current state variable
+		current_state = next_state;
 	}
 
-	return "lol";
+	// If the token is not a 'valueless token' - i.e. a valid token that is
+	// not an INT or ID - we store the string we've built up in the info
+	// field
+	if(!in_valueless_tokens(token_str)) Token_set_info(next_token, token_str);
+
+	// If the text found was an error, process any remaining erroneous text
+	if(str_equal(final_mapping[final_state], "ERROR")) {
+		while(char_indices(*input)== -1) {
+			next_token->info = str_append(next_token->info, *input);
+			input++;
+		}
+	}
+
+	// Set the token type, return it
+	Token_set_type(next_token, final_mapping[final_state]);
+	return next_token;
 } 
 
-char **lex(char *input) {
+/*
+ * Currently not working - I believe that the pointer address that I pass does
+ * not work so that the pointer never gets advanced and thus lex loops forever
+ */
+TokenNode *lex(char *input) {
 
-	// The number of tokens found in the input
-	int num_tokens;
+	// Make a copy of the original pointer to the input (we make a copy to
+	// modify, we need to keep the original to free once we're done)
+	char *cur_input = input;
 
-	// Allocate an array of (pointers to) strings on the heap
-	char **token_list = malloc(num_tokens * sizeof(char*));
+	// Get the first token (pass the address where the pointer lives, so that
+	// the call to get_next_token can modify it), putting it in a root TokenNode
+	TokenNode *root_node = TokenNode_init_root(get_next_token(&cur_input));
 
-	// Allocate memory for a string for each pointer in the array, where strings
-	// can actually be stored
-	int i;
-	for(i = 0; i < num_tokens; i++) token_list[i] = malloc(32 * sizeof(char));
+	// Get the second token, passing the root node so that the root node points
+	// to the new node
+	TokenNode *cur_node = TokenNode_init(root_node, get_next_token(&cur_input));
 
-	// Do some stuff
+	// Repeatedly get a new token and add it to the linked list in the above
+	// way, until there is no input left
+	while(*cur_input != '\0') {
+		cur_node = TokenNode_init(cur_node, get_next_token(&cur_input));
+	}
 
-	return token_list;
+	// Return the root node
+	return root_node;
 }
 
 int main() {
-	printf("%d\n", isspace(' '));
-	printf("%d\n", isspace('\t'));
-	printf("%d\n", isspace('\v'));
-	printf("%d\n", isspace('\n'));
-	printf("%d\n", isspace('\f'));
-	printf("%d\n", isspace('\r'));
-	printf("%d\n", isspace('a'));
-	printf("%d\n", isspace('?'));
+	Token *t = get_next_token("!");
+	Token_print(t);
+
+	// TokenNode *node = lex("i <- 0");
+	// while(node->child_node != NULL) {
+	// 	Token_print(node->token);
+	// 	node = node->child_node;
+	// }
 	return 0;
 }

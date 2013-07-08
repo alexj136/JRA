@@ -151,7 +151,7 @@ def get_next_token(text):
 		# get the index of the next state
 		next_state = transition_table[current_state][char_indices[next_char]]
 
-		# If the next state is non-final...
+		# If the next state produces a valid token...
 		if next_state != -1:
 			# Add the next char to the string builder
 			string_builder = string_builder + next_char

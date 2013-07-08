@@ -72,3 +72,6 @@ THURSDAY 4TH JULY
 FRIDAY 5TH JULY
 - Did more reading/tutorials on C
 - Continued C implementation of lexer
+
+MONDAY 8TH JULY
+- Continued C implementation of lexer
