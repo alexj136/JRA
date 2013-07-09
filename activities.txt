@@ -75,3 +75,6 @@ FRIDAY 5TH JULY
 
 MONDAY 8TH JULY
 - Continued C implementation of lexer
+
+TUESDAY 9TH JULY
+- Continued C implementation of lexer - almost completed

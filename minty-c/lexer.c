@@ -1,13 +1,14 @@
+/* 
+ * This file contains functions and data structures that are used for lexical
+ * analysis.
+ */
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <malloc.h>
- 
-/* 
- * This file contains functions that are used for lexical analysis.
- */
 
-/* 
+/*
  * Struct used to represent a token
  */
 typedef struct {
@@ -36,22 +37,34 @@ Token *Token_init(char *type, char *info) {
 	return token;
 }
 
+/*
+ * Setter for the token type field - frees the old value, allocates the new one
+ */
 void Token_set_type(Token *token, char *type) {
 	free(token->type);
 	token->type = strdup(type);
 }
 
+/*
+ * Setter for the token info field - frees the old value, allocates the new one
+ */
 void Token_set_info(Token *token, char *info) {
 	free(token->info);
 	token->info = strdup(info);
 }
 
+/*
+ * Deallocates a token object - frees each string, followed by the object itself
+ */
 void Token_free(Token *token) {
 	free(token->type);
 	free(token->info);
 	free(token);
 }
 
+/*
+ * Prints a token in the format 'T_type' or 'T_type_info'
+ */
 void Token_print(Token *token) {
 	printf("T_%s", token->type);
 	if(*(token->info) != '\0') printf("_%s\n", token->info);
@@ -89,12 +102,37 @@ TokenNode *TokenNode_init(TokenNode *parent_node, Token *new_token) {
 }
 
 /*
- * Frees the given TokenNode and all child TokenNodes
+ * Frees the given TokenNode and all child TokenNodes. Should only be called on
+ * the head of a list, otherwise the last of the non-free nodes will point to
+ * an area of memory that the program does not have allocated, and a segfault
+ * will likely occur if that pointer is subsequently used
  */
 void TokenNode_free(TokenNode *node) {
 	TokenNode_free(node->child_node);
 	Token_free(node->token);
 	free(node);
+}
+
+/*
+ * Struct that contains the information returned as a result of retrieving a
+ * token from the string given to get_next_token
+ */
+typedef struct {
+	int chars_processed;
+	Token *token;
+} TupleIntToken;
+
+/*
+ * Create a TupleIntToken struct - a container for a token and an int. There is
+ * no free function for TupleIntToken because we don't need to free the int, we
+ * wouldn't want to free the contained token - that will be done elsewhere, and
+ * thus it suffices to call free(instance_of_TupleIntToken)
+ */
+TupleIntToken *TupleIntToken_init(Token *token, int chars_processed) {
+	TupleIntToken *tuple = malloc(sizeof(TupleIntToken));
+	tuple->chars_processed = chars_processed;
+	tuple->token = token;
+	return tuple;
 }
 
 int transition_table[54][36] = {//                                     abcdjkx
@@ -216,6 +254,10 @@ char *final_mapping[] = {
 	"INT", "ID", "ID", "ID", "ID", "else"
 };
 
+/*
+ * Array that contains every token type that does not have any associated info
+ * such as identifier name on integer literal value
+ */
 char *valueless_tokens[] = {
 	"fn", "for", "if", "while", "print", "return", "else", "<", "<-", "<=", ">",
 	">=", "+", "++", "+=", "-", "--", "-=", "!=", "=", "{", "}", "(", ")", "*",
@@ -250,21 +292,6 @@ int in_valueless_tokens(char *token) {
 }
 
 /* 
- * Trims the leading whitespace from a string, for example, "    \n  \t hello"
- * becomes "hello", "  four  \n", becomes "four  \n". If a string has only
- * whitespace and a null terminator, only the null terminator will remain. If
- * no null terminator is reached, an error will occur.
- *     This function takes a pointer and returns a pointer, and as such, a
- * reference to the array initially declared should be kept, so that it can
- * be freed once finished with. The pointer that this function returns will not
- * free the (entire) array that was declared.
- */
-char *trim_whitespace(char *str) {
-	while(isspace(*str)) str += sizeof(char);
-	return str;
-}
-
-/* 
  * Takes a pointer to a char array and returns a pointer to a value-equal
  * string (but for the appended character) on the heap. Will cause a memory leak
  * if the string at the returned pointer is not freed when appropriate.
@@ -293,7 +320,13 @@ char *str_append(char *str, char c) {
 	return new_str;
 }
 
-Token *get_next_token(char *input) {
+
+/*
+ * Retrieves the first token present in the given string. Also keeps count of
+ * how many characters of the input string were processed. The resulting token
+ * is returned in a tuple with the number of characters processed.
+ */
+TupleIntToken *get_next_token(char *input) {
 
 	// Create an empty token
 	Token *next_token = Token_init("", "");
@@ -308,16 +341,25 @@ Token *get_next_token(char *input) {
 	// The state in the FSM that we are currently in, during traversal
 	int current_state = 0;
 
-	// Trim the leading whitespace from the input
-	input = trim_whitespace(input);
+	// We need to keep a record of the number of chars we processed, so that the
+	// caller knows how far to advance their pointer over the array to the next
+	// token in the input string
+	int chars_processed = 0;
 
-	while(current_state != -1 && char_indices(input[0])) {
+	// Trim the leading whitespace from the input (need to update 
+	// chars_processed for each character we skip)
+	while(isspace(*input)) {
+		input += sizeof(char);
+		chars_processed += sizeof(char);
+	}
+
+	while(current_state != -1 && char_indices(*input) != -1) {
 
 		// Get the next char from the input
 		char next_char = *input;
 
 		// Determinethe state that processing the next char will lead to
-		int next_state = 
+		int next_state =
 			transition_table[current_state][char_indices(next_char)];
 
 		// If the next state produces a valid token...
@@ -329,7 +371,10 @@ Token *get_next_token(char *input) {
 			final_state = next_state;
 
 			// Advance the input pointer to the next character
-			input++;
+			input += sizeof(char);
+
+			// We've processed a character so increment chars_processed
+			chars_processed += sizeof(char);
 		}
 
 		// Update the current state variable
@@ -343,39 +388,61 @@ Token *get_next_token(char *input) {
 
 	// If the text found was an error, process any remaining erroneous text
 	if(str_equal(final_mapping[final_state], "ERROR")) {
-		while(char_indices(*input)== -1) {
+		while(*input != '\0' && char_indices(*input) == -1) {
 			next_token->info = str_append(next_token->info, *input);
-			input++;
+			input += sizeof(char);
+			chars_processed += sizeof(char);
 		}
 	}
 
-	// Set the token type, return it
+	// Set the token type, return it in a TupleIntToken with chars_processed
 	Token_set_type(next_token, final_mapping[final_state]);
-	return next_token;
+	return TupleIntToken_init(next_token, chars_processed);
 } 
 
 /*
- * Currently not working - I believe that the pointer address that I pass does
- * not work so that the pointer never gets advanced and thus lex loops forever
+ * Lexical analyser function - takes a pointer to a string, which is the
+ * program on which to perform lexical analysis, and returns a linked-list of
+ * the tokens found in the lexical analysis
  */
 TokenNode *lex(char *input) {
+	// If the input is an empty string, return NULL
+	if(*input == '\0') return NULL;
 
 	// Make a copy of the original pointer to the input (we make a copy to
 	// modify, we need to keep the original to free once we're done)
 	char *cur_input = input;
 
-	// Get the first token (pass the address where the pointer lives, so that
-	// the call to get_next_token can modify it), putting it in a root TokenNode
-	TokenNode *root_node = TokenNode_init_root(get_next_token(&cur_input));
+	// Get the first token & the number of chars processed in retrieving it
+	TupleIntToken *tuple = get_next_token(cur_input);
 
-	// Get the second token, passing the root node so that the root node points
-	// to the new node
-	TokenNode *cur_node = TokenNode_init(root_node, get_next_token(&cur_input));
+	// Construct a root TokenNode
+	TokenNode *root_node = TokenNode_init_root(tuple->token);
+
+	// Advance the input pointer past the token just processed
+	cur_input += tuple->chars_processed;
+
+	// We're finished with the tuple object now, so free it
+	free(tuple);
+
+	// Again we must check that there is input left before getting the next
+	// token
+	if(*cur_input == '\0') return root_node;
+
+	// Get the next (token, chars_processed), Put the new token in a TokenNode,
+	// Advance the input pointer
+	tuple = get_next_token(cur_input);
+	TokenNode *cur_node = TokenNode_init(root_node, tuple->token);
+	cur_input += tuple->chars_processed;
+	free(tuple);
 
 	// Repeatedly get a new token and add it to the linked list in the above
 	// way, until there is no input left
 	while(*cur_input != '\0') {
-		cur_node = TokenNode_init(cur_node, get_next_token(&cur_input));
+		tuple = get_next_token(cur_input);
+		cur_node = TokenNode_init(cur_node, tuple->token);
+		cur_input += tuple->chars_processed;
+		free(tuple);
 	}
 
 	// Return the root node
@@ -383,13 +450,17 @@ TokenNode *lex(char *input) {
 }
 
 int main() {
-	Token *t = get_next_token("!");
-	Token_print(t);
+	// TupleIntToken *tuple = get_next_token("123=");
+	// Token_print(tuple->token);
 
-	// TokenNode *node = lex("i <- 0");
-	// while(node->child_node != NULL) {
-	// 	Token_print(node->token);
-	// 	node = node->child_node;
-	// }
+	char *s = strdup("hello, my name != 123 if for >= ##~!# lol !");
+	TokenNode *node = lex(s);
+	Token_print(node->token);
+	while(node->child_node != NULL) {
+		node = node->child_node;
+		Token_print(node->token);
+	}
+	free(node);
+	free(s);
 	return 0;
 }
