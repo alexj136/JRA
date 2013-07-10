@@ -2,8 +2,8 @@
 CFLAGS=-Wall -g
 
 # Adding this line means you can just run 'make' and ex1 will be built
-all: lexer
+all: lexer AST minty_util
 
 # Command that is run when 'make clean' is run
 clean:
-	rm -f lexer
+	rm -f lexer.o AST.o minty_util.o

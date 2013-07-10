@@ -7,14 +7,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <malloc.h>
-
-/*
- * Struct used to represent a token
- */
-typedef struct {
-	char *type;
-	char *info;
-} Token;
+#include "lexer.h"
+#include "minty_util.h"
 
 /*
  * 'Constructor' for Token structs. Tokens can indicate errors as well as valid
@@ -25,13 +19,13 @@ typedef struct {
  */
 Token *Token_init(char *type, char *info) {
 	// Allocate heap space for this Token
-	Token *token = malloc(sizeof(Token));
+	Token *token = safe_alloc(sizeof(Token));
 
 	// Copy & allocate the type string
-	token->type = strdup(type);
+	token->type = safe_strdup(type);
 
 	// Copy and allocate the info string
-	token->info = strdup(info);
+	token->info = safe_strdup(info);
 
 	// Return a pointer to this Token
 	return token;
@@ -42,7 +36,7 @@ Token *Token_init(char *type, char *info) {
  */
 void Token_set_type(Token *token, char *type) {
 	free(token->type);
-	token->type = strdup(type);
+	token->type = safe_strdup(type);
 }
 
 /*
@@ -50,7 +44,7 @@ void Token_set_type(Token *token, char *type) {
  */
 void Token_set_info(Token *token, char *info) {
 	free(token->info);
-	token->info = strdup(info);
+	token->info = safe_strdup(info);
 }
 
 /*
@@ -72,19 +66,10 @@ void Token_print(Token *token) {
 }
 
 /*
- * TokenNode struct represents a node in a linked list of tokens. Thus it
- * contains a pointer to a Token and a pointer to another TokenNode.
- */
-typedef struct {
-	Token *token;
-	struct TokenNode *child_node;
-} TokenNode;
-
-/*
  * Constructs a root TokenNode object
  */
 TokenNode *TokenNode_init_root(Token *root_token) {
-	TokenNode *root_node = malloc(sizeof(TokenNode));
+	TokenNode *root_node = safe_alloc(sizeof(TokenNode));
 	root_node->token = root_token;
 	root_node->child_node = NULL;
 	return root_node;
@@ -94,7 +79,7 @@ TokenNode *TokenNode_init_root(Token *root_token) {
  * Constructs a TokenNode as a child of the passed node
  */
 TokenNode *TokenNode_init(TokenNode *parent_node, Token *new_token) {
-	TokenNode *new_node = malloc(sizeof(TokenNode));
+	TokenNode *new_node = safe_alloc(sizeof(TokenNode));
 	parent_node->child_node = new_node;
 	new_node->token = new_token;
 	new_node->child_node = NULL;
@@ -129,13 +114,13 @@ typedef struct {
  * thus it suffices to call free(instance_of_TupleIntToken)
  */
 TupleIntToken *TupleIntToken_init(Token *token, int chars_processed) {
-	TupleIntToken *tuple = malloc(sizeof(TupleIntToken));
+	TupleIntToken *tuple = safe_alloc(sizeof(TupleIntToken));
 	tuple->chars_processed = chars_processed;
 	tuple->token = token;
 	return tuple;
 }
 
-int transition_table[54][36] = {//                                     abcdjkx
+static int transition_table[54][36] = {//                              abcdjkx
 // e   f   g   h   i   l   m   n   o   p   q   r   s   t   u   v   w   yzCAPS_   0-9   {   }   (   )   *   /   %   ,   ;   ?   :   <   >   =   +   -   !
 {  50,  1, 49, 49,  4, 49, 49, 49, 49,  2, 49,  3, 49, 49, 49, 49,  5, 49,       48,   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 23, 26, 36, 28, 31, 34 },  // state 0
 {  49, 49, 49, 49, 49, 49, 49, 17,  6, 49, 49, 49, 49, 49, 49, 49, 49, 49,       49,   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },  // state 1
@@ -246,7 +231,7 @@ int char_indices(char letter) {
  * the FSM traversal finished on final state 3, the token type would be "ID"
  * because final_mapping[3] = "ID".
  */
-char *final_mapping[] = {
+static char *final_mapping[] = {
 	"ERROR", "ID", "ID", "ID", "ID", "ID", "ID", "for", "ID", "ID", "ID",
 	"print", "ID", "ID", "ID", "ID", "return", "fn", "if", "ID", "ID", "ID",
 	"while", "<", "<-", "<=", ">", ">=", "+", "++", "+=", "-", "--", "-=",
@@ -264,19 +249,6 @@ char *valueless_tokens[] = {
 	"/", "%%",",", ";", "?", ":"
 };
 
-/* 
- * Function that decides if two strings are equal. Returns 1 (true) if they are
- * the same, or 0 (false) if they differ.
- */
-int str_equal(char *str1, char *str2) {
-	// If they have different lengths, we can say immidiately that they differ
-	if(strlen(str1) != strlen(str2)) return 0;
-	// If they are she same length, we must use strncmp to compare them. strncmp
-	// returns 0 for identical strings, and other ints for different ones, so we
-	// negate the result.
-	else return !strncmp(str1, str2, strlen(str1));
-}
-
 /*
  * Does simple sequential search to determine if a given string is in the
  * valueless_tokens array
@@ -291,36 +263,6 @@ int in_valueless_tokens(char *token) {
 	return found;
 }
 
-/* 
- * Takes a pointer to a char array and returns a pointer to a value-equal
- * string (but for the appended character) on the heap. Will cause a memory leak
- * if the string at the returned pointer is not freed when appropriate.
- * May cause an error if appending exceeds the size of the given array.
- */
-char *str_append(char *str, char c) {
-	// Allocate the appropriate amount of memory for the new string - this is
-	// the size of the old string, inlucing the null terminator, plus one.
-	char *new_str = malloc((strlen(str) + 2) * sizeof(char));
-	
-	// Copy the caracters from the old string into the new one, but not the null
-	// terminator
-	int i;
-	for(i = 0; i < strlen(str); i++) new_str[i] = str[i];
-
-	// Write the new char after the contents of the old string
-	new_str[strlen(str)] = c;
-
-	// Write the null terminator
-	new_str[strlen(str) + 1] = '\0';
-
-	// Free the old string from memory
-	free(str);
-
-	// Return the pointer to the new string
-	return new_str;
-}
-
-
 /*
  * Retrieves the first token present in the given string. Also keeps count of
  * how many characters of the input string were processed. The resulting token
@@ -332,7 +274,7 @@ TupleIntToken *get_next_token(char *input) {
 	Token *next_token = Token_init("", "");
 
 	// Char array to build the token array into
-	char *token_str = malloc(sizeof(char));
+	char *token_str = safe_alloc(sizeof(char));
 	*token_str = '\0';
 
 	// The state number for the final state after FSM traversal
@@ -447,20 +389,4 @@ TokenNode *lex(char *input) {
 
 	// Return the root node
 	return root_node;
-}
-
-int main() {
-	// TupleIntToken *tuple = get_next_token("123=");
-	// Token_print(tuple->token);
-
-	char *s = strdup("hello, my name != 123 if for >= ##~!# lol !");
-	TokenNode *node = lex(s);
-	Token_print(node->token);
-	while(node->child_node != NULL) {
-		node = node->child_node;
-		Token_print(node->token);
-	}
-	free(node);
-	free(s);
-	return 0;
 }
