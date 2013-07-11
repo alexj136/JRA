@@ -13,7 +13,9 @@ typedef struct {
 	char *type;
 	char *info;
 } Token;
+
 void Token_print(Token *token);
+
 void Token_free(Token *token);
 
 /*
@@ -24,6 +26,7 @@ typedef struct {
 	Token *token;
 	struct TokenNode *child_node;
 } TokenNode;
+
 void TokenNode_free(TokenNode *node);
 
 TokenNode *lex(char *input);

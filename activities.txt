@@ -78,3 +78,10 @@ MONDAY 8TH JULY
 
 TUESDAY 9TH JULY
 - Continued C implementation of lexer - almost completed
+
+WEDNESDAY 10TH JULY
+- Finished lexer implementation
+- Began parser implementation
+
+THURSDAY 11TH JULY
+- Continued parser implementation

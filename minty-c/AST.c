@@ -1,1 +1,203 @@
 #include <stdio.h>
+#include "AST.h"
+#include "minty_util.h"
+
+/*
+ * Constructor for For Statements
+ */
+Statement *For_init(Statement *assignment,
+	Expression *bool_expr, Statement *incrementor) {
+
+	For *_for = safe_alloc(sizeof(For));
+	_for->assignment = assignment;
+	_for->bool_expr = bool_expr;
+	_for->incrementor = incrementor;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_For;
+	the_stmt->stmt->_for = _for;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for While Statements
+ */
+Statement *While_init(Expression *bool_expr, LinkedList *stmts) {
+
+	While *_while = safe_alloc(sizeof(While));
+	_while->bool_expr = bool_expr;
+	_while->stmts = stmts;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_While;
+	the_stmt->stmt->_while = _while;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for If Statements
+ */
+Statement *If_init(Expression *bool_expr,
+	LinkedList *true_stmts, LinkedList *false_stmts) {
+
+	If *_if = safe_alloc(sizeof(If));
+	_if->bool_expr = bool_expr;
+	_if->true_stmts = true_stmts;
+	_if->false_stmts = false_stmts;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_If;
+	the_stmt->stmt->_if = _if;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for Print Statements
+ */
+Statement *Print_init(Expression *expr) {
+
+	Print *_print = safe_alloc(sizeof(Print));
+	_print->expr = expr;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_Print;
+	the_stmt->stmt->_print = _print;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for Assignment Statements
+ */
+Statement *Assignment_init(char *name, Expression *expr) {
+
+	Assignment *_assignment = safe_alloc(sizeof(Assignment));
+	_assignment->name = name;
+	_assignment->expr = expr;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_Assignment;
+	the_stmt->stmt->_assignment = _assignment;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for Return Statements
+ */
+Statement *Return_init(Expression *expr) {
+
+	Return *_return = safe_alloc(sizeof(Return));
+	_return->expr = expr;
+
+	Statement *the_stmt = safe_alloc(sizeof(Statement));
+	the_stmt->type = stmt_Return;
+	the_stmt->stmt->_return = _return;
+
+	return the_stmt;
+}
+
+/*
+ * Constructor for BooleanExpr Expressions
+ */
+Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
+ 	// First create the underlying BooleanExpr struct
+ 	BooleanExpr *_bool = safe_alloc(sizeof(BooleanExpr));
+ 	_bool->lhs = lhs;
+ 	_bool->op = op;
+ 	_bool->rhs = rhs;
+ 	
+ 	// Then create the Expression struct wrapper
+ 	Expression *the_exp = safe_alloc(sizeof(Expression));
+ 	the_exp->type = expr_BooleanExpr;
+ 	the_exp->expr->_bool = _bool;
+
+ 	// Return the wrapped Expression
+ 	return the_exp;
+ }
+
+ /*
+ * Constructor for ArithmeticExpr Expressions
+ */
+Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
+ 	// First create the underlying ArithmeticExpr struct
+ 	ArithmeticExpr *_arith = safe_alloc(sizeof(ArithmeticExpr));
+ 	_arith->lhs = lhs;
+ 	_arith->op = op;
+ 	_arith->rhs = rhs;
+ 	
+ 	// Then create the Expression struct wrapper
+ 	Expression *the_exp = safe_alloc(sizeof(Expression));
+ 	the_exp->type = expr_ArithmeticExpr;
+ 	the_exp->expr->_arith = _arith;
+
+ 	// Return the wrapped Expression
+ 	return the_exp;
+ }
+
+/*
+ * Constructor for Identifier Expressions
+ */
+Expression *Identifier_init(char *_ident) {
+	Expression *the_exp = safe_alloc(sizeof(Expression));
+	the_exp->type = expr_Identifier;
+	the_exp->expr->_ident = _ident;
+	return the_exp;
+}
+
+/*
+ * Constructor for IntegerLiteral Expressions
+ */
+Expression *IntegerLiteral_init(int _int) {
+	Expression *the_exp = safe_alloc(sizeof(Expression));
+	the_exp->type = expr_IntegerLiteral;
+	the_exp->expr->_int = _int;
+	return the_exp;
+}
+
+/*
+ * Constructor for FNCall Expressions
+ */
+Expression *FNCall_init(char *name, LinkedList *args) {
+	// First create the underlying FNCall struct
+ 	FNCall *_call = safe_alloc(sizeof(FNCall));
+ 	_call->name = name;
+ 	_call->args = args;
+ 	
+ 	// Then create the Expression struct wrapper
+ 	Expression *the_exp = safe_alloc(sizeof(Expression));
+ 	the_exp->type = expr_FNCall;
+ 	the_exp->expr->_call = _call;
+
+ 	// Return the wrapped Expression
+ 	return the_exp;
+}
+
+/*
+ * Constructor for Ternary Expressions
+ */
+Expression *Ternary_init(Expression *bool_expr,
+	Expression *true_expr, Expression *false_expr) {
+
+	// Ensure that the boolean expression given is in fact a boolean expression
+	// (cannot guarantee this at the struct level - everything must be an
+	// expression for parsing purposes)
+	assert(boolean_expr->type == expr_BooleanExpr);
+
+	// First create the underlying Ternary struct
+	Ternary *_tern = safe_alloc(sizeof(Ternary));
+	_tern->bool_expr = bool_expr;
+	_tern->true_expr = true_expr;
+	_tern->false_expr = false_expr;
+
+	// Then creare the Expression struct wrapper
+	Expression *the_exp = safe_alloc(sizeof(Expression));
+	the_exp->type = expr_Ternary;
+	the_exp->expr->_tern = _tern;
+
+	// Return the wrapped Expression
+	return the_exp;
+}

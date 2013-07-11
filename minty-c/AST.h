@@ -3,8 +3,33 @@
  * Contains struct definitions for AST objects
  */
 
+#include "minty_util.h"
+
 /*
- * Statement types
+ * FNDecl type - contains the function name, a list of argument names, and a
+ * list of statements
+ */
+typedef struct {
+	char *name;
+	LinkedList *arg_names;
+	LinkedList *stmts;
+} FNDecl;
+
+/*
+ * Program type - just a LinkedList of functions
+ */
+ typedef struct {
+ 	LinkedList *functions;
+ } Program;
+
+/*
+ * The following data structures are used to represent statements. Statement
+ * objects have the following structure:
+ * 	STATEMENT INSTANCE:
+ * 		ENUM VALUE:
+ * 			STATEMENT TYPE NAME
+ * 		UNION VALUE:
+ * 			OBJECT OF TYPE [ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN 
  */
 typedef enum {
 	stmt_For,
@@ -15,11 +40,25 @@ typedef enum {
 	stmt_Return
 } stmt_type;
 
+typedef union {
+	For *_for;
+	If *_if;
+	While *_while;
+	Print *_print;
+	Assignment *_assignment;
+	Return *_return;
+} u_stmt;
+
+typedef struct {
+	stmt_type type;
+	u_stmt stmt;
+} Statement;
+
 typedef struct {
 	struct Statement *assignment;
 	struct Expression *bool_expr;
 	struct Statement *incrementor;
-	struct StmtList *stmts;
+	LinkedList *stmts;
 } For;
 
 typedef struct {
@@ -29,50 +68,55 @@ typedef struct {
 
 typedef struct {
 	struct Expression *bool_expr;
-	struct StmtList *true_stmts;
-	struct StmtList *false_stmts;
+	LinkedList *true_stmts;
+	LinkedList *false_stmts;
 } If;
 
 typedef struct {
-	struct Expression *_exp;
+	struct Expression *expr;
 } Print;
 
 typedef struct {
 	char *name;
-	struct Expression *_exp;
+	struct Expression *expr;
 } Assignment;
 
 typedef struct {
-	struct Expression *_exp;
+	struct Expression *expr;
 } Return;
 
-typedef struct {
-	stmt_type type;
-	union {
-		For *_for;
-		If *_if;
-		While *_while;
-		Print *_print;
-		Assignment *_assignment;
-		Return *_return;
-	} stmt;
-} Statement;
-
-typedef struct {
-	Expression *exps;
-} ExpList;
-
 /*
- * Expression types
+ * Enumeration of the types an expression can have
  */
 typedef enum {
-	exp_BooleanExpr,
-	exp_ArithmeticExpr,
-	exp_Identifier,
-	exp_IntegerLiteral,
-	exp_FNCall,
-	exp_Ternary
-} exp_type;
+	expr_BooleanExpr,
+	expr_ArithmeticExpr,
+	expr_Identifier,
+	expr_IntegerLiteral,
+	expr_FNCall,
+	expr_Ternary
+} expr_type;
+
+typedef union {
+	BooleanExpr *_bool;
+	ArithmeticExpr *_arith;
+	char *_ident;
+	int _int;
+	FNCall *_call;
+	Ternary *_tern;
+} u_expr;
+
+/*
+ * An actual expression object. Since C does not have inheritance, we cannot
+ * define functions that take an abstract type, passing in one of many concrete
+ * subtypes. Instead, we must create a wrapper object that contains exactly one
+ * of said 'subtypes', and an enum variable that indicates which of those types
+ * the contained objecct belongs to.
+ */
+typedef struct {
+	expr_type type;
+	u_expr expr;
+} Expression;
 
 typedef struct {
 	struct Expression *lhs;
@@ -88,32 +132,15 @@ typedef struct {
 
 typedef struct {
 	char *name;
-	struct ExpList *args;
+	LinkedList *args;
 } FNCall;
 
-typedef struct {
-	struct BooleanExpr *bool_exp;
-	struct Expression *true_exp;
-	struct Expression *false_exp;
-} Ternary;
-
-typedef struct {
-	exp_type type;
-	union {
-		BooleanExpr *_bool;
-		ArithmeticExpr *_arith;
-		char *_ident;
-		int _int;
-		FNCall *_call;
-		Ternary *_tern;
-	} exp;
-} Expression;
-
 /*
- * FNDecl type
+ * A Ternary has three components: a boolean expression, a true-expression, and
+ * a false-expression
  */
 typedef struct {
-	char *name;
-	char **arg_names;
-	struct StmtList *stmts;
-} FNDecl;
+	struct Expression *bool_expr;
+	struct Expression *true_expr;
+	struct Expression *false_expr;
+} Ternary;
