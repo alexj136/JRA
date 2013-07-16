@@ -25,7 +25,8 @@ class EPrime(object):
 
 def check_valid(expected, found):
 	"""
-	Checks that found is in expected, and if not, raises an exception with a
+	Takes a list of token types (expected) and a single token type (found) and
+	checks that found is in expected, and if not, raises an exception with a
 	friendly error message.
 	"""
 	if found not in expected:
@@ -39,7 +40,7 @@ def check_valid(expected, found):
 def parse_program(token_list):
 	"""
 	This function is the entry point for the parser. It is responsible for
-	maing calls to parse_function for each function in the program, putting
+	making calls to parse_function for each function in the program, putting
 	each function into a list, wrapping that list into a Program object and
 	returning that Program object.
 	"""

@@ -8,7 +8,6 @@
 #include <string.h>
 #include <malloc.h>
 #include "lexer.h"
-#include "minty_util.h"
 
 /*
  * 'Constructor' for Token structs. Tokens can indicate errors as well as valid
@@ -63,39 +62,6 @@ void Token_print(Token *token) {
 	printf("T_%s", token->type);
 	if(*(token->info) != '\0') printf("_%s\n", token->info);
 	else printf("\n");
-}
-
-/*
- * Constructs a root TokenNode object
- */
-TokenNode *TokenNode_init_root(Token *root_token) {
-	TokenNode *root_node = safe_alloc(sizeof(TokenNode));
-	root_node->token = root_token;
-	root_node->child_node = NULL;
-	return root_node;
-}
-
-/*
- * Constructs a TokenNode as a child of the passed node
- */
-TokenNode *TokenNode_init(TokenNode *parent_node, Token *new_token) {
-	TokenNode *new_node = safe_alloc(sizeof(TokenNode));
-	parent_node->child_node = new_node;
-	new_node->token = new_token;
-	new_node->child_node = NULL;
-	return new_node;
-}
-
-/*
- * Frees the given TokenNode and all child TokenNodes. Should only be called on
- * the head of a list, otherwise the last of the non-free nodes will point to
- * an area of memory that the program does not have allocated, and a segfault
- * will likely occur if that pointer is subsequently used
- */
-void TokenNode_free(TokenNode *node) {
-	TokenNode_free(node->child_node);
-	Token_free(node->token);
-	free(node);
 }
 
 /*
@@ -347,7 +313,7 @@ TupleIntToken *get_next_token(char *input) {
  * program on which to perform lexical analysis, and returns a linked-list of
  * the tokens found in the lexical analysis
  */
-TokenNode *lex(char *input) {
+LinkedList *lex(char *input) {
 	// If the input is an empty string, return NULL
 	if(*input == '\0') return NULL;
 
@@ -359,7 +325,8 @@ TokenNode *lex(char *input) {
 	TupleIntToken *tuple = get_next_token(cur_input);
 
 	// Construct a root TokenNode
-	TokenNode *root_node = TokenNode_init_root(tuple->token);
+	LinkedList *tokens = LinkedList_init();
+	LinkedList_append(tokens, tuple->token);
 
 	// Advance the input pointer past the token just processed
 	cur_input += tuple->chars_processed;
@@ -369,12 +336,12 @@ TokenNode *lex(char *input) {
 
 	// Again we must check that there is input left before getting the next
 	// token
-	if(*cur_input == '\0') return root_node;
+	if(*cur_input == '\0') return tokens;
 
 	// Get the next (token, chars_processed), Put the new token in a TokenNode,
 	// Advance the input pointer
 	tuple = get_next_token(cur_input);
-	TokenNode *cur_node = TokenNode_init(root_node, tuple->token);
+	LinkedList_append(tokens, tuple->token);
 	cur_input += tuple->chars_processed;
 	free(tuple);
 
@@ -382,11 +349,11 @@ TokenNode *lex(char *input) {
 	// way, until there is no input left
 	while(*cur_input != '\0') {
 		tuple = get_next_token(cur_input);
-		cur_node = TokenNode_init(cur_node, tuple->token);
+		LinkedList_append(tokens, tuple->token);
 		cur_input += tuple->chars_processed;
 		free(tuple);
 	}
 
 	// Return the root node
-	return root_node;
+	return tokens;
 }

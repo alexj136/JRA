@@ -12,20 +12,26 @@ int str_equal(char *str1, char *str2);
 
 char *str_append(char *str, char c);
 
+typedef struct {
+	struct LinkedListNode *child_node;
+	void *element;
+} LinkedListNode;
+
 /*
  * Linked list used to store argument/statement lists & associated functions
  */
- typedef struct {
- 	LinkedList *child_node;
- 	void *element;
- } LinkedList;
+typedef struct {
+	LinkedListNode *head_node;
+} LinkedList;
 
- LinkedList *LinkedList_init(void *first_element);
+LinkedList *LinkedList_init();
 
- void *LinkedList_get(LinkedList *ll, int index);
+void *LinkedList_get(LinkedList *ll, int index);
 
- int LinkedList_length(LinkedList *ll);
+int LinkedList_length(LinkedList *ll);
 
- void LinkedList_append(LinkedList *ll, void *element);
+void LinkedList_append(LinkedList *ll, void *element);
 
- void LinkedList_free(LinkedList *ll);
+void *LinkedList_pop(LinkedList *ll);
+
+void LinkedList_free(LinkedList *ll);

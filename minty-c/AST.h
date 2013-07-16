@@ -29,7 +29,7 @@ typedef struct {
  * 		ENUM VALUE:
  * 			STATEMENT TYPE NAME
  * 		UNION VALUE:
- * 			OBJECT OF TYPE [ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN 
+ * 			OBJECT OF TYPE [ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN ]
  */
 typedef enum {
 	stmt_For,
@@ -111,7 +111,7 @@ typedef union {
  * define functions that take an abstract type, passing in one of many concrete
  * subtypes. Instead, we must create a wrapper object that contains exactly one
  * of said 'subtypes', and an enum variable that indicates which of those types
- * the contained objecct belongs to.
+ * the contained object belongs to.
  */
 typedef struct {
 	expr_type type;

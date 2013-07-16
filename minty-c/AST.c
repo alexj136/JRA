@@ -101,6 +101,85 @@ Statement *Return_init(Expression *expr) {
 }
 
 /*
+ * Destructor for all Statement objects
+ */
+void Statement_free(Statement *stmt) {
+	switch(stmt->type) {
+
+		case stmt_For:
+			// Free the Statements & Expression in the for loop declaration
+			Statement_free(stmt->_for->assignment);
+			Expression_free(stmt->_for->bool_expr);
+			Statement_free(stmt->_for->incrementor);
+
+			// Free the Statements in the statement list
+			int i;
+			for(i = 0; i < LinkedList_length(stmt->_for->stmts); i++)
+				Statement_free(LinkedList_get(stmt->_for->stmts, i));
+
+			// Free the list itself
+			LinkedList_free(stmt->_for->stmts);
+
+			// Free the For object
+			free(stmt->_for);
+			break;
+
+		case stmt_While:
+			// Free the Expression in the while loop declaration
+			Expression_free(stmt->_while->bool_expr);
+
+			// Free the Statements in the statement list
+			int i;
+			for(i = 0; i < LinkedList_length(stmt->_while->stmts); i++)
+				Statement_free(LinkedList_get(stmt->_while->stmts, i));
+
+			// Free the list itself
+			LinkedList_free(stmt->_while->stmts);
+
+			// Free the While object
+			free(stmt->_while);
+			break;
+
+		case stmt_If:
+		// Free the Expression in the if statement declaration
+			Expression_free(stmt->_for->bool_expr);
+
+			// Free the Statements in the statement lists
+			int i;
+			for(i = 0; i < LinkedList_length(stmt->_if->true_stmts); i++)
+				Statement_free(LinkedList_get(stmt->_if->true_stmts, i));
+
+			for(i = 0; i < LinkedList_length(stmt->_if->false_stmts); i++)
+				Statement_free(LinkedList_get(stmt->_if->false_stmts, i));
+
+			// Free the list itself
+			LinkedList_free(stmt->_if->stmts);
+
+			// Free the If object
+			free(stmt->_if);
+			break;
+
+		case stmt_Print:
+			Expression_free(stmt->_print->expr);
+			free(stmt->_print);
+			break;
+
+		case stmt_Assignment:
+			Expression_free(stmt->_assignment->expr);
+			free(stmt->_assignment->name)
+			free(stmt->_assignment);
+			break;
+
+		case stmt_Return:
+			Expression_free(stmt->_return->expr);
+			free(stmt->_return);
+			break;
+	}
+	// Free the Statement container
+	free(stmt);
+}
+
+/*
  * Constructor for BooleanExpr Expressions
  */
 Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
@@ -117,7 +196,7 @@ Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
 
  	// Return the wrapped Expression
  	return the_exp;
- }
+}
 
  /*
  * Constructor for ArithmeticExpr Expressions
@@ -136,7 +215,7 @@ Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
 
  	// Return the wrapped Expression
  	return the_exp;
- }
+}
 
 /*
  * Constructor for Identifier Expressions
@@ -176,6 +255,7 @@ Expression *FNCall_init(char *name, LinkedList *args) {
  	return the_exp;
 }
 
+
 /*
  * Constructor for Ternary Expressions
  */
@@ -200,4 +280,69 @@ Expression *Ternary_init(Expression *bool_expr,
 
 	// Return the wrapped Expression
 	return the_exp;
+}
+
+/*
+ * Destructor for all Expression objects
+ */
+void Expression_free(Expression *expr) {
+	switch(expr->type) {
+
+		case expr_BooleanExpr:
+			// Free lhs, op, rhs
+			Expression_free(expr->_bool->lhs);
+			free(expr->_bool->op);
+			Expression_free(expr->_bool->rhs);
+
+			// Free BooleanExpr object itself
+			free(expr->_bool);
+			break;
+
+		case expr_ArithmeticExpr:
+			// Free lhs, op, rhs
+			Expression_free(expr->_arith->lhs);
+			free(expr->_arith->op);
+			Expression_free(expr->_arith->rhs);
+
+			// Free ArithmeticExpr object itself
+			free(expr->_arith);
+			break;
+
+		case expr_Identifier:
+			// Free Identifier name
+			free(expr->_ident);
+			break;
+
+		case expr_IntegerLiteral:
+			// Nothing to free
+			break;
+
+		case expr_FNCall:
+			// Free the function name
+			free(expr->_call->name);
+
+			// Free the arguments
+			int i;
+			for(i = 0; i < LinkedList_length(expr->_call->args); i++)
+				Expression_free(LinkedList_get(expr->_call->args, i));
+
+			// Free the list that contained the arguments
+			LinkedList_free(expr->_call->args);
+
+			// Free the FNCall object itelf
+			free(expr->_call);
+			break;
+
+		case expr_Ternary:
+			// Free the expressions in the ternary
+			Expression_free(expr->_tern->bool_expr);
+			Expression_free(expr->_tern->true_expr);
+			Expression_free(expr->_tern->false_expr);
+
+			// Free the Ternary object itself
+			free(expr->_tern);
+			break;
+	}
+	// Free the Expression container
+	free(expr);
 }
