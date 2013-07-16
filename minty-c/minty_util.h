@@ -1,3 +1,6 @@
+#ifndef MINTY_UTIL
+#define MINTY_UTIL
+
 /*
  * Header file for minty_util.c
  * Contains forward declarations of some safe memory allocation functions and
@@ -35,3 +38,5 @@ void LinkedList_append(LinkedList *ll, void *element);
 void *LinkedList_pop(LinkedList *ll);
 
 void LinkedList_free(LinkedList *ll);
+
+#endif //MINTY_UTIL
