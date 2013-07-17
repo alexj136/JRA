@@ -43,32 +43,36 @@ typedef struct {
 	u_expr *expr;
 } Expression;
 
-typedef struct {
+typedef struct BooleanExpr BooleanExpr;
+struct BooleanExpr {
 	Expression *lhs;
 	char *op;
 	Expression *rhs;
-} BooleanExpr;
+};
 
-typedef struct {
+typedef struct ArithmeticExpr ArithmeticExpr;
+struct ArithmeticExpr {
 	Expression *lhs;
 	char *op;
 	Expression *rhs;
-} ArithmeticExpr;
+};
 
-typedef struct {
+typedef struct FNCall FNCall;
+struct FNCall {
 	char *name;
 	LinkedList *args;
-} FNCall;
+};
 
 /*
  * A Ternary has three components: a boolean expression, a true-expression, and
  * a false-expression
  */
-typedef struct {
+typedef struct Ternary Ternary;
+struct Ternary {
 	Expression *bool_expr;
 	Expression *true_expr;
 	Expression *false_expr;
-} Ternary;
+};
 
 /*
  * The following data structures are used to represent statements. Statement
@@ -102,36 +106,42 @@ typedef struct {
 	u_stmt *stmt;
 } Statement;
 
-typedef struct {
+typedef struct For For;
+struct For {
 	Statement *assignment;
 	Expression *bool_expr;
 	Statement *incrementor;
 	LinkedList *stmts;
-} For;
+};
 
-typedef struct {
+typedef struct While While;
+struct While {
 	Expression *bool_expr;
 	LinkedList *stmts;
-} While;
+};
 
-typedef struct {
+typedef struct If If;
+struct If {
 	Expression *bool_expr;
 	LinkedList *true_stmts;
 	LinkedList *false_stmts;
-} If;
+};
 
-typedef struct {
+typedef struct Print Print;
+struct Print {
 	Expression *expr;
-} Print;
+};
 
-typedef struct {
+typedef struct Assignment Assignment;
+struct Assignment {
 	char *name;
 	Expression *expr;
-} Assignment;
+};
 
-typedef struct {
+typedef struct Return Return;
+struct Return {
 	Expression *expr;
-} Return;
+};
 
 /*
  * FNDecl type - contains the function name, a list of argument names, and a

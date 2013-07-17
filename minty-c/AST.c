@@ -98,7 +98,7 @@ Expression *Ternary_init(Expression *bool_expr,
 	_tern->true_expr = true_expr;
 	_tern->false_expr = false_expr;
 
-	// Then creare the Expression struct wrapper
+	// Then creare theBooleanExpr Expression struct wrapper
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_Ternary;
 	the_exp->expr->_tern = _tern;
@@ -115,7 +115,7 @@ void Expression_free(Expression *expr) {
 
 		case expr_BooleanExpr:
 			// Free lhs, op, rhs
-			Expression_free(expr->expr->_bool->lhs);
+			Expression_free(expr->expr->_bool->rhs);
 			free(expr->expr->_bool->op);
 			Expression_free(expr->expr->_bool->rhs);
 
@@ -149,8 +149,8 @@ void Expression_free(Expression *expr) {
 			// Free the arguments
 			int i;
 			for(i = 0; i < LinkedList_length(expr->expr->_call->args); i++)
-				Expression_free((Expression *)
-				LinkedList_get(expr->expr->_call->args, i));
+				Expression_free((Expression *)LinkedList_get(
+					expr->expr->_call->args, i));
 
 			// Free the list that contained the arguments
 			LinkedList_free(expr->expr->_call->args);
@@ -286,8 +286,8 @@ void Statement_free(Statement *stmt) {
 			// Free the Statements in the statement list
 			int i;
 			for(i = 0; i < LinkedList_length(stmt->stmt->_for->stmts); i++)
-				Statement_free((Statement *)
-				LinkedList_get(stmt->stmt->_for->stmts, i));
+				Statement_free((Statement *)LinkedList_get(
+					stmt->stmt->_for->stmts, i));
 
 			// Free the list itself
 			LinkedList_free(stmt->stmt->_for->stmts);
@@ -303,8 +303,8 @@ void Statement_free(Statement *stmt) {
 			// Free the Statements in the statement list
 			int j;
 			for(j = 0; j < LinkedList_length(stmt->stmt->_while->stmts); j++)
-				Statement_free((Statement *)
-				LinkedList_get(stmt->stmt->_while->stmts, j));
+				Statement_free((Statement *)LinkedList_get(
+					stmt->stmt->_while->stmts, j));
 
 			// Free the list itself
 			LinkedList_free(stmt->stmt->_while->stmts);
@@ -320,15 +320,16 @@ void Statement_free(Statement *stmt) {
 			// Free the Statements in the statement lists
 			int k;
 			for(k = 0; k < LinkedList_length(stmt->stmt->_if->true_stmts); k++)
-				Statement_free((Statement *)
-				LinkedList_get(stmt->stmt->_if->true_stmts, k));
+				Statement_free((Statement *)LinkedList_get(
+					stmt->stmt->_if->true_stmts, k));
 
 			for(k = 0; k < LinkedList_length(stmt->stmt->_if->false_stmts); k++)
-				Statement_free((Statement *)
-				LinkedList_get(stmt->stmt->_if->false_stmts, k));
+				Statement_free((Statement *)LinkedList_get(
+					stmt->stmt->_if->false_stmts, k));
 
-			// Free the list itself
-			LinkedList_free(stmt->stmt->_if->stmts);
+			// Free the lists themselves
+			LinkedList_free(stmt->stmt->_if->true_stmts);
+			LinkedList_free(stmt->stmt->_if->false_stmts);
 
 			// Free the If object
 			free(stmt->stmt->_if);
@@ -370,12 +371,12 @@ FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts) {
  */
 void FNDecl_free(FNDecl *func) {
 	// Free the name string
-	free(name);
+	free(func->name);
 
 	// Free the arg_names list
 	int i;
 	for(i = 0; i < LinkedList_length(func->arg_names); i++)
-		Statement_free((char *)LinkedList_get(func->arg_names, i));
+		free((char *)LinkedList_get(func->arg_names, i));
 
 	// Free the list itself
 	LinkedList_free(func->arg_names);
@@ -387,8 +388,8 @@ void FNDecl_free(FNDecl *func) {
 	// Free the list itself
 	LinkedList_free(func->stmts);
 
-	// Free the If object
-	free(prog);
+	// Free the FNDecl object
+	free(func);
 }
 
 
