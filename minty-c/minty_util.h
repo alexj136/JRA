@@ -1,17 +1,22 @@
-#ifndef MINTY_UTIL
-#define MINTY_UTIL
-
 /*
  * Header file for minty_util.c
  * Contains forward declarations of some safe memory allocation functions and
  * some string operation functions.
  */
 
+#ifndef MINTY_UTIL
+#define MINTY_UTIL
+
+typedef enum {
+	false,
+	true
+} bool;
+
 void *safe_alloc(int size);
 
 char *safe_strdup(char *str);
 
-int str_equal(char *str1, char *str2);
+bool str_equal(char *str1, char *str2);
 
 char *str_append(char *str, char c);
 
@@ -39,4 +44,4 @@ void *LinkedList_pop(LinkedList *ll);
 
 void LinkedList_free(LinkedList *ll);
 
-#endif //MINTY_UTIL
+#endif // MINTY_UTIL

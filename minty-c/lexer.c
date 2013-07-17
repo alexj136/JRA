@@ -16,7 +16,7 @@
  * to create heap-allocated copies. If they were not copies, the struct would
  * not be the only owner of the strings, which would potentially cause problems.
  */
-Token *Token_init(char *type, char *info) {
+static Token *Token_init(char *type, char *info) {
 	// Allocate heap space for this Token
 	Token *token = safe_alloc(sizeof(Token));
 
@@ -33,7 +33,7 @@ Token *Token_init(char *type, char *info) {
 /*
  * Setter for the token type field - frees the old value, allocates the new one
  */
-void Token_set_type(Token *token, char *type) {
+static void Token_set_type(Token *token, char *type) {
 	free(token->type);
 	token->type = safe_strdup(type);
 }
@@ -41,7 +41,7 @@ void Token_set_type(Token *token, char *type) {
 /*
  * Setter for the token info field - frees the old value, allocates the new one
  */
-void Token_set_info(Token *token, char *info) {
+static void Token_set_info(Token *token, char *info) {
 	free(token->info);
 	token->info = safe_strdup(info);
 }
@@ -79,7 +79,7 @@ typedef struct {
  * wouldn't want to free the contained token - that will be done elsewhere, and
  * thus it suffices to call free(instance_of_TupleIntToken)
  */
-TupleIntToken *TupleIntToken_init(Token *token, int chars_processed) {
+static TupleIntToken *TupleIntToken_init(Token *token, int chars_processed) {
 	TupleIntToken *tuple = safe_alloc(sizeof(TupleIntToken));
 	tuple->chars_processed = chars_processed;
 	tuple->token = token;
@@ -148,7 +148,7 @@ static int transition_table[54][36] = {//                              abcdjkx
  * If a character that does not belong in the alphabet of the language, -1 is
  * returned to indicate an error.
  */
-int char_indices(char letter) {
+static int char_indices(char letter) {
 	if     (letter == 'a') return 17; else if(letter == 'b') return 17;
 	else if(letter == 'c') return 17; else if(letter == 'd') return 17;
 	else if(letter == 'e') return  0; else if(letter == 'f') return  1;
@@ -209,7 +209,7 @@ static char *final_mapping[] = {
  * Array that contains every token type that does not have any associated info
  * such as identifier name on integer literal value
  */
-char *valueless_tokens[] = {
+static char *valueless_tokens[] = {
 	"fn", "for", "if", "while", "print", "return", "else", "<", "<-", "<=", ">",
 	">=", "+", "++", "+=", "-", "--", "-=", "!=", "=", "{", "}", "(", ")", "*",
 	"/", "%%",",", ";", "?", ":"
@@ -219,11 +219,11 @@ char *valueless_tokens[] = {
  * Does simple sequential search to determine if a given string is in the
  * valueless_tokens array
  */
-int in_valueless_tokens(char *token) {
-	int found = 0;
+static bool in_valueless_tokens(char *token) {
+	int found = false;
 	int i = 0;
 	while(!found && i < 31/*length of valueless_tokens*/) {
-		if(str_equal(valueless_tokens[i], token)) found = 1;
+		if(str_equal(valueless_tokens[i], token)) found = true;
 		i++;
 	}
 	return found;
@@ -234,7 +234,7 @@ int in_valueless_tokens(char *token) {
  * how many characters of the input string were processed. The resulting token
  * is returned in a tuple with the number of characters processed.
  */
-TupleIntToken *get_next_token(char *input) {
+static TupleIntToken *get_next_token(char *input) {
 
 	// Create an empty token
 	Token *next_token = Token_init("", "");

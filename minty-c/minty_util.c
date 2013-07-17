@@ -25,7 +25,7 @@ char *safe_strdup(char *str) {
  * Function that decides if two strings are equal. Returns 1 (true) if they are
  * the same, or 0 (false) if they differ.
  */
-int str_equal(char *str1, char *str2) {
+bool str_equal(char *str1, char *str2) {
 	// If they have different lengths, we can say immidiately that they differ
 	if(strlen(str1) != strlen(str2)) return 0;
 	// If they are she same length, we must use strncmp to compare them. strncmp
@@ -92,7 +92,7 @@ LinkedList *LinkedList_init() {
  */
 static void *LinkedListNode_get(LinkedListNode *lln, int index) {
 	// Assertion that the index is positive, and that it is in the list's range
-	assert(index >= 0 && (!lln->child_node ? index == 0 : 1));
+	assert(index >= 0 && (!lln->child_node ? index == 0 : true));
 
 	// If the given index is zero, return the element at this node
 	if(index == 0) return lln->element;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "minty_util.h"
+#include "lexer.h"
 #include "AST.h"
 
 /*
@@ -9,6 +10,10 @@
  * that Program object.
  */
 Program *parse_program(LinkedList *tokens) {
-	LinkedList_init();
-	return NULL;
+	LinkedList *function_list = LinkedList_init();
+
+	while(LinkedList_length(tokens) < 0)
+		LinkedList_append(parse_function(tokens));
+
+	return Program_init(function_list);
 }

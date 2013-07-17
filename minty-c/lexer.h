@@ -5,7 +5,12 @@
  * course the lex function itself are included.
  */
 
+#ifndef MINTY_UTIL
 #include "minty_util.h"
+#endif // MINTY_UTIL
+
+#ifndef LEXER
+#define LEXER
 
 /*
  * Struct used to represent a token
@@ -23,3 +28,5 @@ void Token_free(Token *token);
  * Lexer function
  */
 LinkedList *lex(char *input);
+
+#endif // LEXER
