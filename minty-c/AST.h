@@ -179,8 +179,8 @@ Expression *Ternary_init(Expression *bool_expr,
 
 void Expression_free(Expression *expr);
 
-Statement *For_init(Statement *assignment,
-	Expression *bool_expr, Statement *incrementor);
+Statement *For_init(Statement *assignment, Expression *bool_expr,
+	Statement *incrementor, LinkedList *stmts);
 
 Statement *While_init(Expression *bool_expr, LinkedList *stmts);
 
@@ -194,5 +194,13 @@ Statement *Assignment_init(char *name, Expression *expr);
 Statement *Return_init(Expression *expr);
 
 void Statement_free(Statement *stmt);
+
+FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts);
+
+void FNDecl_free(FNDecl *func);
+
+Program *Program_init(LinkedList *function_list);
+
+void Program_free(Program *prog);
 
 #endif // AST

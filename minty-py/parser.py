@@ -116,7 +116,7 @@ def parse_statement(token_list):
 	# Retrieve the next token, and check that it's valid
 	next_token = token_list.pop(0)
 	check_valid(['print', 'for', 'return', 'if',
-		'while', 'for', 'ID'], next_token.type)
+		'while', 'ID'], next_token.type)
 
 	# If the token is a print, parse the corresponding expression and return it
 	# in a Print AST object
@@ -148,7 +148,7 @@ def parse_statement(token_list):
 		bool_expr = parse_expression(token_list)
 		if not issubclass(bool_expr.__class__, BoolExpression):
 			raise Exception('Boolean expression required ' + \
-				'in for-loop declaration')
+				'in if-statement declaration')
 
 		# Create a list for the if's statements
 		statements = parse_statement_block(token_list)
@@ -171,7 +171,7 @@ def parse_statement(token_list):
 		bool_expr = parse_expression(token_list)
 		if not issubclass(bool_expr.__class__, BoolExpression):
 			raise Exception('Boolean expression required ' + \
-				'in for-loop declaration')
+				'in while-loop declaration')
 
 		# Create a list for the while-loop's statements
 		statements = parse_statement_block(token_list)
@@ -205,9 +205,7 @@ def parse_statement(token_list):
 		next_token = token_list.pop(0)
 		check_valid([','], next_token.type)
 
-		# Parse the 'incrementor' - an Assignment - from the token list. Also
-		# ensure that it applies to the same variable that was declared in the
-		# for-loop's assignment, and again, assert its assignyness
+		# Parse the 'incrementor' - an Assignment - from the token list
 		incrementor = parse_statement(token_list)
 		if not issubclass(incrementor.__class__, Assignment):
 			raise Exception('Incrementation of control variable required ' + \

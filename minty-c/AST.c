@@ -176,13 +176,14 @@ void Expression_free(Expression *expr) {
 /*
  * Constructor for For Statements
  */
-Statement *For_init(Statement *assignment,
-	Expression *bool_expr, Statement *incrementor) {
+Statement *For_init(Statement *assignment, Expression *bool_expr,
+	Statement *incrementor, LinkedList *stmts) {
 
 	For *_for = safe_alloc(sizeof(For));
 	_for->assignment = assignment;
 	_for->bool_expr = bool_expr;
 	_for->incrementor = incrementor;
+	_for->stmts = stmts;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_For;
