@@ -5,6 +5,47 @@
 #include "AST.h"
 #include "parser.h"
 
+/*
+ * Temporary store for the E' productions of the grammar that can be easily
+ * built up into expression trees.
+ */
+typedef struct {
+	char *op;
+	Expression *expr;
+	bool is_ternary;
+	Expression *true_expr;
+	Expression *false_expr;
+} EPrime;
+
+/*
+ * Constructor of EPrime that represents a ternary expression
+ */
+EPrime *EPrime_tern_init(char *op, Expression* expr,
+	Expression *true_expr, Expression *false_expr) {
+
+	EPrime *this_eprime = safe_alloc(sizeof(EPrime));
+	this_eprime->op = op;
+	this_eprime->expr = expr;
+	this_eprime->is_ternary = true;
+	this_eprime->true_expr = true_expr;
+	this_eprime->false_expr = false_expr;
+	return this_eprime;
+}
+
+/*
+ * Constructor of EPrime that does not represent a ternary expression
+ */
+EPrime *EPrime_init(char *op, Expression* expr) {
+
+	EPrime *this_eprime = safe_alloc(sizeof(EPrime));
+	this_eprime->op = op;
+	this_eprime->expr = expr;
+	this_eprime->is_ternary = false;
+	this_eprime->true_expr = NULL;
+	this_eprime->false_expr = NULL;
+	return this_eprime;
+}
+
 static char *FN[] = {"fn"};
 static int FN_SIZE = 1;
 
@@ -28,6 +69,9 @@ static int FOR_SIZE = 1;
 
 static char *ID[] = {"ID"};
 static int ID_SIZE = 1;
+
+static char *INT[] = {"INT"};
+static int INT_SIZE = 1;
 
 static char *OPAREN[] = {"("};
 static int OPAREN_SIZE = 1;
@@ -68,8 +112,38 @@ static int MIEQ_SIZE = 1;
 static char *ASSIGN[] = {"<-"};
 static int ASSIGN_SIZE = 1;
 
+static char *TIMES = {"*"};
+static int TIMES_SIZE = 1;
+
+static char *DIVIDE = {"/"};
+static int DIVIDE_SIZE = 1;
+
+static char *MODULO = {"%%"};
+static int MODULO_SIZE = 1;
+
+static char *EQUAL = {"="};
+static int EQUAL_SIZE = 1;
+
+static char *NEQUAL = {"!="};
+static int NEQUAL_SIZE = 1;
+
+static char *LESS = {"<"};
+static int LESS_SIZE = 1;
+
+static char *GRTR = {">"};
+static int GRTR_SIZE = 1;
+
+static char *LESSEQ = {"<="};
+static int LESSEQ_SIZE = 1;
+
+static char *GRTREQ = {">="};
+static int GRTREQ_SIZE = 1;
+
 static char *ARGLIST[] = {"ID", ","};
 static int ARGLIST_SIZE = 2;
+
+static char *ARGDELIM[] = {",", ")"};
+static int ARGDELIM_SIZE = 2;
 
 static char *STMTSTART[] =
 	{"print", "for", "return", "if", "while", "ID"};
@@ -111,8 +185,163 @@ void check_valid(char **expected, int expected_size, char *found) {
 	else return;
 }
 
-Expression *parse_expression(LinkedList *tokens) {
+/*
+ * This function, along with the parse_e_prime function, perform the job of
+ * parsing expressions according to the context-free grammar specified in the
+ * file CFG-parsable.txt, which can be found in the minty-spec directory of
+ * the project repository. This function handles the following productions:
+ * 
+ * E' -> (epsilon)
+ *     | + E
+ *     | - E
+ *     | * E
+ *     | / E
+ *     | % E
+ *     | COMP E ? E : E
+ * It also handles the 'COMP E' parts of the following productions:
+ * ST -> if E COMP E { STMTS } else { STMTS } 
+ *     | while E COMP E { STMTS }
+ *     | for ID <- E, E COMP E, INCR { STMTS }
+ * Accordingly, this function will look for an operator (either an arithmetic
+ * operator, or a boolean comparison) and in the case of an arithmetic operator
+ * it will then try to parse a single expression. If a boolean operation is
+ * found (produced by the COMP nonterminal) then the function will attempt to
+ * find a '?' indicating a ternary (although its absence is not an error).
+ * It will return an EPrime object, which represents the production. EPrime
+ * objects are not ASTNodes but are temporary stores for objects that
+ * parse_expression will build into ASTNodes.
+ */
+EPrime *parse_e_prime(LinkedList *tokens) {
 	return NULL;
+}
+
+/*
+ * This function, along with the parse_e_prime function, perform the job of
+ * parsing expressions according to the context-free grammar specified in the
+ * file CFG-parsable.txt, which can be found in the minty-spec directory of
+ * the project repository. This function handles the following productions:
+ * E -> INT E'
+ *     | ID E'
+ *     | (E) E'
+ *     | ID(EA) E'
+ * Accordingly, this function will look for the part of the production that
+ * comes before the E' part, and try to parse it, before making a call to
+ * parse_e_prime to parse the E' part.
+ */
+Expression *parse_expression(LinkedList *tokens) {
+	
+	Token *next_token = (Token *)LinkedList_pop(tokens);
+
+	Expression *left_part;
+
+	// Function call case: T_ID T_( T_ID T_, T_ID ...
+	if(str_equal(next_token->type, *ID) &&
+		str_equal((Token *)LinkedList_get(tokens, 0)->type, *OPAREN)) {
+		
+		// Record the name of the function
+		char *fn_name = safe_strdup(next_token->info)
+
+		// Get rid of the open bracket, we don't need it
+		LinkedList_pop(tokens);
+
+		// Create a list for the passed arguments (expressions) to go in
+		LinkedList *arguments = LinkedList_init();
+
+		// Peek at the top of the token_list, otherwise we might enter the
+		// argument-collecting loop erroneously
+		next_token = (Token *)LinkedList_get(tokens, 0);
+
+		// Keep processing an arg, then a comma, until the close-bracket is
+		// reached. The args are added to the list, the commas are thrown away
+		while(!str_equal(next_token->type, *CBRACE)) {
+	
+			LinkedList_append(arguments, parse_expression(tokens));
+
+			// Peek at the next token - should be a ',' if there are more args,
+			// or a ')' if not
+			next_token = (Token *)LinkedList_get(tokens, 0);
+			check_valid(ARGDELIM, ARGDELIM_SIZE, next_token->type);
+
+			// If the next token is a ',', we can pop it, and look for the next
+			// argument. It it's a '(' we cannot pop it here - it must be done
+			// outside the loop in case no arguments are found at all and the
+			// loop is never entered
+			if(str_equal(next_token->type, *COMMA)) LinkedList_pop(tokens);
+		}
+
+		// Clear the ')' from the token list
+		LinkedList_pop(tokens);
+
+		left_part = FNCall_init(fn_name, arguments);
+	}
+
+	// Identifier case
+	else if(str_equal(next_token->type, *ID))
+		left_part = Identifier_init(safe_strdup(next_token->info));
+
+	// Integer literal case
+	else if(string_equal(next_token->type, *INT))
+		left_part = IntegerLiteral_init(
+			(int)strtol(next_token->info, (char **)NULL, 10));
+
+	// Brackets case
+	else if (str_equal(next_token->type, *OBRACE)) {
+		left_part = parse_expression(tokens);
+
+		// Process the close-bracket
+		next_token = (Token *)LinkedList_get(tokens, 0);
+		check_valid(CPAREN, CPAREN_SIZE, next_token.type);
+	}
+
+	else {
+		printf('Could not parse expression production, %s not expected',
+			next_token->type);
+		exit(EXIT_FAILURE);
+	}
+
+	// Try to parse the E' production
+	EPrime *e_prime = parse_e_prime(tokens);
+	
+	// If parse_e_prime returned NULL, then we already reached the end of the
+	// expression, so just return the 'left part'
+	if(!e_prime) return left_part;
+
+	// If parse_e_prime returned a non-ternary EPrime with an arithmetic
+	// operation, create an ArithmeticExpr and return it
+	else if((str_equal(e_prime->op, *PLUS) ||
+		str_equal(e_prime->op, *MINUS) ||
+		str_equal(e_prime->op, *TIMES) ||
+		str_equal(e_prime->op, *DIVIDE) ||
+		str_equal(e_prime->op, *MODULO)) &&
+		!e_prime->is_ternary)
+		return ArithmeticExpr_init(left_part, e_prime->op, e_prime->expr);
+
+	// If parse_e_prime returned a ternary EPrime with an boolean operation,
+	// create an Ternary and return it
+	else if((str_equal(e_prime->op, *EQUAL) ||
+		str_equal(e_prime->op, *NEQUAL) ||
+		str_equal(e_prime->op, *LESS) ||
+		str_equal(e_prime->op, *GRTR) ||
+		str_equal(e_prime->op, *LESSEQ) ||
+		str_equal(e_prime->op, *GRTREQ)) &&
+		e_prime->is_ternary)
+		return Ternary(BooleanExpr_init(left_part, e_prime->op, e_prime->expr),
+			e_prime->true_exp, e_prime->false_exp);
+
+	// Else if parse_e_prime returned a non-ternary EPrime with an boolean
+	// operation, create a BooleanExpr and return it
+	else if(str_equal(e_prime->op, *EQUAL) ||
+		str_equal(e_prime->op, *NEQUAL) ||
+		str_equal(e_prime->op, *LESS) ||
+		str_equal(e_prime->op, *GRTR) ||
+		str_equal(e_prime->op, *LESSEQ) ||
+		str_equal(e_prime->op, *GRTREQ))
+		return BooleanExpr_init(left_part, e_prime->op, e_prime->expr);
+
+	else {
+		printf("Could not parse expression, invalid syntax found");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /*
@@ -258,28 +487,41 @@ Statement *parse_statement(LinkedList *tokens) {
 
 		// Switch on the assignment operator type so as to build the
 		// appropriate syntax tree
-		if(str_equal(next_token->type, *PLPL)) // ++ operator
-			return Assignment_init(Identifier_init(assignee),
-				ArithmeticExpr_init(Identifier_init(assignee),
-					*PLUS, IntegerLiteral_init(1)));
+		if(str_equal(next_token->type, *PLPL)) return // ++ operator
+			Assignment_init(
+				assignee,
+				ArithmeticExpr_init(
+					Identifier_init(assignee),
+					*PLUS,
+					IntegerLiteral_init(1)));
 
-		else if(str_equal(next_token->type, *MIMI)) // -- operator
-			return Assignment_init(Identifier_init(assignee),
-				ArithmeticExpr_init(Identifier_init(assignee),
-					*MINUS, IntegerLiteral_init(1)));
+		else if(str_equal(next_token->type, *MIMI)) return // -- operator
+			Assignment_init(
+				assignee,
+				ArithmeticExpr_init(
+					Identifier_init(assignee),
+					*MINUS,
+					IntegerLiteral_init(1)));
 
-		else if(str_equal(next_token->type, *PLEQ)) // += operator
-			return Assignment_init(Identifier_init(assignee),
-				ArithmeticExpr_init(Identifier_init(assignee), *PLUS,
+		else if(str_equal(next_token->type, *PLEQ)) return // += operator
+			Assignment_init(
+				assignee,
+				ArithmeticExpr_init(
+					Identifier_init(assignee),
+					*PLUS,
 					parse_expression(tokens)));
 
-		else if(str_equal(next_token->type, *MIEQ)) // -= operator
-			return Assignment_init(Identifier_init(assignee),
-				ArithmeticExpr_init(Identifier_init(assignee), *MINUS,
+		else if(str_equal(next_token->type, *MIEQ)) return // -= operator
+			Assignment_init(
+				assignee,
+				ArithmeticExpr_init(
+					Identifier_init(assignee),
+					*MINUS,
 					parse_expression(tokens)));
 
-		else if(str_equal(next_token->type, *ASSIGN)) // <- operator
-			return Assignment_init(Identifier_init(assignee),
+		else if(str_equal(next_token->type, *ASSIGN)) return // <- operator
+			Assignment_init(
+				assignee,
 				parse_expression(tokens));
 
 		else {

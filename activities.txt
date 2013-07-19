@@ -31,7 +31,7 @@ MONDAY 24TH JUNE
 TUESDAY 25TH JUNE
 - Implemented a simple example parser for the language 'begin prog; prog; end'
   from the lecture slides
-- Restuctured project folder/hg repo
+- Restructured project folder/hg repo
 - Began parser implementation
 - Realised I forgot to incorporate 'else' into the lexical spec, so I will have
   to change the transition table in the lexer
@@ -58,7 +58,7 @@ TUESDAY 2ND JULY
 - Finished graphviz FSM diagram
 
 WEDNESDAY 3RD JULY
-- Wrote up a breif lexical specification for minty
+- Wrote up a brief lexical specification for minty
 - Unit-tested interpreter
 - 'Put to bed' the python implementation of minty. Could have...
 	- Put more comments in AST.py
@@ -85,3 +85,14 @@ WEDNESDAY 10TH JULY
 
 THURSDAY 11TH JULY
 - Continued parser implementation
+
+TUESDAY 15TH JULY
+- Continued parser implementation
+
+WEDNESDAY 16TH JULY
+- Continued parser implementation
+
+THURSDAY 17TH JULY
+- Continued parser implementation
+
+FRIDAY 18TH JULY
