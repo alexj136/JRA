@@ -18,19 +18,23 @@ char *safe_strdup(char *str);
 
 bool str_equal(char *str1, char *str2);
 
+char *str_concat(char *str1, char *str2);
+
 char *str_append(char *str, char c);
 
-typedef struct {
+typedef struct LinkedListNode LinkedListNode;
+struct LinkedListNode {
 	struct LinkedListNode *child_node;
 	void *element;
-} LinkedListNode;
+};
 
 /*
  * Linked list used to store argument/statement lists & associated functions
  */
-typedef struct {
+typedef struct LinkedList LinkedList;
+struct LinkedList{
 	LinkedListNode *head_node;
-} LinkedList;
+};
 
 LinkedList *LinkedList_init();
 

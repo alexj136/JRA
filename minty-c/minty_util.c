@@ -26,7 +26,7 @@ char *safe_strdup(char *str) {
  * the same, or 0 (false) if they differ.
  */
 bool str_equal(char *str1, char *str2) {
-	// If they have different lengths, we can say immidiately that they differ
+	// If they have different lengths, we can say immediately that they differ
 	if(strlen(str1) != strlen(str2)) return 0;
 	// If they are she same length, we must use strncmp to compare them. strncmp
 	// returns 0 for identical strings, and other ints for different ones, so we
@@ -34,7 +34,31 @@ bool str_equal(char *str1, char *str2) {
 	else return !strncmp(str1, str2, strlen(str1));
 }
 
-/* 
+/*
+ * Creates a string which is the concatenation of the two input strings, and
+ * returns a pointer to the concatenated string
+ */
+char *str_concat(char *str1, char *str2) {
+	// Record the lengths of the two strings
+	int str1_len = strlen(str1);
+	int str2_len = strlen(str2);
+
+	// Allocate space for the new string. The length of the new string will be
+	// the sum of strlen for each input string, plus one for the null terminator
+	// which strlen does not account for
+	char *new_str = (char *)safe_alloc(str1_len + str2_len + 1);
+
+	// Copy str1 into the newly allocated space
+	strcpy(new_str, str1);
+
+	// Concatenate str2 into new_str after str1
+	strcat(new_str, str2);
+
+	// Return the new string
+	return new_str;
+}
+
+/*
  * Takes a pointer to a char array and returns a pointer to a value-equal
  * string (but for the appended character) on the heap. Will cause a memory leak
  * if the string at the returned pointer is not freed when appropriate.
@@ -152,8 +176,8 @@ static void LinkedListNode_append(LinkedListNode *lln, void *element) {
 void LinkedList_append(LinkedList *ll, void *element) {
 	// If the LinkedList is empty, create a new node with the given element as
 	// the head node
-	if(!ll->head_node) {
-		LinkedList *new_node = LinkedListNode_init(element);
+	if(!(ll->head_node)) {
+		LinkedListNode *new_node = LinkedListNode_init(element);
 		ll->head_node = new_node;
 	}
 	// Otherwise, use LinkedListNode_append to add it after the last existing

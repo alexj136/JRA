@@ -23,7 +23,7 @@ Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
  	return the_exp;
 }
 
- /*
+/*
  * Constructor for ArithmeticExpr Expressions
  */
 Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
@@ -105,6 +105,103 @@ Expression *Ternary_init(Expression *bool_expr,
 
 	// Return the wrapped Expression
 	return the_exp;
+}
+
+/*
+ * Function to deep-compare two expressions
+ */
+bool Expression_equals(Expression *expr1, Expression *expr2) {
+
+	// If the expressions are of different type, they cannot be equal
+	if(expr1->type != expr2->type) return false;
+
+	// If they are of the same type, (recursively) inspect them to see if their
+	// properties are the same
+	else switch(expr1->type) {
+
+		// With a boolean expression, we check the lhs and rhs are the same, and
+		// that the op is the same
+		case expr_BooleanExpr:	
+			return (
+				Expression_equals(
+					expr1->expr->_bool->lhs,
+					expr2->expr->_bool->lhs) &&
+				str_equal(
+					expr1->expr->_bool->op,
+					expr2->expr->_bool->op) &&
+				Expression_equals(
+					expr1->expr->_bool->rhs,
+					expr2->expr->_bool->rhs));
+
+		// The procedure with an arithmetic expression is the same as with a
+		// boolean expression
+		case expr_ArithmeticExpr:
+			return (
+				Expression_equals(
+					expr1->expr->_arith->lhs,
+					expr2->expr->_arith->lhs) &&
+				str_equal(
+					expr1->expr->_arith->op,
+					expr2->expr->_arith->op) &&
+				Expression_equals(
+					expr1->expr->_arith->rhs,
+					expr2->expr->_arith->rhs));
+
+		// With an identifier, we check if the ID names are the same
+		case expr_Identifier:
+			return str_equal(expr1->expr->_ident, expr2->expr->_ident);
+
+		// With an integer literal, check that the literal values are the same
+		case expr_IntegerLiteral:
+			return expr1->expr->_int == expr2->expr->_int;
+
+		// With an FNCall, ...
+		case expr_FNCall:
+
+			// Check that the names are the same, and that they have the same
+			// number of arguments
+			if(!str_equal(expr1->expr->_call->name, expr2->expr->_call->name) ||
+				(LinkedList_length(expr1->expr->_call->args) !=
+				LinkedList_length(expr2->expr->_call->args)))
+
+				// If not, we can return false without checking the arguments
+				// themselves
+				return false;
+
+			// If they do match in name and arg count, we must compare the
+			// expressions that comprise the arguments themselves, with a simple
+			// while loop
+			else {
+				bool diff_not_found = true;
+				int i = 0;
+				while(diff_not_found &&
+					i < LinkedList_length(expr1->expr->_call->args)) {
+
+					if(!Expression_equals(
+						LinkedList_get(expr1->expr->_call->args, i),
+						LinkedList_get(expr2->expr->_call->args, i)))
+
+						diff_not_found = false;
+
+					else i++;
+				}
+				return diff_not_found;
+			}
+
+		// With a ternary, we simply check that the three expressions that
+		// comprise them are equal
+		case expr_Ternary:
+			return (
+				Expression_equals(
+					expr1->expr->_tern->bool_expr,
+					expr2->expr->_tern->bool_expr) &&
+				Expression_equals(
+					expr1->expr->_tern->true_expr,
+					expr2->expr->_tern->true_expr) &&
+				Expression_equals(
+					expr1->expr->_tern->false_expr,
+					expr2->expr->_tern->false_expr));
+	}
 }
 
 /*

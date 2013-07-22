@@ -20,7 +20,7 @@ typedef struct {
 /*
  * Constructor of EPrime that represents a ternary expression
  */
-EPrime *EPrime_tern_init(char *op, Expression* expr,
+EPrime *EPrime_tern_init(char *op, Expression *expr,
 	Expression *true_expr, Expression *false_expr) {
 
 	EPrime *this_eprime = safe_alloc(sizeof(EPrime));
@@ -46,6 +46,11 @@ EPrime *EPrime_init(char *op, Expression* expr) {
 	return this_eprime;
 }
 
+/*
+ * The following variables are used with the check_valid function defined below,
+ * which is used to assert that the parser remains in a safe state, i.e. that it
+ * will never return an AST if the input is invalid
+ */
 static char *FN[] = {"fn"};
 static int FN_SIZE = 1;
 
@@ -112,38 +117,50 @@ static int MIEQ_SIZE = 1;
 static char *ASSIGN[] = {"<-"};
 static int ASSIGN_SIZE = 1;
 
-static char *TIMES = {"*"};
+static char *TIMES[] = {"*"};
 static int TIMES_SIZE = 1;
 
-static char *DIVIDE = {"/"};
+static char *DIVIDE[] = {"/"};
 static int DIVIDE_SIZE = 1;
 
-static char *MODULO = {"%%"};
+static char *MODULO[] = {"%%"};
 static int MODULO_SIZE = 1;
 
-static char *EQUAL = {"="};
+static char *EQUAL[] = {"="};
 static int EQUAL_SIZE = 1;
 
-static char *NEQUAL = {"!="};
+static char *NEQUAL[] = {"!="};
 static int NEQUAL_SIZE = 1;
 
-static char *LESS = {"<"};
+static char *LESS[] = {"<"};
 static int LESS_SIZE = 1;
 
-static char *GRTR = {">"};
+static char *GRTR[] = {">"};
 static int GRTR_SIZE = 1;
 
-static char *LESSEQ = {"<="};
+static char *LESSEQ[] = {"<="};
 static int LESSEQ_SIZE = 1;
 
-static char *GRTREQ = {">="};
+static char *GRTREQ[] = {">="};
 static int GRTREQ_SIZE = 1;
+
+static char *QMARK[] = {"?"};
+static int QMARK_SIZE = 1;
+
+static char *COLON[] = {":"};
+static int COLON_SIZE = 1;
 
 static char *ARGLIST[] = {"ID", ","};
 static int ARGLIST_SIZE = 2;
 
 static char *ARGDELIM[] = {",", ")"};
 static int ARGDELIM_SIZE = 2;
+
+static char *ARITH[] = {"+", "-", "*", "/", "%%"};
+static int ARITH_SIZE = 5;
+
+static char *BOOL[] = {"=", "!=", "<", ">", "<=", ">="};
+static int BOOL_SIZE = 6;
 
 static char *STMTSTART[] =
 	{"print", "for", "return", "if", "while", "ID"};
@@ -163,20 +180,21 @@ void check_valid(char **expected, int expected_size, char *found) {
 
 	// Iterate over each value in expected until we reach the end or until no
 	// match is found
-	while(match_found && expected_index < expected_size) {
-		if(str_equal(*expected, found)) match_found = true;
+	while((!match_found) && expected_index < expected_size) {
+		if(str_equal(expected[expected_index], found)) match_found = true;
 		expected_index++;
 	}
 
 	// If we didn't find a match, the input had a syntax error, so we print a
 	// useful error message and exit
 	if(!match_found){
-		printf("Token: %s found", found);
-		printf("Expected: \'%s\'", expected[0]);
+		printf("Found token:\n");
+		printf("    %s\n", found);
+		printf("Expected:\n");
 
 		int i;
-		for(i = 1; i < expected_size; i++)
-			printf("          \'%s\'\n", expected[i]);
+		for(i = 0; i < expected_size; i++)
+			printf("    %s\n", expected[i]);
 
 		exit(EXIT_FAILURE);
 	}
@@ -212,7 +230,71 @@ void check_valid(char **expected, int expected_size, char *found) {
  * parse_expression will build into ASTNodes.
  */
 EPrime *parse_e_prime(LinkedList *tokens) {
-	return NULL;
+
+	// Peek at the next token (don't pop it yet - it might be needed elsewhere)
+	Token *next_token = (Token *)LinkedList_get(tokens, 0);
+
+	// If the next token is an arithmetic expression...
+	if(str_equal(next_token->type, *PLUS) ||
+		str_equal(next_token->type, *MINUS) ||
+		str_equal(next_token->type, *TIMES) ||
+		str_equal(next_token->type, *DIVIDE) ||
+		str_equal(next_token->type, *MODULO)) {
+
+		// We can pop the token in this case
+		LinkedList_pop(tokens);
+
+		// Return a non-ternary EPrime
+		return EPrime_init(next_token->type, parse_expression(tokens));
+	}
+
+	// Or if the next token is an boolean expression...
+	else if(str_equal(next_token->type, *EQUAL) ||
+		str_equal(next_token->type, *NEQUAL) ||
+		str_equal(next_token->type, *LESS) ||
+		str_equal(next_token->type, *GRTR) ||
+		str_equal(next_token->type, *LESSEQ) ||
+		str_equal(next_token->type, *GRTREQ)) {
+
+		// We can pop the token in this case
+		LinkedList_pop(tokens);
+
+		// Record the op type
+		char *op = safe_strdup(next_token->type);
+
+		// Parse the initial expression
+		Expression *expr = parse_expression(tokens);
+
+		// Peek at the next token
+		next_token = (Token *)LinkedList_get(tokens, 0);
+
+		// If it's a ternary...
+		if(str_equal(next_token->type, *QMARK)) {
+
+			// We can pop the token in this case
+			LinkedList_pop(tokens);
+
+			// Grab the expression the ternary evaluates to when true
+			Expression *true_expr = parse_expression(tokens);
+
+			// Grab the colon
+			next_token = (Token *)LinkedList_get(tokens, 0);
+			check_valid(COLON, COLON_SIZE, next_token->type);
+
+			// Grab false expression
+			Expression *false_expr = parse_expression(tokens);
+
+			// Return a ternary EPrime with extra expressions
+			return EPrime_tern_init(op, expr, true_expr, false_expr);
+		}
+
+		// If it's not a ternary, return an EPrime object without true_exp and
+		// false_exp values
+		else return EPrime_init(op, expr);
+	}
+
+	// Any other tokens indicates the epsilon production, so return None
+	else return NULL;
 }
 
 /*
@@ -236,10 +318,10 @@ Expression *parse_expression(LinkedList *tokens) {
 
 	// Function call case: T_ID T_( T_ID T_, T_ID ...
 	if(str_equal(next_token->type, *ID) &&
-		str_equal((Token *)LinkedList_get(tokens, 0)->type, *OPAREN)) {
+		str_equal(((Token *)LinkedList_get(tokens, 0))->type, *OPAREN)) {
 		
 		// Record the name of the function
-		char *fn_name = safe_strdup(next_token->info)
+		char *fn_name = safe_strdup(next_token->info);
 
 		// Get rid of the open bracket, we don't need it
 		LinkedList_pop(tokens);
@@ -280,7 +362,7 @@ Expression *parse_expression(LinkedList *tokens) {
 		left_part = Identifier_init(safe_strdup(next_token->info));
 
 	// Integer literal case
-	else if(string_equal(next_token->type, *INT))
+	else if(str_equal(next_token->type, *INT))
 		left_part = IntegerLiteral_init(
 			(int)strtol(next_token->info, (char **)NULL, 10));
 
@@ -290,11 +372,11 @@ Expression *parse_expression(LinkedList *tokens) {
 
 		// Process the close-bracket
 		next_token = (Token *)LinkedList_get(tokens, 0);
-		check_valid(CPAREN, CPAREN_SIZE, next_token.type);
+		check_valid(CPAREN, CPAREN_SIZE, next_token->type);
 	}
 
 	else {
-		printf('Could not parse expression production, %s not expected',
+		printf("Could not parse expression production, %s not expected",
 			next_token->type);
 		exit(EXIT_FAILURE);
 	}
@@ -325,8 +407,8 @@ Expression *parse_expression(LinkedList *tokens) {
 		str_equal(e_prime->op, *LESSEQ) ||
 		str_equal(e_prime->op, *GRTREQ)) &&
 		e_prime->is_ternary)
-		return Ternary(BooleanExpr_init(left_part, e_prime->op, e_prime->expr),
-			e_prime->true_exp, e_prime->false_exp);
+		return Ternary_init(BooleanExpr_init(left_part, e_prime->op, e_prime->expr),
+			e_prime->true_expr, e_prime->false_expr);
 
 	// Else if parse_e_prime returned a non-ternary EPrime with an boolean
 	// operation, create a BooleanExpr and return it
@@ -654,7 +736,7 @@ FNDecl *parse_function(LinkedList *tokens) {
 Program *parse_program(LinkedList *tokens) {
 	LinkedList *function_list = LinkedList_init();
 
-	while(LinkedList_length(tokens) < 0)
+	while(LinkedList_length(tokens) > 0)
 		LinkedList_append(function_list, (void *)parse_function(tokens));
 
 	return Program_init(function_list);

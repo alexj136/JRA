@@ -96,3 +96,8 @@ THURSDAY 17TH JULY
 - Continued parser implementation
 
 FRIDAY 18TH JULY
+- Continued parser implementation
+
+MONDAY 22ND JULY
+- Finished initial parser implementation
+- Began implementing AST equality checks in order to debug parser

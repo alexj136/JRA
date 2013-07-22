@@ -41,6 +41,7 @@ typedef union {
 typedef struct {
 	expr_type type;
 	u_expr *expr;
+	int exec_count;
 } Expression;
 
 typedef struct BooleanExpr BooleanExpr;
@@ -81,7 +82,8 @@ struct Ternary {
  * 		ENUM VALUE:
  * 			STATEMENT TYPE NAME
  * 		UNION VALUE:
- * 			OBJECT OF TYPE [ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN ]
+ * 			POINTER TO OBJECT OF TYPE:
+ * 				[ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN ]
  */
 typedef enum {
 	stmt_For,
@@ -104,6 +106,7 @@ typedef union {
 typedef struct {
 	stmt_type type;
 	u_stmt *stmt;
+	int exec_count;
 } Statement;
 
 typedef struct For For;

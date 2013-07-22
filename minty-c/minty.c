@@ -4,10 +4,18 @@
 #include <malloc.h>
 #include "minty_util.h"
 #include "lexer.h"
+#include "parser.h"
+#include "AST.h"
 
 int main() {
-	LinkedList *tokens = lex("x <- 10; x++; for i <- 0, i < 10 { blah }");
-	while(LinkedList_length(tokens) > 0)
-		Token_print((Token *)LinkedList_pop(tokens));
+	LinkedList *tokens = lex("fn main() {return 0;}");
+	
+	int i;
+	for(i = 0; i < LinkedList_length(tokens); i++)
+		Token_print((Token *)LinkedList_get(tokens, i));
+
+	Program *p = parse_program(tokens);
+
+	//LinkedList_free(tokens);
 	return 0;
 }
