@@ -130,6 +130,16 @@ static void *LinkedListNode_get(LinkedListNode *lln, int index) {
  */
 void *LinkedList_get(LinkedList *ll, int index) {
 	return LinkedListNode_get(ll->head_node, index);
+
+
+	// Assertion that the index is positive, and that it is in the list's range
+	// assert(index >= 0 && (!lln->child_node ? index == 0 : true));
+	// int i = 0;
+	// LinkedlistNode *nextNode = ll->head_node;
+	// while(nextNode != NULL && i < index) {
+	// 	nextNode = nextNode->child_node;
+	// 	i++;
+	// }
 }
 
 /*
@@ -223,6 +233,6 @@ static void LinkedListNode_free(LinkedListNode *lln) {
  * memory leaks if contained elements are objects, as they will not be freed
  */
 void LinkedList_free(LinkedList *ll) {
-	LinkedListNode_free(ll->head_node);
+	if(ll->head_node) LinkedListNode_free(ll->head_node);
 	free(ll);
 }

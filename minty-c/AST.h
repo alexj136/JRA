@@ -180,6 +180,8 @@ Expression *FNCall_init(char *name, LinkedList *args);
 Expression *Ternary_init(Expression *bool_expr,
 	Expression *true_expr, Expression *false_expr);
 
+bool Expression_equals(Expression *expr1, Expression *expr2);
+
 void Expression_free(Expression *expr);
 
 Statement *For_init(Statement *assignment, Expression *bool_expr,
@@ -196,13 +198,19 @@ Statement *Assignment_init(char *name, Expression *expr);
 
 Statement *Return_init(Expression *expr);
 
+bool Statement_equals(Statement *stmt1, Statement *stmt2);
+
 void Statement_free(Statement *stmt);
 
 FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts);
 
+bool FNDecl_equals(FNDecl *f1, FNDecl *f2);
+
 void FNDecl_free(FNDecl *func);
 
 Program *Program_init(LinkedList *function_list);
+
+bool Program_equals(Program *p1, Program *p2);
 
 void Program_free(Program *prog);
 

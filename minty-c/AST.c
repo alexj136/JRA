@@ -80,7 +80,6 @@ Expression *FNCall_init(char *name, LinkedList *args) {
  	return the_exp;
 }
 
-
 /*
  * Constructor for Ternary Expressions
  */
@@ -117,12 +116,13 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 
 	// If they are of the same type, (recursively) inspect them to see if their
 	// properties are the same
-	else switch(expr1->type) {
+	bool same = false;
+	switch(expr1->type) {
 
 		// With a boolean expression, we check the lhs and rhs are the same, and
 		// that the op is the same
 		case expr_BooleanExpr:	
-			return (
+			same = (
 				Expression_equals(
 					expr1->expr->_bool->lhs,
 					expr2->expr->_bool->lhs) &&
@@ -132,11 +132,12 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				Expression_equals(
 					expr1->expr->_bool->rhs,
 					expr2->expr->_bool->rhs));
+			break;
 
 		// The procedure with an arithmetic expression is the same as with a
 		// boolean expression
 		case expr_ArithmeticExpr:
-			return (
+			same = (
 				Expression_equals(
 					expr1->expr->_arith->lhs,
 					expr2->expr->_arith->lhs) &&
@@ -146,27 +147,32 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				Expression_equals(
 					expr1->expr->_arith->rhs,
 					expr2->expr->_arith->rhs));
+			break;
 
 		// With an identifier, we check if the ID names are the same
 		case expr_Identifier:
-			return str_equal(expr1->expr->_ident, expr2->expr->_ident);
+			same = str_equal(expr1->expr->_ident, expr2->expr->_ident);
+			break;
 
 		// With an integer literal, check that the literal values are the same
 		case expr_IntegerLiteral:
-			return expr1->expr->_int == expr2->expr->_int;
+			same = expr1->expr->_int == expr2->expr->_int;
+			break;
 
 		// With an FNCall, ...
 		case expr_FNCall:
 
 			// Check that the names are the same, and that they have the same
 			// number of arguments
-			if(!str_equal(expr1->expr->_call->name, expr2->expr->_call->name) ||
-				(LinkedList_length(expr1->expr->_call->args) !=
-				LinkedList_length(expr2->expr->_call->args)))
+			if(!(str_equal(
+					expr1->expr->_call->name,
+					expr2->expr->_call->name) && (
+				LinkedList_length(expr1->expr->_call->args) ==
+				LinkedList_length(expr2->expr->_call->args))))
 
-				// If not, we can return false without checking the arguments
+				// If not, we know they differ without checking the arguments
 				// themselves
-				return false;
+				same = false;
 
 			// If they do match in name and arg count, we must compare the
 			// expressions that comprise the arguments themselves, with a simple
@@ -178,20 +184,23 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 					i < LinkedList_length(expr1->expr->_call->args)) {
 
 					if(!Expression_equals(
-						LinkedList_get(expr1->expr->_call->args, i),
-						LinkedList_get(expr2->expr->_call->args, i)))
+						(Expression *)LinkedList_get(
+							expr1->expr->_call->args, i),
+						(Expression *)LinkedList_get(
+							expr2->expr->_call->args, i)))
 
 						diff_not_found = false;
 
 					else i++;
 				}
-				return diff_not_found;
+				same = diff_not_found;
 			}
+			break;
 
 		// With a ternary, we simply check that the three expressions that
 		// comprise them are equal
 		case expr_Ternary:
-			return (
+			same = (
 				Expression_equals(
 					expr1->expr->_tern->bool_expr,
 					expr2->expr->_tern->bool_expr) &&
@@ -201,7 +210,9 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				Expression_equals(
 					expr1->expr->_tern->false_expr,
 					expr2->expr->_tern->false_expr));
+			break;
 	}
+	return same;
 }
 
 /*
@@ -370,6 +381,117 @@ Statement *Return_init(Expression *expr) {
 }
 
 /*
+ * Function that determines whether or not two lists of statements are equal.
+ * Will cause a runtime error if the passed lists contain any elements that are
+ * not statements.
+ */
+bool stmt_list_equals(LinkedList *stmt_list_1, LinkedList *stmt_list_2) {
+	// If the list lengths differ, they cannot be equal, so immediately return
+	// false
+	if(LinkedList_length(stmt_list_1) != LinkedList_length(stmt_list_2)) {
+		return false;
+	}
+
+	// Otherwise, we can iterate over the lists without worrying that they might
+	// have different lengths
+	else {
+		bool diff_not_found = true;
+		int i = 0;
+		while(diff_not_found && i < LinkedList_length(stmt_list_1)) {
+
+			if(!Statement_equals(
+				(Statement *)LinkedList_get(stmt_list_1, i),
+				(Statement *)LinkedList_get(stmt_list_2, i))) {
+
+				diff_not_found = false;
+			}
+
+			else {
+				i++;
+			}
+		}
+		return diff_not_found;
+	}
+}
+
+/*
+ * Function that determines whether or not two statements are equal
+ */
+bool Statement_equals(Statement *stmt1, Statement *stmt2) {
+
+	// If the expressions are of different type, they cannot be equal
+	if(stmt1->type != stmt2->type) return false;
+
+	// If they are of the same type, (recursively) inspect them to see if their
+	// properties are the same
+	bool same = false;
+	switch(stmt1->type) {
+
+		case stmt_For:
+			same = (
+				Statement_equals(
+					stmt1->stmt->_for->assignment,
+					stmt2->stmt->_for->assignment) &&
+				Expression_equals(
+					stmt1->stmt->_for->bool_expr,
+					stmt2->stmt->_for->bool_expr) &&
+				Statement_equals(
+					stmt1->stmt->_for->incrementor,
+					stmt2->stmt->_for->incrementor) &&
+				stmt_list_equals(
+					stmt1->stmt->_for->stmts,
+					stmt2->stmt->_for->stmts));
+			break;
+
+		case stmt_While:
+			same = (
+				Expression_equals(
+					stmt1->stmt->_while->bool_expr,
+					stmt2->stmt->_while->bool_expr) &&
+				stmt_list_equals(
+					stmt1->stmt->_while->stmts,
+					stmt2->stmt->_while->stmts));
+			break;
+
+		case stmt_If:
+			same = (
+				Expression_equals(
+					stmt1->stmt->_if->bool_expr,
+					stmt2->stmt->_if->bool_expr) &&
+				stmt_list_equals(
+					stmt1->stmt->_if->true_stmts,
+					stmt2->stmt->_if->true_stmts) &&
+				stmt_list_equals(
+					stmt1->stmt->_if->false_stmts,
+					stmt2->stmt->_if->false_stmts));
+			break;
+
+		case stmt_Print:
+			same = Expression_equals(
+				stmt1->stmt->_print->expr,
+				stmt2->stmt->_print->expr);
+			break;
+
+		case stmt_Assignment:
+			same = (
+				Expression_equals(
+					stmt1->stmt->_assignment->expr,
+					stmt2->stmt->_assignment->expr) &&
+				str_equal(
+					stmt1->stmt->_assignment->name,
+					stmt2->stmt->_assignment->name));
+			break;
+
+		case stmt_Return:
+			same = Expression_equals(
+				stmt1->stmt->_return->expr,
+				stmt2->stmt->_return->expr);
+			break;
+	}
+	return same;
+}
+
+/*
  * Destructor for all Statement objects
  */
 void Statement_free(Statement *stmt) {
@@ -465,6 +587,43 @@ FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts) {
 }
 
 /*
+ * Function that determines whether or not two functions are equal
+ */
+bool FNDecl_equals(FNDecl *f1, FNDecl *f2) {
+	// If they have different names, different statement lists or different
+	// numbers of arguments, we can immediately return false
+	if(!(
+		str_equal(f1->name, f2->name) &&
+		stmt_list_equals(f1->stmts, f2->stmts) && (
+
+			LinkedList_length(f1->arg_names) ==
+			LinkedList_length(f2->arg_names) ))) {
+
+		return false;
+	}
+
+	// Otherwise we must check to see that all the argument names are the same
+	else {
+		bool diff_not_found = true;
+		int i = 0;
+		while(diff_not_found && i < LinkedList_length(f1->arg_names)) {
+
+			if(!str_equal(
+				(char *)LinkedList_get(f1->arg_names, i),
+				(char *)LinkedList_get(f2->arg_names, i))) {
+
+				diff_not_found = false;
+			}
+
+			else {
+				i++;
+			}
+		}
+		return diff_not_found;
+	}
+}
+
+/*
  * Destructor for FNDecl objects
  */
 void FNDecl_free(FNDecl *func) {
@@ -498,6 +657,36 @@ Program *Program_init(LinkedList *function_list) {
 	Program *prog = safe_alloc(sizeof(Program));
 	prog->function_list = function_list;
 	return prog;
+}
+
+bool Program_equals(Program *p1, Program *p2) {
+	// If the programs have different numbers of functions, we can immediately
+	//return false
+	if(LinkedList_length(p1->function_list) !=
+		LinkedList_length(p2->function_list)) {
+
+		return false;
+	}
+
+	// Otherwise we must check to see that all the functions are the equal
+	else {
+		bool diff_not_found = true;
+		int i = 0;
+		while(diff_not_found && i < LinkedList_length(p1->function_list)) {
+
+			if(!FNDecl_equals(
+				(FNDecl *)LinkedList_get(p1->function_list, i),
+				(FNDecl *)LinkedList_get(p2->function_list, i))) {
+
+				diff_not_found = false;
+			}
+
+			else {
+				i++;
+			}
+		}
+		return diff_not_found;
+	}
 }
 
 /*

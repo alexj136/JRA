@@ -15,7 +15,16 @@ int main() {
 		Token_print((Token *)LinkedList_get(tokens, i));
 
 	Program *p = parse_program(tokens);
+	Program *q = parse_program(lex("fn main() {return 0;}"));
+	Program *r = parse_program(lex("fn main() {return 1;}"));
 
-	//LinkedList_free(tokens);
+	char *a = Program_equals(p, q) ? "p = q" : "p != q"; printf("%s\n", a);
+	char *b = Program_equals(p, r) ? "p = r" : "p != r"; printf("%s\n", b);
+
+	for(i = 0; i < LinkedList_length(tokens); i++)
+		Token_free((Token *)LinkedList_get(tokens, i));
+	LinkedList_free(tokens);
+	Program_free(p);
+
 	return 0;
 }
