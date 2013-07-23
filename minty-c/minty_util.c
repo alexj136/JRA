@@ -220,6 +220,24 @@ void *LinkedList_pop(LinkedList *ll) {
 }
 
 /*
+ * Creates a shallow copy of a LinkedList i.e. a new list of pointers to the
+ * same objects
+ */
+LinkedList *LinkedList_copy(LinkedList *ll) {
+	// Create a new empty list
+	LinkedList *new_ll = LinkedList_init();
+	
+	// Repeatedly append the elements from the old list
+	int i;
+	for(i = 0; i < LinkedList_length(ll); i++) {
+		LinkedList_append(new_ll, LinkedList_get(ll, i));
+	}
+
+	// Return the new list
+	return new_ll;
+}
+
+/*
  * Recursive function used by LinkedList_free to recursively free LinkedList
  * nodes
  */

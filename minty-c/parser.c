@@ -734,10 +734,17 @@ FNDecl *parse_function(LinkedList *tokens) {
  * that Program object.
  */
 Program *parse_program(LinkedList *tokens) {
+	// Create a copy of the token list to work with, so that popping elements
+	// does not require freeing a token every time a reference is lost
+	LinkedList *tokens_copy = LinkedList_copy(tokens);
+
+	// Create a list for the programs functions
 	LinkedList *function_list = LinkedList_init();
 
-	while(LinkedList_length(tokens) > 0)
-		LinkedList_append(function_list, (void *)parse_function(tokens));
+	// Repeatly parse functions, storing them in the list
+	while(LinkedList_length(tokens_copy) > 0)
+		LinkedList_append(function_list, (void *)parse_function(tokens_copy));
 
+	// Return the parsed program
 	return Program_init(function_list);
 }
