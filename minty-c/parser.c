@@ -216,10 +216,13 @@ void check_valid(char **expected, int expected_size, char *found) {
  *     | / E
  *     | % E
  *     | COMP E ? E : E
+ * 
  * It also handles the 'COMP E' parts of the following productions:
+ * 
  * ST -> if E COMP E { STMTS } else { STMTS } 
  *     | while E COMP E { STMTS }
  *     | for ID <- E, E COMP E, INCR { STMTS }
+ * 
  * Accordingly, this function will look for an operator (either an arithmetic
  * operator, or a boolean comparison) and in the case of an arithmetic operator
  * it will then try to parse a single expression. If a boolean operation is
@@ -367,7 +370,7 @@ Expression *parse_expression(LinkedList *tokens) {
 			(int)strtol(next_token->info, (char **)NULL, 10));
 
 	// Brackets case
-	else if (str_equal(next_token->type, *OBRACE)) {
+	else if (str_equal(next_token->type, *OPAREN)) {
 		left_part = parse_expression(tokens);
 
 		// Process the close-bracket
@@ -376,7 +379,7 @@ Expression *parse_expression(LinkedList *tokens) {
 	}
 
 	else {
-		printf("Could not parse expression production, %s not expected",
+		printf("Could not parse expression production, %s not expected\n",
 			next_token->type);
 		exit(EXIT_FAILURE);
 	}
@@ -407,8 +410,13 @@ Expression *parse_expression(LinkedList *tokens) {
 		str_equal(e_prime->op, *LESSEQ) ||
 		str_equal(e_prime->op, *GRTREQ)) &&
 		e_prime->is_ternary)
-		return Ternary_init(BooleanExpr_init(left_part, e_prime->op, e_prime->expr),
-			e_prime->true_expr, e_prime->false_expr);
+		return Ternary_init(
+			BooleanExpr_init(
+				left_part,
+				e_prime->op,
+				e_prime->expr),
+			e_prime->true_expr,
+			e_prime->false_expr);
 
 	// Else if parse_e_prime returned a non-ternary EPrime with an boolean
 	// operation, create a BooleanExpr and return it
@@ -421,7 +429,7 @@ Expression *parse_expression(LinkedList *tokens) {
 		return BooleanExpr_init(left_part, e_prime->op, e_prime->expr);
 
 	else {
-		printf("Could not parse expression, invalid syntax found");
+		printf("Could not parse expression, invalid syntax found\n");
 		exit(EXIT_FAILURE);
 	}
 }

@@ -9,15 +9,20 @@
  */
 Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
  	// First create the underlying BooleanExpr struct
- 	BooleanExpr *_bool = safe_alloc(sizeof(BooleanExpr));
- 	_bool->lhs = lhs;
- 	_bool->op = op;
- 	_bool->rhs = rhs;
+ 	BooleanExpr *booleanexpr_expr = safe_alloc(sizeof(BooleanExpr));
+ 	booleanexpr_expr->lhs = lhs;
+ 	booleanexpr_expr->op = op;
+ 	booleanexpr_expr->rhs = rhs;
  	
+ 	// Create a union object to point at the BooleanExpr struct
+	u_expr *u_booleanexpr = safe_alloc(sizeof(u_expr));
+	u_booleanexpr->blean = booleanexpr_expr;
+
  	// Then create the Expression struct wrapper
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_BooleanExpr;
- 	the_exp->expr->_bool = _bool;
+ 	the_exp->expr = u_booleanexpr;
+ 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -28,15 +33,20 @@ Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
  */
 Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
  	// First create the underlying ArithmeticExpr struct
- 	ArithmeticExpr *_arith = safe_alloc(sizeof(ArithmeticExpr));
- 	_arith->lhs = lhs;
- 	_arith->op = op;
- 	_arith->rhs = rhs;
+ 	ArithmeticExpr *arithmeticexpr_expr = safe_alloc(sizeof(ArithmeticExpr));
+ 	arithmeticexpr_expr->lhs = lhs;
+ 	arithmeticexpr_expr->op = op;
+ 	arithmeticexpr_expr->rhs = rhs;
+
+ 	// Create a union object to point at the ArithmeticExpr struct
+	u_expr *u_arithmeticexpr = safe_alloc(sizeof(u_expr));
+	u_arithmeticexpr->arith = arithmeticexpr_expr;
  	
  	// Then create the Expression struct wrapper
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_ArithmeticExpr;
- 	the_exp->expr->_arith = _arith;
+ 	the_exp->expr = u_arithmeticexpr;
+ 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -45,20 +55,32 @@ Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
 /*
  * Constructor for Identifier Expressions
  */
-Expression *Identifier_init(char *_ident) {
+Expression *Identifier_init(char *ident) {
+	// Create a union object to point at the Identifier name string
+	u_expr *u_identifier = safe_alloc(sizeof(u_expr));
+	u_identifier->ident = ident;
+
+	// Then create the Expression struct wrapper
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_Identifier;
-	the_exp->expr->_ident = _ident;
+	the_exp->expr = u_identifier;
+	the_exp->exec_count = 0;
 	return the_exp;
 }
 
 /*
  * Constructor for IntegerLiteral Expressions
  */
-Expression *IntegerLiteral_init(int _int) {
+Expression *IntegerLiteral_init(int intgr) {
+	// Create a union object to point at the IntegerLiteral int value
+	u_expr *u_expr_int = safe_alloc(sizeof(u_expr));
+	u_expr_int->intgr = intgr;
+
+	// Then create the Expression struct wrapper
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_IntegerLiteral;
-	the_exp->expr->_int = _int;
+	the_exp->expr = u_expr_int;
+	the_exp->exec_count = 0;
 	return the_exp;
 }
 
@@ -67,14 +89,19 @@ Expression *IntegerLiteral_init(int _int) {
  */
 Expression *FNCall_init(char *name, LinkedList *args) {
 	// First create the underlying FNCall struct
- 	FNCall *_call = safe_alloc(sizeof(FNCall));
- 	_call->name = name;
- 	_call->args = args;
+ 	FNCall *fncall_expr = safe_alloc(sizeof(FNCall));
+ 	fncall_expr->name = name;
+ 	fncall_expr->args = args;
  	
+	// Create a union object to point at the FNCall struct
+	u_expr *u_fncall = safe_alloc(sizeof(u_expr));
+	u_fncall->fncall = fncall_expr;
+
  	// Then create the Expression struct wrapper
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_FNCall;
- 	the_exp->expr->_call = _call;
+ 	the_exp->expr = u_fncall;
+ 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -92,15 +119,20 @@ Expression *Ternary_init(Expression *bool_expr,
 	assert(bool_expr->type == expr_BooleanExpr);
 
 	// First create the underlying Ternary struct
-	Ternary *_tern = safe_alloc(sizeof(Ternary));
-	_tern->bool_expr = bool_expr;
-	_tern->true_expr = true_expr;
-	_tern->false_expr = false_expr;
+	Ternary *ternary_expr = safe_alloc(sizeof(Ternary));
+	ternary_expr->bool_expr = bool_expr;
+	ternary_expr->true_expr = true_expr;
+	ternary_expr->false_expr = false_expr;
 
-	// Then creare theBooleanExpr Expression struct wrapper
+	// Create a union object to point at the Ternary struct
+	u_expr *u_ternary = safe_alloc(sizeof(u_expr));
+	u_ternary->trnry = ternary_expr;
+
+	// Then creare the Ternary Expression struct wrapper
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_Ternary;
-	the_exp->expr->_tern = _tern;
+	the_exp->expr = u_ternary;
+	the_exp->exec_count = 0;
 
 	// Return the wrapped Expression
 	return the_exp;
@@ -124,14 +156,14 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 		case expr_BooleanExpr:	
 			same = (
 				Expression_equals(
-					expr1->expr->_bool->lhs,
-					expr2->expr->_bool->lhs) &&
+					expr1->expr->blean->lhs,
+					expr2->expr->blean->lhs) &&
 				str_equal(
-					expr1->expr->_bool->op,
-					expr2->expr->_bool->op) &&
+					expr1->expr->blean->op,
+					expr2->expr->blean->op) &&
 				Expression_equals(
-					expr1->expr->_bool->rhs,
-					expr2->expr->_bool->rhs));
+					expr1->expr->blean->rhs,
+					expr2->expr->blean->rhs));
 			break;
 
 		// The procedure with an arithmetic expression is the same as with a
@@ -139,24 +171,24 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 		case expr_ArithmeticExpr:
 			same = (
 				Expression_equals(
-					expr1->expr->_arith->lhs,
-					expr2->expr->_arith->lhs) &&
+					expr1->expr->arith->lhs,
+					expr2->expr->arith->lhs) &&
 				str_equal(
-					expr1->expr->_arith->op,
-					expr2->expr->_arith->op) &&
+					expr1->expr->arith->op,
+					expr2->expr->arith->op) &&
 				Expression_equals(
-					expr1->expr->_arith->rhs,
-					expr2->expr->_arith->rhs));
+					expr1->expr->arith->rhs,
+					expr2->expr->arith->rhs));
 			break;
 
 		// With an identifier, we check if the ID names are the same
 		case expr_Identifier:
-			same = str_equal(expr1->expr->_ident, expr2->expr->_ident);
+			same = str_equal(expr1->expr->ident, expr2->expr->ident);
 			break;
 
 		// With an integer literal, check that the literal values are the same
 		case expr_IntegerLiteral:
-			same = expr1->expr->_int == expr2->expr->_int;
+			same = expr1->expr->intgr == expr2->expr->intgr;
 			break;
 
 		// With an FNCall, ...
@@ -165,10 +197,10 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 			// Check that the names are the same, and that they have the same
 			// number of arguments
 			if(!(str_equal(
-					expr1->expr->_call->name,
-					expr2->expr->_call->name) && (
-				LinkedList_length(expr1->expr->_call->args) ==
-				LinkedList_length(expr2->expr->_call->args))))
+					expr1->expr->fncall->name,
+					expr2->expr->fncall->name) && (
+				LinkedList_length(expr1->expr->fncall->args) ==
+				LinkedList_length(expr2->expr->fncall->args))))
 
 				// If not, we know they differ without checking the arguments
 				// themselves
@@ -181,13 +213,13 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				bool diff_not_found = true;
 				int i = 0;
 				while(diff_not_found &&
-					i < LinkedList_length(expr1->expr->_call->args)) {
+					i < LinkedList_length(expr1->expr->fncall->args)) {
 
 					if(!Expression_equals(
 						(Expression *)LinkedList_get(
-							expr1->expr->_call->args, i),
+							expr1->expr->fncall->args, i),
 						(Expression *)LinkedList_get(
-							expr2->expr->_call->args, i)))
+							expr2->expr->fncall->args, i)))
 
 						diff_not_found = false;
 
@@ -202,14 +234,14 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 		case expr_Ternary:
 			same = (
 				Expression_equals(
-					expr1->expr->_tern->bool_expr,
-					expr2->expr->_tern->bool_expr) &&
+					expr1->expr->trnry->bool_expr,
+					expr2->expr->trnry->bool_expr) &&
 				Expression_equals(
-					expr1->expr->_tern->true_expr,
-					expr2->expr->_tern->true_expr) &&
+					expr1->expr->trnry->true_expr,
+					expr2->expr->trnry->true_expr) &&
 				Expression_equals(
-					expr1->expr->_tern->false_expr,
-					expr2->expr->_tern->false_expr));
+					expr1->expr->trnry->false_expr,
+					expr2->expr->trnry->false_expr));
 			break;
 	}
 	return same;
@@ -223,58 +255,74 @@ void Expression_free(Expression *expr) {
 
 		case expr_BooleanExpr:
 			// Free lhs, op, rhs
-			Expression_free(expr->expr->_bool->rhs);
-			free(expr->expr->_bool->op);
-			Expression_free(expr->expr->_bool->rhs);
+			Expression_free(expr->expr->blean->rhs);
+			free(expr->expr->blean->op);
+			Expression_free(expr->expr->blean->rhs);
 
 			// Free BooleanExpr object itself
-			free(expr->expr->_bool);
+			free(expr->expr->blean);
+
+			// Free the union object
+			free(expr->expr);
 			break;
 
 		case expr_ArithmeticExpr:
 			// Free lhs, op, rhs
-			Expression_free(expr->expr->_arith->lhs);
-			free(expr->expr->_arith->op);
-			Expression_free(expr->expr->_arith->rhs);
+			Expression_free(expr->expr->arith->lhs);
+			free(expr->expr->arith->op);
+			Expression_free(expr->expr->arith->rhs);
 
 			// Free ArithmeticExpr object itself
-			free(expr->expr->_arith);
+			free(expr->expr->arith);
+
+			// Free the union object
+			free(expr->expr);
 			break;
 
 		case expr_Identifier:
 			// Free Identifier name
-			free(expr->expr->_ident);
+			free(expr->expr->ident);
+
+			// Free the union object
+			free(expr->expr);
 			break;
 
 		case expr_IntegerLiteral:
-			// Nothing to free
+			// Free the union object
+			free(expr->expr);
 			break;
 
 		case expr_FNCall:
 			// Free the function name
-			free(expr->expr->_call->name);
+			free(expr->expr->fncall->name);
 
 			// Free the arguments
 			int i;
-			for(i = 0; i < LinkedList_length(expr->expr->_call->args); i++)
+			for(i = 0; i < LinkedList_length(expr->expr->fncall->args); i++)
 				Expression_free((Expression *)LinkedList_get(
-					expr->expr->_call->args, i));
+					expr->expr->fncall->args, i));
 
 			// Free the list that contained the arguments
-			LinkedList_free(expr->expr->_call->args);
+			LinkedList_free(expr->expr->fncall->args);
 
 			// Free the FNCall object itelf
-			free(expr->expr->_call);
+			free(expr->expr->fncall);
+
+			// Free the union object
+			free(expr->expr);
 			break;
 
 		case expr_Ternary:
 			// Free the expressions in the ternary
-			Expression_free(expr->expr->_tern->bool_expr);
-			Expression_free(expr->expr->_tern->true_expr);
-			Expression_free(expr->expr->_tern->false_expr);
+			Expression_free(expr->expr->trnry->bool_expr);
+			Expression_free(expr->expr->trnry->true_expr);
+			Expression_free(expr->expr->trnry->false_expr);
 
 			// Free the Ternary object itself
-			free(expr->expr->_tern);
+			free(expr->expr->trnry);
+
+			// Free the union object
+			free(expr->expr);
 			break;
 	}
 	// Free the Expression container
@@ -287,15 +335,19 @@ void Expression_free(Expression *expr) {
 Statement *For_init(Statement *assignment, Expression *bool_expr,
 	Statement *incrementor, LinkedList *stmts) {
 
-	For *_for = safe_alloc(sizeof(For));
-	_for->assignment = assignment;
-	_for->bool_expr = bool_expr;
-	_for->incrementor = incrementor;
-	_for->stmts = stmts;
+	For *for_stmt = safe_alloc(sizeof(For));
+	for_stmt->assignment = assignment;
+	for_stmt->bool_expr = bool_expr;
+	for_stmt->incrementor = incrementor;
+	for_stmt->stmts = stmts;
+
+	u_stmt *u_for = safe_alloc(sizeof(u_stmt));
+	u_for->_for = for_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_For;
-	the_stmt->stmt->_for = _for;
+	the_stmt->stmt = u_for;
+	the_stmt->exec_count = 0;
 
 	return the_stmt;
 }
@@ -305,13 +357,17 @@ Statement *For_init(Statement *assignment, Expression *bool_expr,
  */
 Statement *While_init(Expression *bool_expr, LinkedList *stmts) {
 
-	While *_while = safe_alloc(sizeof(While));
-	_while->bool_expr = bool_expr;
-	_while->stmts = stmts;
+	While *while_stmt = safe_alloc(sizeof(While));
+	while_stmt->bool_expr = bool_expr;
+	while_stmt->stmts = stmts;
+
+	u_stmt *u_while = safe_alloc(sizeof(u_stmt));
+	u_while->_while = while_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_While;
-	the_stmt->stmt->_while = _while;
+	the_stmt->stmt = u_while;
+	the_stmt->exec_count = 0;
 
 	return the_stmt;
 }
@@ -322,14 +378,18 @@ Statement *While_init(Expression *bool_expr, LinkedList *stmts) {
 Statement *If_init(Expression *bool_expr,
 	LinkedList *true_stmts, LinkedList *false_stmts) {
 
-	If *_if = safe_alloc(sizeof(If));
-	_if->bool_expr = bool_expr;
-	_if->true_stmts = true_stmts;
-	_if->false_stmts = false_stmts;
+	If *if_stmt = safe_alloc(sizeof(If));
+	if_stmt->bool_expr = bool_expr;
+	if_stmt->true_stmts = true_stmts;
+	if_stmt->false_stmts = false_stmts;
+
+	u_stmt *u_if = safe_alloc(sizeof(u_stmt));
+	u_if->_if = if_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_If;
-	the_stmt->stmt->_if = _if;
+	the_stmt->stmt = u_if;
+	the_stmt->exec_count = 0;
 
 	return the_stmt;
 }
@@ -339,12 +399,16 @@ Statement *If_init(Expression *bool_expr,
  */
 Statement *Print_init(Expression *expr) {
 
-	Print *_print = safe_alloc(sizeof(Print));
-	_print->expr = expr;
+	Print *print_stmt = safe_alloc(sizeof(Print));
+	print_stmt->expr = expr;
+
+	u_stmt *u_print = safe_alloc(sizeof(u_stmt));
+	u_print->_print = print_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_Print;
-	the_stmt->stmt->_print = _print;
+	the_stmt->stmt = u_print;
+	the_stmt->exec_count = 0;
 
 	return the_stmt;
 }
@@ -354,13 +418,17 @@ Statement *Print_init(Expression *expr) {
  */
 Statement *Assignment_init(char *name, Expression *expr) {
 
-	Assignment *_assignment = safe_alloc(sizeof(Assignment));
-	_assignment->name = name;
-	_assignment->expr = expr;
+	Assignment *assignment_stmt = safe_alloc(sizeof(Assignment));
+	assignment_stmt->name = name;
+	assignment_stmt->expr = expr;
+
+	u_stmt *u_assignment = safe_alloc(sizeof(u_stmt));
+	u_assignment->_assignment = assignment_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_Assignment;
-	the_stmt->stmt->_assignment = _assignment;
+	the_stmt->stmt = u_assignment;
+	the_stmt->exec_count = 0;
 
 	return the_stmt;
 }
@@ -370,13 +438,16 @@ Statement *Assignment_init(char *name, Expression *expr) {
  */
 Statement *Return_init(Expression *expr) {
 
-	Return *_return = safe_alloc(sizeof(Return));
-	_return->expr = expr;
+	Return *return_stmt = safe_alloc(sizeof(Return));
+	return_stmt->expr = expr;
+
+	u_stmt *u_return = safe_alloc(sizeof(u_stmt));
+	u_return->_return = return_stmt;
 
 	Statement *the_stmt = safe_alloc(sizeof(Statement));
 	the_stmt->type = stmt_Return;
-	the_stmt->stmt->_return = _return;
-
+	the_stmt->stmt = u_return;
+	the_stmt->exec_count = 0;
 	return the_stmt;
 }
 
@@ -514,6 +585,9 @@ void Statement_free(Statement *stmt) {
 
 			// Free the For object
 			free(stmt->stmt->_for);
+
+			// Free the union object
+			free(stmt->stmt);
 			break;
 
 		case stmt_While:
@@ -531,6 +605,10 @@ void Statement_free(Statement *stmt) {
 
 			// Free the While object
 			free(stmt->stmt->_while);
+
+			// Free the union object
+			free(stmt->stmt);
+
 			break;
 
 		case stmt_If:
@@ -553,22 +631,37 @@ void Statement_free(Statement *stmt) {
 
 			// Free the If object
 			free(stmt->stmt->_if);
+
+			// Free the union object
+			free(stmt->stmt);
+
 			break;
 
 		case stmt_Print:
 			Expression_free(stmt->stmt->_print->expr);
 			free(stmt->stmt->_print);
+
+			// Free the union object
+			free(stmt->stmt);
 			break;
 
 		case stmt_Assignment:
 			Expression_free(stmt->stmt->_assignment->expr);
 			free(stmt->stmt->_assignment->name);
 			free(stmt->stmt->_assignment);
+
+			// Free the union object
+			free(stmt->stmt);
+
 			break;
 
 		case stmt_Return:
 			Expression_free(stmt->stmt->_return->expr);
 			free(stmt->stmt->_return);
+
+			// Free the union object
+			free(stmt->stmt);
+
 			break;
 	}
 	// Free the Statement container

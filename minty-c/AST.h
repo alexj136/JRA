@@ -23,12 +23,12 @@ typedef enum {
 } expr_type;
 
 typedef union {
-	struct BooleanExpr *_bool;
-	struct ArithmeticExpr *_arith;
-	char *_ident;
-	int _int;
-	struct FNCall *_call;
-	struct Ternary *_tern;
+	struct BooleanExpr *blean;
+	struct ArithmeticExpr *arith;
+	char *ident;
+	int intgr;
+	struct FNCall *fncall;
+	struct Ternary *trnry;
 } u_expr;
 
 /*
@@ -171,9 +171,9 @@ Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs);
 
 Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs);
 
-Expression *Identifier_init(char *_ident);
+Expression *Identifier_init(char *ident);
 
-Expression *IntegerLiteral_init(int _int);
+Expression *IntegerLiteral_init(int intgr);
 
 Expression *FNCall_init(char *name, LinkedList *args);
 
