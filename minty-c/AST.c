@@ -139,6 +139,144 @@ Expression *Ternary_init(Expression *bool_expr,
 }
 
 /*
+ * Returns a string representation of the given expression
+ */
+char *Expression_str(Expression *expr) {
+	char *expr_str;
+
+	switch(expr->type) {
+		case expr_BooleanExpr: {
+			// Get the left hand side & right hand side strings
+			char *str_lhs = Expression_str(expr->expr->blean->lhs);
+			char *str_rhs = Expression_str(expr->expr->blean->rhs);
+
+			// Concat an open bracket, lhs, a space and op
+			char *str_lhs_op = str_concat_four(
+				"(", str_lhs, " ", expr->expr->blean->op);
+
+			// Concat a space and rhs, with the close bracket
+			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
+
+			// Free the intermediates
+			free(str_lhs);
+			free(str_rhs);
+			free(str_lhs_op);
+
+			break;
+		}
+
+		case expr_ArithmeticExpr: {
+			// Get the left hand side & right hand side strings
+			char *str_lhs = Expression_str(expr->expr->arith->lhs);
+			char *str_rhs = Expression_str(expr->expr->arith->rhs);
+
+			// Concat an open bracket, lhs, a space and op
+			char *str_lhs_op = str_concat_four(
+				"(", str_lhs, " ", expr->expr->arith->op);
+
+			// Concat a space and rhs, with the close bracket
+			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
+
+			// Free the intermediates
+			free(str_lhs);
+			free(str_rhs);
+			free(str_lhs_op);
+
+			break;
+		}
+
+		case expr_Identifier: {
+			// Copy the identifier name
+			expr_str = safe_strdup(expr->expr->ident);
+			break;
+		}
+
+		case expr_IntegerLiteral: {
+			// Allocate a new string, long enough to hold 10 chars + null
+			// terminator, as 10 is the number of digits of the maximum integer
+			// in c
+			char *str = safe_alloc(11 * sizeof(char));
+
+			// Convert the int into a string. sprintf returns negative when it
+			// fails, so assert that the call returns greater than zero
+			assert(sprintf(str, "%d", expr->expr->intgr) > 0);
+
+			// Copy the string into a new array and point expr_str at it
+			expr_str = safe_strdup(str);
+
+			// Free the old array
+			free(str);
+
+			break;
+		}
+
+		case expr_FNCall: {
+			// Record the length of the args list so we don't have to evaluate
+			// it repeatedly
+			int num_args = LinkedList_length(expr->expr->fncall->args);
+
+			// Concatenate the name and the '('
+			char *str_builder = str_concat(expr->expr->fncall->name, "(");
+
+			// If there are no arguments, just add the ')'
+			if(num_args < 1) expr_str = str_concat(str_builder, ")");
+
+			// If there are arguments...
+			else {
+				// Add the first argument
+				char *first_arg = Expression_str((Expression *)
+					LinkedList_get(expr->expr->fncall->args, 0));
+				char *temp = str_concat(str_builder, first_arg);
+				free(str_builder);
+				free(first_arg);
+				str_builder = str_concat(temp, first_arg);
+				free(temp);
+
+				// Then repeatedly add the ', ' and the next arg name, if any
+				int i;
+				for(i = 1; i < num_args; i++) {
+					char *next_arg = Expression_str((Expression *)
+						LinkedList_get(expr->expr->fncall->args, i));
+					char *temp = str_concat_three(str_builder, ", ", next_arg);
+					free(str_builder);
+					free(next_arg);
+					str_builder = temp;
+					free(temp);
+				}
+
+				// Then add the ')'
+				expr_str = str_concat(str_builder, ")");
+			}
+			
+			free(str_builder);
+
+			break;
+		}
+
+		case expr_Ternary: {
+			// Stringify all the sub-expressions
+			char *b_expr = Expression_str(expr->expr->trnry->bool_expr);
+			char *t_expr = Expression_str(expr->expr->trnry->true_expr);
+			char *f_expr = Expression_str(expr->expr->trnry->false_expr);
+
+			// Concatenate all the sub expressions together with the '?' and ':'
+			// characters, bracketed
+			char *temp_str = str_concat_four("(", b_expr, " ? ", t_expr);
+			expr_str = str_concat_four(temp_str, " : ", f_expr, ")");
+
+			// Free the intermediate strings
+			free(b_expr);
+			free(t_expr);
+			free(f_expr);
+			free(temp_str);
+
+			break;
+		}
+	}
+	return expr_str;
+}
+
+/*
  * Function to deep-compare two expressions
  */
 bool Expression_equals(Expression *expr1, Expression *expr2) {
@@ -449,6 +587,18 @@ Statement *Return_init(Expression *expr) {
 	the_stmt->stmt = u_return;
 	the_stmt->exec_count = 0;
 	return the_stmt;
+}
+
+/*
+ * Returns a string representation of the given Statement
+ */
+char *Statement_str(Statement *stmt) {
+	char *stmt_str;
+
+	switch(stmt->type) {
+
+	}
+	return NULL;
 }
 
 /*

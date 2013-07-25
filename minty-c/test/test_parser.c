@@ -7,6 +7,53 @@
 
 int tests_run = 0;
 
+/*
+ * Tests the AST equality checking function by asserting that a parsed AST for
+ * the program:
+ *
+ * fn main() {return 0;}
+ *
+ * is not equal to a hand-built AST representing the (semantically invalid, but
+ * syntactically valid) program:
+ *
+ * fn main() {print hello;}
+ */
+char *test_tiny_prog_diff() {
+
+	LinkedList *prog_tokens = lex("fn main() {return 0;}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	// AST that should NOT return true when compared to the above AST
+	LinkedList *stmts = LinkedList_init();
+	LinkedList_append(stmts, Print_init(Identifier_init(safe_strdup("hello"))));
+	LinkedList *fns = LinkedList_init();
+	LinkedList_append(fns, FNDecl_init(safe_strdup("main"),
+		LinkedList_init(), stmts));
+	Program *ast = Program_init(fns);
+
+	// Assert that the two ASTs are the same
+	mu_assert(!Program_equals(parsed_prog, ast), "test_tiny_prog_diff failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free(LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
+/*
+ * Tests that the simple program:
+ *
+ * fn main() {return 0;}
+ *
+ * is parsed correcly by comparing it to a hand-built AST representing the same
+ * program
+ */
 char *test_tiny_prog_same() {
 
 	LinkedList *prog_tokens = lex("fn main() {return 0;}");
@@ -29,39 +76,17 @@ char *test_tiny_prog_same() {
 	int i;
 	for(i = 0; i < LinkedList_length(prog_tokens); i++)
 		Token_free(LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
 	Program_free(parsed_prog);
 	Program_free(ast);
 
 	return NULL;
 }
 
-char *test_tiny_prog_diff() {
-
-	LinkedList *prog_tokens = lex("fn main() {return 0;}");
-
-	Program *parsed_prog = parse_program(prog_tokens);
-
-	// AST that should NOT return true when compared to the above AST
-	LinkedList *stmts = LinkedList_init();
-	LinkedList_append(stmts, Print_init(Identifier_init(safe_strdup("hello"))));
-	LinkedList *fns = LinkedList_init();
-	LinkedList_append(fns, FNDecl_init(safe_strdup("main"),
-		LinkedList_init(), stmts));
-	Program *ast = Program_init(fns);
-
-	// Assert that the two ASTs are the same
-	mu_assert(!Program_equals(parsed_prog, ast), "test_tiny_prog_diff failed!");
-
-	// Free things
-	int i;
-	for(i = 0; i < LinkedList_length(prog_tokens); i++)
-		Token_free(LinkedList_get(prog_tokens, i));
-	Program_free(parsed_prog);
-	Program_free(ast);
-
-	return NULL;
-}
-
+/*
+ * Tests that the program shown in the test below is parsed correctly by
+ * comparing it to a hand-build AST representing the same program
+ */
 char *test_two_functions() {
 
 	LinkedList *prog_tokens = lex(" \
@@ -107,7 +132,140 @@ char *test_two_functions() {
 	LinkedList_append(fns, binary_add_fn);
 	Program *ast = Program_init(fns);
 
+	// Make the assertion
 	mu_assert(Program_equals(parsed_prog, ast), "test_two_functions failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
+/*
+ * Tests that the program shown in the test below is parsed correctly by
+ * comparing it to a hand-build AST representing the same program
+ */
+char *test_big_expression() {
+
+	LinkedList *prog_tokens = lex(
+		"fn main() {return 1 - 2 + 3 < 4 ? 1 : 2 * 2 / 7 % 6;}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	// Hand-built AST:
+	LinkedList *stmts = LinkedList_init();
+	Statement* ret = Return_init(
+			ArithmeticExpr_init(
+				IntegerLiteral_init(1),
+				safe_strdup("-"),
+				ArithmeticExpr_init(
+					IntegerLiteral_init(2),
+					safe_strdup("+"),
+					Ternary_init(
+						BooleanExpr_init(
+							IntegerLiteral_init(3),
+							safe_strdup("<"),
+							IntegerLiteral_init(4)),
+						IntegerLiteral_init(1),
+						ArithmeticExpr_init(
+							IntegerLiteral_init(2),
+							safe_strdup("*"),
+							ArithmeticExpr_init(
+								IntegerLiteral_init(2),
+								safe_strdup("/"),
+								ArithmeticExpr_init(
+									IntegerLiteral_init(7),
+									safe_strdup("%"),
+									IntegerLiteral_init(6)
+								)
+							)
+						)
+					)
+				)
+			)
+		);
+	LinkedList_append(stmts, ret);
+	LinkedList *fns = LinkedList_init();
+	LinkedList_append(fns, FNDecl_init(
+		safe_strdup("main"),
+		LinkedList_init(),
+		stmts));
+	Program *ast = Program_init(fns);
+
+	// Print the generated & built expressions just for fun
+	char *parsed_prog_str = Expression_str(((Statement *)LinkedList_get(((FNDecl *)
+		LinkedList_get(parsed_prog->function_list, 0))->stmts,
+		0))->stmt->_return->expr);
+	char *hand_build_str = Expression_str(ret->stmt->_return->expr);
+	printf("%s\n", parsed_prog_str);
+	printf("%s\n", hand_build_str);
+
+	// Make the assertion
+	mu_assert(Program_equals(parsed_prog, ast), "test_big_expression failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
+char *test_brackets() {
+
+	LinkedList *prog_tokens = lex(
+		"fn main() {return ((7 - 2) + (20 / 4)) % 2;}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	// Hand-built AST:
+	LinkedList *stmts = LinkedList_init();
+	Statement* ret =
+		Return_init(
+			ArithmeticExpr_init(
+				ArithmeticExpr_init(
+					ArithmeticExpr_init(
+						IntegerLiteral_init(7),
+						safe_strdup("-"),
+						IntegerLiteral_init(2)
+					),
+					safe_strdup("+"),
+					ArithmeticExpr_init(
+						IntegerLiteral_init(20),
+						safe_strdup("/"),
+						IntegerLiteral_init(4)
+					)
+				),
+				safe_strdup("%"),
+				IntegerLiteral_init(2)
+			)
+		);
+	LinkedList_append(stmts, ret);
+	LinkedList *fns = LinkedList_init();
+	LinkedList_append(fns, FNDecl_init(
+		safe_strdup("main"),
+		LinkedList_init(),
+		stmts));
+	Program *ast = Program_init(fns);
+
+	// Make the assertion
+	mu_assert(Program_equals(parsed_prog, ast), "test_brackets failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
 
 	return NULL;
 }
@@ -119,6 +277,8 @@ char *all_tests() {
 	mu_run_test(test_tiny_prog_same);
 	mu_run_test(test_tiny_prog_diff);
 	mu_run_test(test_two_functions);
+	mu_run_test(test_big_expression);
+	mu_run_test(test_brackets);
 
 	return NULL;
 }

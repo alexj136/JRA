@@ -180,6 +180,8 @@ Expression *FNCall_init(char *name, LinkedList *args);
 Expression *Ternary_init(Expression *bool_expr,
 	Expression *true_expr, Expression *false_expr);
 
+char *Expression_str(Expression *expr);
+
 bool Expression_equals(Expression *expr1, Expression *expr2);
 
 void Expression_free(Expression *expr);
@@ -197,6 +199,8 @@ Statement *Print_init(Expression *expr);
 Statement *Assignment_init(char *name, Expression *expr);
 
 Statement *Return_init(Expression *expr);
+
+char *Statement_str(Statement *stmt);
 
 bool Statement_equals(Statement *stmt1, Statement *stmt2);
 

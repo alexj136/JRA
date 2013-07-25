@@ -123,7 +123,7 @@ static int TIMES_SIZE = 1;
 static char *DIVIDE[] = {"/"};
 static int DIVIDE_SIZE = 1;
 
-static char *MODULO[] = {"%%"};
+static char *MODULO[] = {"%"};
 static int MODULO_SIZE = 1;
 
 static char *EQUAL[] = {"="};
@@ -156,7 +156,7 @@ static int ARGLIST_SIZE = 2;
 static char *ARGDELIM[] = {",", ")"};
 static int ARGDELIM_SIZE = 2;
 
-static char *ARITH[] = {"+", "-", "*", "/", "%%"};
+static char *ARITH[] = {"+", "-", "*", "/", "%"};
 static int ARITH_SIZE = 5;
 
 static char *BOOL[] = {"=", "!=", "<", ">", "<=", ">="};
@@ -248,7 +248,9 @@ EPrime *parse_e_prime(LinkedList *tokens) {
 		LinkedList_pop(tokens);
 
 		// Return a non-ternary EPrime
-		return EPrime_init(next_token->type, parse_expression(tokens));
+		return EPrime_init(
+			safe_strdup(next_token->type),
+			parse_expression(tokens));
 	}
 
 	// Or if the next token is an boolean expression...
@@ -281,7 +283,7 @@ EPrime *parse_e_prime(LinkedList *tokens) {
 			Expression *true_expr = parse_expression(tokens);
 
 			// Grab the colon
-			next_token = (Token *)LinkedList_get(tokens, 0);
+			next_token = (Token *)LinkedList_pop(tokens);
 			check_valid(COLON, COLON_SIZE, next_token->type);
 
 			// Grab false expression
@@ -338,7 +340,7 @@ Expression *parse_expression(LinkedList *tokens) {
 
 		// Keep processing an arg, then a comma, until the close-bracket is
 		// reached. The args are added to the list, the commas are thrown away
-		while(!str_equal(next_token->type, *CBRACE)) {
+		while(!str_equal(next_token->type, *CPAREN)) {
 	
 			LinkedList_append(arguments, parse_expression(tokens));
 
@@ -752,6 +754,9 @@ Program *parse_program(LinkedList *tokens) {
 	// Repeatly parse functions, storing them in the list
 	while(LinkedList_length(tokens_copy) > 0)
 		LinkedList_append(function_list, (void *)parse_function(tokens_copy));
+
+	// Free the copied list
+	LinkedList_free(tokens_copy);
 
 	// Return the parsed program
 	return Program_init(function_list);

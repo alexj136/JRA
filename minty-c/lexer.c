@@ -201,7 +201,7 @@ static char *final_mapping[] = {
 	"ERROR", "ID", "ID", "ID", "ID", "ID", "ID", "for", "ID", "ID", "ID",
 	"print", "ID", "ID", "ID", "ID", "return", "fn", "if", "ID", "ID", "ID",
 	"while", "<", "<-", "<=", ">", ">=", "+", "++", "+=", "-", "--", "-=",
-	"ERROR", "!=", "=", "{", "}", "(", ")", "*", "/", "%%", ",", ";", "?", ":",
+	"ERROR", "!=", "=", "{", "}", "(", ")", "*", "/", "%", ",", ";", "?", ":",
 	"INT", "ID", "ID", "ID", "ID", "else"
 };
 
@@ -212,7 +212,7 @@ static char *final_mapping[] = {
 static char *valueless_tokens[] = {
 	"fn", "for", "if", "while", "print", "return", "else", "<", "<-", "<=", ">",
 	">=", "+", "++", "+=", "-", "--", "-=", "!=", "=", "{", "}", "(", ")", "*",
-	"/", "%%",",", ";", "?", ":"
+	"/", "%",",", ";", "?", ":"
 };
 
 /*
@@ -348,12 +348,15 @@ LinkedList *lex(char *input) {
 	// Repeatedly get a new token and add it to the linked list in the above
 	// way, until there is no input left
 	while(*cur_input != '\0') {
+
 		tuple = get_next_token(cur_input);
+
 		LinkedList_append(tokens, tuple->token);
+
 		cur_input += tuple->chars_processed;
+
 		free(tuple);
 	}
-
 	// Return the root node
 	return tokens;
 }

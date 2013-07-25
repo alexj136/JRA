@@ -20,6 +20,10 @@ bool str_equal(char *str1, char *str2);
 
 char *str_concat(char *str1, char *str2);
 
+char *str_concat_three(char *str1, char *str2, char *str3);
+
+char *str_concat_four(char *str1, char *str2, char *str3, char *str4);
+
 char *str_append(char *str, char c);
 
 typedef struct LinkedListNode LinkedListNode;
