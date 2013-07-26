@@ -376,7 +376,7 @@ Expression *parse_expression(LinkedList *tokens) {
 		left_part = parse_expression(tokens);
 
 		// Process the close-bracket
-		next_token = (Token *)LinkedList_get(tokens, 0);
+		next_token = (Token *)LinkedList_pop(tokens);
 		check_valid(CPAREN, CPAREN_SIZE, next_token->type);
 	}
 

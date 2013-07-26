@@ -200,7 +200,7 @@ Statement *Assignment_init(char *name, Expression *expr);
 
 Statement *Return_init(Expression *expr);
 
-char *Statement_str(Statement *stmt);
+// char *Statement_str(Statement *stmt);
 
 bool Statement_equals(Statement *stmt1, Statement *stmt2);
 

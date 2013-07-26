@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <malloc.h>
 #include "minunit.h"
 #include "../minty_util.h"
 #include "../lexer.h"
@@ -204,6 +205,8 @@ char *test_big_expression() {
 	char *hand_build_str = Expression_str(ret->stmt->_return->expr);
 	printf("%s\n", parsed_prog_str);
 	printf("%s\n", hand_build_str);
+	free(parsed_prog_str);
+	free(hand_build_str);
 
 	// Make the assertion
 	mu_assert(Program_equals(parsed_prog, ast), "test_big_expression failed!");
@@ -222,7 +225,7 @@ char *test_big_expression() {
 char *test_brackets() {
 
 	LinkedList *prog_tokens = lex(
-		"fn main() {return ((7 - 2) + (20 / 4)) % 2;}");
+		"fn main() {return ((7 - 2) * (20 / 4)) % 2;}");
 
 	Program *parsed_prog = parse_program(prog_tokens);
 
@@ -237,7 +240,7 @@ char *test_brackets() {
 						safe_strdup("-"),
 						IntegerLiteral_init(2)
 					),
-					safe_strdup("+"),
+					safe_strdup("*"),
 					ArithmeticExpr_init(
 						IntegerLiteral_init(20),
 						safe_strdup("/"),

@@ -272,7 +272,7 @@ static TupleIntToken *get_next_token(char *input) {
 
 		// If the next state produces a valid token...
 		if(next_state != -1) {
-			// Add the next char to the current string
+			// Add the next char to the current string 
 			token_str = str_append(token_str, next_char);
 
 			// Record the current state as final
@@ -291,8 +291,9 @@ static TupleIntToken *get_next_token(char *input) {
 
 	// If the token is not a 'valueless token' - i.e. a valid token that is
 	// not an INT or ID - we store the string we've built up in the info
-	// field
+	// field. Otherwise we free the string that was built up.
 	if(!in_valueless_tokens(token_str)) Token_set_info(next_token, token_str);
+	else free(token_str);
 
 	// If the text found was an error, process any remaining erroneous text
 	if(str_equal(final_mapping[final_state], "ERROR")) {
@@ -317,46 +318,43 @@ LinkedList *lex(char *input) {
 	// If the input is an empty string, return NULL
 	if(*input == '\0') return NULL;
 
-	// Make a copy of the original pointer to the input (we make a copy to
-	// modify, we need to keep the original to free once we're done)
-	char *cur_input = input;
-
 	// Get the first token & the number of chars processed in retrieving it
-	TupleIntToken *tuple = get_next_token(cur_input);
+	TupleIntToken *tuple = get_next_token(input);
 
 	// Construct a root TokenNode
 	LinkedList *tokens = LinkedList_init();
 	LinkedList_append(tokens, tuple->token);
 
 	// Advance the input pointer past the token just processed
-	cur_input += tuple->chars_processed;
+	input += tuple->chars_processed;
 
 	// We're finished with the tuple object now, so free it
 	free(tuple);
 
 	// Again we must check that there is input left before getting the next
 	// token
-	if(*cur_input == '\0') return tokens;
+	if(*input == '\0') return tokens;
 
 	// Get the next (token, chars_processed), Put the new token in a TokenNode,
 	// Advance the input pointer
-	tuple = get_next_token(cur_input);
+	tuple = get_next_token(input);
 	LinkedList_append(tokens, tuple->token);
-	cur_input += tuple->chars_processed;
+	input += tuple->chars_processed;
 	free(tuple);
 
 	// Repeatedly get a new token and add it to the linked list in the above
 	// way, until there is no input left
-	while(*cur_input != '\0') {
+	while(*input != '\0') {
 
-		tuple = get_next_token(cur_input);
+		tuple = get_next_token(input);
 
 		LinkedList_append(tokens, tuple->token);
 
-		cur_input += tuple->chars_processed;
+		input += tuple->chars_processed;
 
 		free(tuple);
 	}
+
 	// Return the root node
 	return tokens;
 }

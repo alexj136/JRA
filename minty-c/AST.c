@@ -427,7 +427,7 @@ void Expression_free(Expression *expr) {
 
 		case expr_IntegerLiteral:
 			// Free the union object
-			free(expr->expr);
+			// free(expr->expr);
 			break;
 
 		case expr_FNCall:
@@ -464,7 +464,7 @@ void Expression_free(Expression *expr) {
 			break;
 	}
 	// Free the Expression container
-	free(expr);
+	//free(expr);
 }
 
 /*
@@ -592,14 +592,14 @@ Statement *Return_init(Expression *expr) {
 /*
  * Returns a string representation of the given Statement
  */
-char *Statement_str(Statement *stmt) {
-	char *stmt_str;
+// char *Statement_str(Statement *stmt) {
+// 	char *stmt_str;
 
-	switch(stmt->type) {
+// 	switch(stmt->type) {
 
-	}
-	return NULL;
-}
+// 	}
+// 	return NULL;
+// }
 
 /*
  * Function that determines whether or not two lists of statements are equal.

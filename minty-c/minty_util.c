@@ -93,8 +93,7 @@ char *str_append(char *str, char c) {
 	
 	// Copy the caracters from the old string into the new one, but not the null
 	// terminator
-	int i;
-	for(i = 0; i < strlen(str); i++) new_str[i] = str[i];
+	strcpy(new_str, str);
 
 	// Write the new char after the contents of the old string
 	new_str[strlen(str)] = c;
