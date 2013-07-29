@@ -101,3 +101,10 @@ FRIDAY 18TH JULY
 MONDAY 22ND JULY
 - Finished initial parser implementation
 - Began implementing AST equality checks in order to debug parser
+
+TUESDAY 23TH JULY - FRIDAY 26TH JULY
+- Continued unit testing & debugging parser
+
+MONDAY 29TH JULY
+- Finished debugging & unit-testing parser
+- Began investigating implementation strategies for interpreter/JIT compiler

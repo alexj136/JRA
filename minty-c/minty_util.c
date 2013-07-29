@@ -86,7 +86,7 @@ char *str_concat_four(char *str1, char *str2, char *str3, char *str4) {
  * if the string at the returned pointer is not freed when appropriate.
  * May cause an error if appending exceeds the size of the given array.
  */
-char *str_append(char *str, char c) {
+char *str_append(char *str, char c) {	
 	// Allocate the appropriate amount of memory for the new string - this is
 	// the size of the old string, inlucing the null terminator, plus one.
 	char *new_str = safe_alloc((strlen(str) + 2) * sizeof(char));

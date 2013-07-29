@@ -291,9 +291,11 @@ static TupleIntToken *get_next_token(char *input) {
 
 	// If the token is not a 'valueless token' - i.e. a valid token that is
 	// not an INT or ID - we store the string we've built up in the info
-	// field. Otherwise we free the string that was built up.
+	// field.
 	if(!in_valueless_tokens(token_str)) Token_set_info(next_token, token_str);
-	else free(token_str);
+	
+	// Free the string that was built up - Token_set_info makes its own copy
+	free(token_str);
 
 	// If the text found was an error, process any remaining erroneous text
 	if(str_equal(final_mapping[final_state], "ERROR")) {

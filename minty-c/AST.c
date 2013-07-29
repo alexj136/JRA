@@ -393,7 +393,7 @@ void Expression_free(Expression *expr) {
 
 		case expr_BooleanExpr:
 			// Free lhs, op, rhs
-			Expression_free(expr->expr->blean->rhs);
+			Expression_free(expr->expr->blean->lhs);
 			free(expr->expr->blean->op);
 			Expression_free(expr->expr->blean->rhs);
 
@@ -427,7 +427,7 @@ void Expression_free(Expression *expr) {
 
 		case expr_IntegerLiteral:
 			// Free the union object
-			// free(expr->expr);
+			free(expr->expr);
 			break;
 
 		case expr_FNCall:
@@ -464,7 +464,7 @@ void Expression_free(Expression *expr) {
 			break;
 	}
 	// Free the Expression container
-	//free(expr);
+	free(expr);
 }
 
 /*
@@ -588,18 +588,6 @@ Statement *Return_init(Expression *expr) {
 	the_stmt->exec_count = 0;
 	return the_stmt;
 }
-
-/*
- * Returns a string representation of the given Statement
- */
-// char *Statement_str(Statement *stmt) {
-// 	char *stmt_str;
-
-// 	switch(stmt->type) {
-
-// 	}
-// 	return NULL;
-// }
 
 /*
  * Function that determines whether or not two lists of statements are equal.

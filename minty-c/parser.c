@@ -388,10 +388,13 @@ Expression *parse_expression(LinkedList *tokens) {
 
 	// Try to parse the E' production
 	EPrime *e_prime = parse_e_prime(tokens);
+
+	// The expression that will be returned:
+	Expression *result = NULL;
 	
 	// If parse_e_prime returned NULL, then we already reached the end of the
 	// expression, so just return the 'left part'
-	if(!e_prime) return left_part;
+	if(!e_prime) result = left_part;
 
 	// If parse_e_prime returned a non-ternary EPrime with an arithmetic
 	// operation, create an ArithmeticExpr and return it
@@ -400,8 +403,10 @@ Expression *parse_expression(LinkedList *tokens) {
 		str_equal(e_prime->op, *TIMES) ||
 		str_equal(e_prime->op, *DIVIDE) ||
 		str_equal(e_prime->op, *MODULO)) &&
-		!e_prime->is_ternary)
-		return ArithmeticExpr_init(left_part, e_prime->op, e_prime->expr);
+		!e_prime->is_ternary) {
+			result = ArithmeticExpr_init(left_part, e_prime->op, e_prime->expr);
+			free(e_prime);
+		}
 
 	// If parse_e_prime returned a ternary EPrime with an boolean operation,
 	// create an Ternary and return it
@@ -411,14 +416,16 @@ Expression *parse_expression(LinkedList *tokens) {
 		str_equal(e_prime->op, *GRTR) ||
 		str_equal(e_prime->op, *LESSEQ) ||
 		str_equal(e_prime->op, *GRTREQ)) &&
-		e_prime->is_ternary)
-		return Ternary_init(
-			BooleanExpr_init(
-				left_part,
-				e_prime->op,
-				e_prime->expr),
-			e_prime->true_expr,
-			e_prime->false_expr);
+		e_prime->is_ternary) {
+			result = Ternary_init(
+				BooleanExpr_init(
+					left_part,
+					e_prime->op,
+					e_prime->expr),
+				e_prime->true_expr,
+				e_prime->false_expr);
+				free(e_prime);
+			}
 
 	// Else if parse_e_prime returned a non-ternary EPrime with an boolean
 	// operation, create a BooleanExpr and return it
@@ -427,13 +434,16 @@ Expression *parse_expression(LinkedList *tokens) {
 		str_equal(e_prime->op, *LESS) ||
 		str_equal(e_prime->op, *GRTR) ||
 		str_equal(e_prime->op, *LESSEQ) ||
-		str_equal(e_prime->op, *GRTREQ))
-		return BooleanExpr_init(left_part, e_prime->op, e_prime->expr);
+		str_equal(e_prime->op, *GRTREQ)) {
+			result = BooleanExpr_init(left_part, e_prime->op, e_prime->expr);
+			free(e_prime);
+		}
 
 	else {
 		printf("Could not parse expression, invalid syntax found\n");
 		exit(EXIT_FAILURE);
 	}
+	return result;
 }
 
 /*
@@ -584,7 +594,7 @@ Statement *parse_statement(LinkedList *tokens) {
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					*PLUS,
+					safe_strdup(*PLUS),
 					IntegerLiteral_init(1)));
 
 		else if(str_equal(next_token->type, *MIMI)) return // -- operator
@@ -592,7 +602,7 @@ Statement *parse_statement(LinkedList *tokens) {
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					*MINUS,
+					safe_strdup(*MINUS),
 					IntegerLiteral_init(1)));
 
 		else if(str_equal(next_token->type, *PLEQ)) return // += operator
@@ -600,7 +610,7 @@ Statement *parse_statement(LinkedList *tokens) {
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					*PLUS,
+					safe_strdup(*PLUS),
 					parse_expression(tokens)));
 
 		else if(str_equal(next_token->type, *MIEQ)) return // -= operator
@@ -608,7 +618,7 @@ Statement *parse_statement(LinkedList *tokens) {
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					*MINUS,
+					safe_strdup(*MINUS),
 					parse_expression(tokens)));
 
 		else if(str_equal(next_token->type, *ASSIGN)) return // <- operator

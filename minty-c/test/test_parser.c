@@ -199,8 +199,8 @@ char *test_big_expression() {
 	Program *ast = Program_init(fns);
 
 	// Print the generated & built expressions just for fun
-	char *parsed_prog_str = Expression_str(((Statement *)LinkedList_get(((FNDecl *)
-		LinkedList_get(parsed_prog->function_list, 0))->stmts,
+	char *parsed_prog_str = Expression_str(((Statement *)LinkedList_get((
+		(FNDecl *)LinkedList_get(parsed_prog->function_list, 0))->stmts,
 		0))->stmt->_return->expr);
 	char *hand_build_str = Expression_str(ret->stmt->_return->expr);
 	printf("%s\n", parsed_prog_str);
@@ -258,6 +258,16 @@ char *test_brackets() {
 		LinkedList_init(),
 		stmts));
 	Program *ast = Program_init(fns);
+
+	// Print the generated & built expressions just for fun
+	char *parsed_prog_str = Expression_str(((Statement *)LinkedList_get((
+		(FNDecl *)LinkedList_get(parsed_prog->function_list, 0))->stmts,
+		0))->stmt->_return->expr);
+	char *hand_build_str = Expression_str(ret->stmt->_return->expr);
+	printf("%s\n", parsed_prog_str);
+	printf("%s\n", hand_build_str);
+	free(parsed_prog_str);
+	free(hand_build_str);
 
 	// Make the assertion
 	mu_assert(Program_equals(parsed_prog, ast), "test_brackets failed!");
