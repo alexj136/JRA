@@ -108,3 +108,7 @@ TUESDAY 23TH JULY - FRIDAY 26TH JULY
 MONDAY 29TH JULY
 - Finished debugging & unit-testing parser
 - Began investigating implementation strategies for interpreter/JIT compiler
+
+TUESDAY 30TH JULY
+- Continued investigating JIT techniques
+- Began interpreter implementation

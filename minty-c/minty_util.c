@@ -259,11 +259,65 @@ LinkedList *LinkedList_copy(LinkedList *ll) {
 }
 
 /*
+ * Removes the LinkedList node at the given index (DOES NOT FREE THE CONTENTS - 
+ * MUST BE DONE MANUALLY OR MEMORY LEAK MAY OCCUR)
+ */
+void LinkedList_remove(LinkedList *ll, int index) {
+	// If the LinkedList is empty, removal is undefined, so assert that the list
+	// is not empty
+	if(!(ll->head_node)) {
+		printf("Cannot remove from an empty LinkedList\n");
+		exit(EXIT_FAILURE);
+	}
+
+	else LinkedListNode_remove(ll->head_node, index);
+}
+
+/*
+ * Recursive supporting function for LinkedList_remove
+ */
+void LinkedListNode_remove(LinkedListNode *lln, int index) {
+
+	if(index == 0) {
+
+		if(!(lln->child_node)) free(lln);
+
+		else {
+			printf("Error: recursed to last node of LinkedList length > 1\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	else if(index == 1) {
+
+		if (lln->child_node) {
+
+			if(lln->child_node->child_node) {
+				LinkedListNode *childs_child = lln->child_node->child_node;
+				free(lln->child_node);
+				lln->child_node = childs_child;
+			}
+
+			else {
+				free(lln->child_node);
+			}
+		}
+
+		else {
+			printf("Error: LinkedList removal out of bounds\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	else LinkedListNode_remove(lln->child_node, index - 1);
+}
+
+/*
  * Recursive function used by LinkedList_free to recursively free LinkedList
  * nodes
  */
-static void LinkedListNode_free(LinkedListNode *lln) {
-	if(lln->child_node) LinkedListNode_free(lln->child_node);
+static void LinkedListNode_free_recursive(LinkedListNode *lln) {
+	if(lln->child_node) LinkedListNode_free_recursive(lln->child_node);
 	free(lln);
 }
 
@@ -272,6 +326,6 @@ static void LinkedListNode_free(LinkedListNode *lln) {
  * memory leaks if contained elements are objects, as they will not be freed
  */
 void LinkedList_free(LinkedList *ll) {
-	if(ll->head_node) LinkedListNode_free(ll->head_node);
+	if(ll->head_node) LinkedListNode_free_recursive(ll->head_node);
 	free(ll);
 }
