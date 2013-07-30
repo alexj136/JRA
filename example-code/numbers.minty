@@ -1,0 +1,27 @@
+fn main() {
+	return one() + two() + three() + four();
+}
+
+fn one() {
+	a <- 101;
+	while a > two() { a -= two(); }
+	return a;
+}
+
+fn two() {
+	a <- 102;
+	while a > three() { a -= three(); }
+	return a;
+}
+
+fn three() {
+	a <- 103;
+	while a > four() { a -= four(); }
+	return a;
+}
+
+fn four() {
+	a <- 104;
+	while a > 5 { a -= 5; }
+	return a;
+}

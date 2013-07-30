@@ -270,6 +270,28 @@ void LinkedList_remove(LinkedList *ll, int index) {
 		exit(EXIT_FAILURE);
 	}
 
+	// If we're removing the first node...
+	if(index == 0) {
+
+		// ...and the first node is not the only node...
+		if(ll->head_node->child_node) {
+			// ...then free the first node, and set the head node to be the
+			// node that was previously the second node.
+			LinkedListNode *old_head = ll->head_node;
+			ll->head_node = ll->head_node->child_node;
+			free(old_head);
+		}
+
+		// ...and the first node IS the only node...
+		else { // if(!(ll->head_node->child_node)) {
+			// ...then simply free the head node and nullify the pointer
+			free(ll->head_node);
+			ll->head_node = NULL;
+		}
+	}
+
+	// If we're not removing the first node, we must use the recursive
+	// supporting function for LinkedListNode
 	else LinkedListNode_remove(ll->head_node, index);
 }
 
@@ -277,38 +299,48 @@ void LinkedList_remove(LinkedList *ll, int index) {
  * Recursive supporting function for LinkedList_remove
  */
 void LinkedListNode_remove(LinkedListNode *lln, int index) {
-
+	// index SHOULD be guaranteed never to be zero for this function - the 0
+	// case is handled by LinkedList_remove. It does, an error has occured, so
+	// print a message and exit
 	if(index == 0) {
-
-		if(!(lln->child_node)) free(lln);
-
-		else {
-			printf("Error: recursed to last node of LinkedList length > 1\n");
-			exit(EXIT_FAILURE);
-		}
+		printf("Error in recursion logic for LinkedList_remove - hit index == \
+			0 within LinkedListNode_remove\n");
+		exit(EXIT_FAILURE);
 	}
 
+	// If index == 1, we handle the removal, rather than recurse
 	else if(index == 1) {
 
+		// If the current node has a subnode...
 		if (lln->child_node) {
 
+			// If the child has a child of its own, set the child of the current
+			// node as the child of the previous node, so the chain bypasses the
+			// node being removed. Also free the node being removed!
 			if(lln->child_node->child_node) {
-				LinkedListNode *childs_child = lln->child_node->child_node;
+				LinkedListNode *child_of_child = lln->child_node->child_node;
 				free(lln->child_node);
-				lln->child_node = childs_child;
+				lln->child_node = child_of_child;
 			}
 
+			// If the child has no child of its own, it is the last node of the
+			// list. We can free it and just set the child of the current node
+			// as null.
 			else {
 				free(lln->child_node);
+				lln->child_node = NULL;
 			}
 		}
 
+		// If the current node doesn't have a subnode, there was an index out
+		// of bounds so raise an error
 		else {
 			printf("Error: LinkedList removal out of bounds\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 
+	// If index > 1, handle the removal at a deeper recursion level
 	else LinkedListNode_remove(lln->child_node, index - 1);
 }
 
