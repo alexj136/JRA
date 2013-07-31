@@ -9,6 +9,10 @@
 #ifndef PARSER
 #define PARSER
 
+/*
+ * Parser functions
+ */
+
 Expression *parse_expression(LinkedList *tokens);
 
 Statement *parse_statement(LinkedList *tokens);

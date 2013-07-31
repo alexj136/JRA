@@ -49,34 +49,35 @@ EPrime *EPrime_init(char *op, Expression* expr) {
 /*
  * The following variables are used with the check_valid function defined below,
  * which is used to assert that the parser remains in a safe state, i.e. that it
- * will never return an AST if the input is invalid
+ * will never return an AST if the input is invalid. The commented ones are not
+ * currently used - uncomment to use.
  */
 static char *FN[] = {"fn"};
 static int FN_SIZE = 1;
 
 static char *PRINT[] = {"print"};
-static int PRINT_SIZE = 1;
+// static int PRINT_SIZE = 1;
 
 static char *RETURN[] = {"return"};
-static int RETURN_SIZE = 1;
+// static int RETURN_SIZE = 1;
 
 static char *IF[] = {"if"};
-static int IF_SIZE = 1;
+// static int IF_SIZE = 1;
 
 static char *ELSE[] = {"else"};
 static int ELSE_SIZE = 1;
 
 static char *WHILE[] = {"while"};
-static int WHILE_SIZE = 1;
+// static int WHILE_SIZE = 1;
 
 static char *FOR[] = {"for"};
-static int FOR_SIZE = 1;
+// static int FOR_SIZE = 1;
 
 static char *ID[] = {"ID"};
 static int ID_SIZE = 1;
 
 static char *INT[] = {"INT"};
-static int INT_SIZE = 1;
+// static int INT_SIZE = 1;
 
 static char *OPAREN[] = {"("};
 static int OPAREN_SIZE = 1;
@@ -88,7 +89,7 @@ static char *OBRACE[] = {"{"};
 static int OBRACE_SIZE = 1;
 
 static char *CBRACE[] = {"}"};
-static int CBRACE_SIZE = 1;
+// static int CBRACE_SIZE = 1;
 
 static char *COMMA[] = {","};
 static int COMMA_SIZE = 1;
@@ -97,55 +98,55 @@ static char *SEMICO[] = {";"};
 static int SEMICO_SIZE = 1;
 
 static char *PLUS[] = {"+"};
-static int PLUS_SIZE = 1;
+// static int PLUS_SIZE = 1;
 
 static char *PLPL[] = {"++"};
-static int PLPL_SIZE = 1;
+// static int PLPL_SIZE = 1;
 
 static char *PLEQ[] = {"+="};
-static int PLEQ_SIZE = 1;
+// static int PLEQ_SIZE = 1;
 
 static char *MINUS[] = {"-"};
-static int MINUS_SIZE = 1;
+// static int MINUS_SIZE = 1;
 
 static char *MIMI[] = {"--"};
-static int MIMI_SIZE = 1;
+// static int MIMI_SIZE = 1;
 
 static char *MIEQ[] = {"-="};
-static int MIEQ_SIZE = 1;
+// static int MIEQ_SIZE = 1;
 
 static char *ASSIGN[] = {"<-"};
-static int ASSIGN_SIZE = 1;
+// static int ASSIGN_SIZE = 1;
 
 static char *TIMES[] = {"*"};
-static int TIMES_SIZE = 1;
+// static int TIMES_SIZE = 1;
 
 static char *DIVIDE[] = {"/"};
-static int DIVIDE_SIZE = 1;
+// static int DIVIDE_SIZE = 1;
 
 static char *MODULO[] = {"%"};
-static int MODULO_SIZE = 1;
+// static int MODULO_SIZE = 1;
 
 static char *EQUAL[] = {"="};
-static int EQUAL_SIZE = 1;
+// static int EQUAL_SIZE = 1;
 
 static char *NEQUAL[] = {"!="};
-static int NEQUAL_SIZE = 1;
+// static int NEQUAL_SIZE = 1;
 
 static char *LESS[] = {"<"};
-static int LESS_SIZE = 1;
+// static int LESS_SIZE = 1;
 
 static char *GRTR[] = {">"};
-static int GRTR_SIZE = 1;
+// static int GRTR_SIZE = 1;
 
 static char *LESSEQ[] = {"<="};
-static int LESSEQ_SIZE = 1;
+// static int LESSEQ_SIZE = 1;
 
 static char *GRTREQ[] = {">="};
-static int GRTREQ_SIZE = 1;
+// static int GRTREQ_SIZE = 1;
 
 static char *QMARK[] = {"?"};
-static int QMARK_SIZE = 1;
+// static int QMARK_SIZE = 1;
 
 static char *COLON[] = {":"};
 static int COLON_SIZE = 1;
@@ -156,11 +157,11 @@ static int ARGLIST_SIZE = 2;
 static char *ARGDELIM[] = {",", ")"};
 static int ARGDELIM_SIZE = 2;
 
-static char *ARITH[] = {"+", "-", "*", "/", "%"};
-static int ARITH_SIZE = 5;
+// static char *ARITH[] = {"+", "-", "*", "/", "%"};
+// static int ARITH_SIZE = 5;
 
-static char *BOOL[] = {"=", "!=", "<", ">", "<=", ">="};
-static int BOOL_SIZE = 6;
+// static char *BOOL[] = {"=", "!=", "<", ">", "<=", ">="};
+// static int BOOL_SIZE = 6;
 
 static char *STMTSTART[] =
 	{"print", "for", "return", "if", "while", "ID"};

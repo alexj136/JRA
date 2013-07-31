@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
@@ -259,43 +261,6 @@ LinkedList *LinkedList_copy(LinkedList *ll) {
 }
 
 /*
- * Removes the LinkedList node at the given index (DOES NOT FREE THE CONTENTS - 
- * MUST BE DONE MANUALLY OR MEMORY LEAK MAY OCCUR)
- */
-void LinkedList_remove(LinkedList *ll, int index) {
-	// If the LinkedList is empty, removal is undefined, so assert that the list
-	// is not empty
-	if(!(ll->head_node)) {
-		printf("Cannot remove from an empty LinkedList\n");
-		exit(EXIT_FAILURE);
-	}
-
-	// If we're removing the first node...
-	if(index == 0) {
-
-		// ...and the first node is not the only node...
-		if(ll->head_node->child_node) {
-			// ...then free the first node, and set the head node to be the
-			// node that was previously the second node.
-			LinkedListNode *old_head = ll->head_node;
-			ll->head_node = ll->head_node->child_node;
-			free(old_head);
-		}
-
-		// ...and the first node IS the only node...
-		else { // if(!(ll->head_node->child_node)) {
-			// ...then simply free the head node and nullify the pointer
-			free(ll->head_node);
-			ll->head_node = NULL;
-		}
-	}
-
-	// If we're not removing the first node, we must use the recursive
-	// supporting function for LinkedListNode
-	else LinkedListNode_remove(ll->head_node, index);
-}
-
-/*
  * Recursive supporting function for LinkedList_remove
  */
 void LinkedListNode_remove(LinkedListNode *lln, int index) {
@@ -342,6 +307,43 @@ void LinkedListNode_remove(LinkedListNode *lln, int index) {
 
 	// If index > 1, handle the removal at a deeper recursion level
 	else LinkedListNode_remove(lln->child_node, index - 1);
+}
+
+/*
+ * Removes the LinkedList node at the given index (DOES NOT FREE THE CONTENTS - 
+ * MUST BE DONE MANUALLY OR MEMORY LEAK MAY OCCUR)
+ */
+void LinkedList_remove(LinkedList *ll, int index) {
+	// If the LinkedList is empty, removal is undefined, so assert that the list
+	// is not empty
+	if(!(ll->head_node)) {
+		printf("Cannot remove from an empty LinkedList\n");
+		exit(EXIT_FAILURE);
+	}
+
+	// If we're removing the first node...
+	if(index == 0) {
+
+		// ...and the first node is not the only node...
+		if(ll->head_node->child_node) {
+			// ...then free the first node, and set the head node to be the
+			// node that was previously the second node.
+			LinkedListNode *old_head = ll->head_node;
+			ll->head_node = ll->head_node->child_node;
+			free(old_head);
+		}
+
+		// ...and the first node IS the only node...
+		else { // if(!(ll->head_node->child_node)) {
+			// ...then simply free the head node and nullify the pointer
+			free(ll->head_node);
+			ll->head_node = NULL;
+		}
+	}
+
+	// If we're not removing the first node, we must use the recursive
+	// supporting function for LinkedListNode
+	else LinkedListNode_remove(ll->head_node, index);
 }
 
 /*

@@ -112,3 +112,9 @@ MONDAY 29TH JULY
 TUESDAY 30TH JULY
 - Continued investigating JIT techniques
 - Began interpreter implementation
+
+WEDNESDAY 31ST JULY
+- Continued interpreter implementation
+- Wrote more unit tests
+- Made improvements to Makefile so that building and running tests is much
+  easier

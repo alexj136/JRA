@@ -11,6 +11,18 @@
 #define AST
 
 /*
+ * The following data structures are used to represent expressions. Expression
+ * objects have the following structure:
+ * 	EXPRESSION INSTANCE:
+ * 		ENUM VALUE:
+ * 			EXPRESSION TYPE NAME
+ * 		UNION VALUE:
+ * 			POINTER TO OBJECT OF TYPE:
+ * 				[ BOOLEANEXPR | ARITHMETICEXPR | IDENTIFIER |
+ *											INTEGERLITERAL | FNCALL | TERNARY ]
+ */
+
+/*
  * Enumeration of the types an expression can have
  */
 typedef enum {
@@ -22,6 +34,13 @@ typedef enum {
 	expr_Ternary
 } expr_type;
 
+/*
+ * u_expr unions can store one object of the expression types. This is used to
+ * implement OO-inheritance like behaviour - any expression object, regardless
+ * of subtype, can be stored. They are all stored with pointers, except for
+ * integer literals, which simply have a literal rather than a pointer to an
+ * object containing the literal.
+ */
 typedef union {
 	struct BooleanExpr *blean;
 	struct ArithmeticExpr *arith;
@@ -44,6 +63,10 @@ typedef struct {
 	int exec_count;
 } Expression;
 
+/*
+ * Boolean expressions have three fields: the left hand side expression, the
+ * right hand side expression and the boolean operation between them
+ */
 typedef struct BooleanExpr BooleanExpr;
 struct BooleanExpr {
 	Expression *lhs;
@@ -51,6 +74,10 @@ struct BooleanExpr {
 	Expression *rhs;
 };
 
+/*
+ * Arithmetic expressions have three fields: the left hand side expression, the
+ * right hand side expression and the arithmetic operation between them
+ */
 typedef struct ArithmeticExpr ArithmeticExpr;
 struct ArithmeticExpr {
 	Expression *lhs;
@@ -58,6 +85,10 @@ struct ArithmeticExpr {
 	Expression *rhs;
 };
 
+/*
+ * FNCall expressions have a name, and a list of arguments, which are
+ * expressions themselves.
+ */
 typedef struct FNCall FNCall;
 struct FNCall {
 	char *name;
@@ -85,6 +116,11 @@ struct Ternary {
  * 			POINTER TO OBJECT OF TYPE:
  * 				[ FOR | WHILE | IF | PRINT | ASSIGNMENT | RETURN ]
  */
+
+/*
+ * The stmt_type enum is included in a Statement object so that handling code
+ * can easily tell what kind of Statement it has
+ */
 typedef enum {
 	stmt_For,
 	stmt_While,
@@ -94,6 +130,11 @@ typedef enum {
 	stmt_Return
 } stmt_type;
 
+/*
+ * u_stmt unions can store one object of the statement types. This is used to
+ * implement OO-inheritance like behaviour - any statement object, regardless of
+ * subtype, can be stored
+ */
 typedef union {
 	struct For *_for;
 	struct If *_if;
@@ -103,12 +144,22 @@ typedef union {
 	struct Return *_return;
 } u_stmt;
 
+/*
+ * The Statement struct has a type field, so that any code handling it can find
+ * out what value the u_stmt field has, without segfaulting due to null
+ * pointers. The exec_count field is used by the interpreter/JIT compiler to
+ * determine whether or not the statement should be compiled
+ */
 typedef struct {
 	stmt_type type;
 	u_stmt *stmt;
 	int exec_count;
 } Statement;
 
+/*
+ * For Statements have an assignment, a boolean expression, and an
+ * incrementation operation. It also has a list of sub-statements.
+ */
 typedef struct For For;
 struct For {
 	Statement *assignment;
@@ -117,12 +168,22 @@ struct For {
 	LinkedList *stmts;
 };
 
+/*
+ * While Statements are simpler than For Statements - they simply have a boolean
+ * expression and a list of statements
+ */
 typedef struct While While;
 struct While {
 	Expression *bool_expr;
 	LinkedList *stmts;
 };
 
+/*
+ * If Statements have the boolean expression, and the statement list that is
+ * evaluated when the boolean expression evaluates to true (true_stmts) and the
+ * list that is evaluated when the boolean expression evaluates to false 
+ * (false_stmts)
+ */
 typedef struct If If;
 struct If {
 	Expression *bool_expr;
@@ -130,17 +191,27 @@ struct If {
 	LinkedList *false_stmts;
 };
 
+/*
+ * Print statements simply store the expression that they are printing
+ */
 typedef struct Print Print;
 struct Print {
 	Expression *expr;
 };
 
+/*
+ * Assignment statements store the name of the variable being assigned to, and
+ * the expression to be assigned to it
+ */
 typedef struct Assignment Assignment;
 struct Assignment {
 	char *name;
 	Expression *expr;
 };
 
+/*
+ * Return statements only store the expression being returned
+ */
 typedef struct Return Return;
 struct Return {
 	Expression *expr;

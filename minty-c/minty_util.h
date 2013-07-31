@@ -52,6 +52,8 @@ void *LinkedList_pop(LinkedList *ll);
 
 LinkedList *LinkedList_copy(LinkedList *ll);
 
+void LinkedList_remove(LinkedList *ll, int index);
+
 void LinkedList_free(LinkedList *ll);
 
 #endif // MINTY_UTIL

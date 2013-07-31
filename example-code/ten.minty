@@ -9,7 +9,7 @@ fn one() {
 }
 
 fn two() {
-	a <- 102;
+	a <- 101;
 	while a > three() { a -= three(); }
 	return a;
 }

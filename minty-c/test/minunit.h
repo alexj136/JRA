@@ -21,14 +21,14 @@
 #define RUN_TESTS(name) \
 int main() { \
 	char *result = all_tests(); \
-	if (result != 0) { \
+	if (result != NULL) { \
 		printf("%s\n", result); \
 	} \
 	else { \
 		printf("ALL TESTS PASSED\n"); \
 	} \
 	printf("Tests run: %d\n", tests_run); \
-	return result != 0; \
+	return result != NULL; \
 }
 
 extern int tests_run;
