@@ -20,7 +20,10 @@ all: $(OUTPUTS)
 clean:
 	rm -f $(OUTPUTS)
 
-test: test/test_parser test/test_minty_util test/test_interpreter
+test: test/test_minty_util test/test_parser test/test_interpreter
+	test/test_minty_util
+	test/test_parser
+	test/test_interpreter
 
 # Final compilation & linkage:
 minty: $(OBJECTS) minty.c
@@ -33,7 +36,7 @@ minty_util.o: minty_util.c
 lexer.o: lexer.c
 	$(COMPILE) lexer.c -o lexer.o
 
-AST.o: AST.c
+AST.o: AST.c 
 	$(COMPILE) AST.c -o AST.o
 
 parser.o: parser.c
@@ -50,9 +53,7 @@ test/test_minty_util: test/test_minty_util.c
 test/test_parser: test/test_parser.c minty_util.o lexer.o AST.o parser.o
 	$(LINK) test/test_parser.c minty_util.o lexer.o AST.o parser.o \
 		-o test/test_parser
-	test/test_parser
 
 test/test_interpreter: test/test_interpreter.c minty_util.o AST.o interpreter.o
 	$(LINK) test/test_interpreter.c minty_util.o AST.o interpreter.o \
 		-o test/test_interpreter
-	test/test_interpreter

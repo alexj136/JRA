@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <malloc.h>
+#include "minty_util.h"
 #include "lexer.h"
 
 /*
@@ -16,12 +17,12 @@
  * to create heap-allocated copies. If they were not copies, the struct would
  * not be the only owner of the strings, which would potentially cause problems.
  */
-static Token *Token_init(char *type, char *info) {
+static Token *Token_init(token_type type, char *info) {
 	// Allocate heap space for this Token
 	Token *token = safe_alloc(sizeof(Token));
 
 	// Copy & allocate the type string
-	token->type = safe_strdup(type);
+	token->type = type;
 
 	// Copy and allocate the info string
 	token->info = safe_strdup(info);
@@ -31,11 +32,10 @@ static Token *Token_init(char *type, char *info) {
 }
 
 /*
- * Setter for the token type field - frees the old value, allocates the new one
+ * Setter for the token type field
  */
-static void Token_set_type(Token *token, char *type) {
-	free(token->type);
-	token->type = safe_strdup(type);
+static void Token_set_type(Token *token, token_type type) {
+	token->type = type;
 }
 
 /*
@@ -47,10 +47,9 @@ static void Token_set_info(Token *token, char *info) {
 }
 
 /*
- * Deallocates a token object - frees each string, followed by the object itself
+ * Deallocates a token object from the heap
  */
 void Token_free(Token *token) {
-	free(token->type);
 	free(token->info);
 	free(token);
 }
@@ -59,7 +58,44 @@ void Token_free(Token *token) {
  * Prints a token in the format 'T_type' or 'T_type_info'
  */
 void Token_print(Token *token) {
-	printf("T_%s", token->type);
+	char *type_str;
+	switch(token->type) {
+		case ERROR:            type_str = "ERROR";            break;
+		case IDENTIFIER:       type_str = "IDENTIFIER";       break;
+		case LITERAL:          type_str = "LITERAL";          break;
+		case FN:               type_str = "FN";               break;
+		case FOR:              type_str = "FOR";              break;
+		case WHILE:            type_str = "WHILE";            break;
+		case IF:               type_str = "IF";               break;
+		case ELSE:             type_str = "ELSE";             break;
+		case PRINT:            type_str = "PRINT";            break;
+		case RETURN:           type_str = "RETURN";           break;
+		case EQUAL:            type_str = "EQUAL";            break;
+		case NOT_EQUAL:        type_str = "NOT_EQUAL";        break;
+		case LESS_THAN:        type_str = "LESS_THAN";        break;
+		case LESS_OR_EQUAL:    type_str = "LESS_OR_EQUAL";    break;
+		case GREATER_THAN:     type_str = "GREATER_THAN";     break;
+		case GREATER_OR_EQUAL: type_str = "GREATER_OR_EQUAL"; break;
+		case PLUS:             type_str = "PLUS";             break;
+		case MINUS:            type_str = "MINUS";            break;
+		case MULTIPLY:         type_str = "MULTIPLY";         break;
+		case DIVIDE:           type_str = "DIVIDE";           break;
+		case MODULO:           type_str = "MODULO";           break;
+		case ASSIGNMENT:       type_str = "ASSIGNMENT";       break;
+		case INCREMENT:        type_str = "INCREMENT";        break;
+		case DECREMENT:        type_str = "DECREMENT";        break;
+		case INCREMENT_BY:     type_str = "INCREMENT_BY";     break;
+		case DECREMENT_BY:     type_str = "DECREMENT_BY";     break;
+		case OPEN_BRACE:       type_str = "OPEN_BRACE";       break;
+		case CLOSE_BRACE:      type_str = "CLOSE_BRACE";      break;
+		case OPEN_PAREN:       type_str = "OPEN_PAREN";       break;
+		case CLOSE_PAREN:      type_str = "CLOSE_PAREN";      break;
+		case COMMA:            type_str = "COMMA";            break;
+		case SEMICOLON:        type_str = "SEMICOLON";        break;
+		case QUESTION_MARK:    type_str = "QUESTION_MARK";    break;
+		case COLON:            type_str = "COLON";            break;
+	}
+	printf("T_%s", type_str);
 	if(*(token->info) != '\0') printf("_%s\n", token->info);
 	else printf("\n");
 }
@@ -194,15 +230,18 @@ static int char_indices(char letter) {
 
 /* 
  * Maps final states to strings that represent token types, for example, if
- * the FSM traversal finished on final state 3, the token type would be "ID"
- * because final_mapping[3] = "ID".
+ * the FSM traversal finished on final state 3, the token type would be
+ * IDENTIFIER because final_mapping[3] = IDENTIFIER.
  */
-static char *final_mapping[] = {
-	"ERROR", "ID", "ID", "ID", "ID", "ID", "ID", "for", "ID", "ID", "ID",
-	"print", "ID", "ID", "ID", "ID", "return", "fn", "if", "ID", "ID", "ID",
-	"while", "<", "<-", "<=", ">", ">=", "+", "++", "+=", "-", "--", "-=",
-	"ERROR", "!=", "=", "{", "}", "(", ")", "*", "/", "%", ",", ";", "?", ":",
-	"INT", "ID", "ID", "ID", "ID", "else"
+static token_type final_mapping[] = {
+	ERROR, IDENTIFIER, IDENTIFIER, IDENTIFIER, IDENTIFIER, IDENTIFIER,
+	IDENTIFIER, FOR, IDENTIFIER, IDENTIFIER, IDENTIFIER, PRINT, IDENTIFIER,
+	IDENTIFIER, IDENTIFIER, IDENTIFIER, RETURN, FN, IF, IDENTIFIER, IDENTIFIER,
+	IDENTIFIER, WHILE, LESS_THAN, ASSIGNMENT, LESS_OR_EQUAL, GREATER_THAN,
+	GREATER_OR_EQUAL, PLUS, INCREMENT, INCREMENT_BY, MINUS, DECREMENT,
+	DECREMENT_BY, ERROR, NOT_EQUAL, EQUAL, OPEN_BRACE, CLOSE_BRACE, OPEN_PAREN,
+	CLOSE_PAREN, MULTIPLY, DIVIDE, MODULO, COMMA, SEMICOLON, QUESTION_MARK,
+	COLON, LITERAL, IDENTIFIER, IDENTIFIER, IDENTIFIER, IDENTIFIER, ELSE
 };
 
 /*
@@ -237,7 +276,7 @@ static bool in_valueless_tokens(char *token) {
 static TupleIntToken *get_next_token(char *input) {
 
 	// Create an empty token
-	Token *next_token = Token_init("", "");
+	Token *next_token = Token_init(-1, "");
 
 	// Char array to build the token array into
 	char *token_str = safe_alloc(sizeof(char));
@@ -298,7 +337,7 @@ static TupleIntToken *get_next_token(char *input) {
 	free(token_str);
 
 	// If the text found was an error, process any remaining erroneous text
-	if(str_equal(final_mapping[final_state], "ERROR")) {
+	if(final_mapping[final_state] == ERROR) {
 		while(*input != '\0' && char_indices(*input) == -1) {
 			next_token->info = str_append(next_token->info, *input);
 			input += sizeof(char);

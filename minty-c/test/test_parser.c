@@ -90,12 +90,12 @@ char *test_tiny_prog_same() {
  */
 char *test_two_functions() {
 
-	LinkedList *prog_tokens = lex(" \
-		fn main() { \
-			return binary_add(4, 5); \
-		} \
-		fn binary_add(num1, num2) { \
-			return num1 + num2; \
+	LinkedList *prog_tokens = lex("    \
+		fn main() {                    \
+			return binary_add(4, 5);   \
+		}                              \
+		fn binary_add(num1, num2) {    \
+			return num1 + num2;        \
 		}");
 
 	Program *parsed_prog = parse_program(prog_tokens);
@@ -222,6 +222,9 @@ char *test_big_expression() {
 	return NULL;
 }
 
+/*
+ * Tests that bracketing is handled correctly by the parser
+ */
 char *test_brackets() {
 
 	LinkedList *prog_tokens = lex(
@@ -283,6 +286,124 @@ char *test_brackets() {
 	return NULL;
 }
 
+/*
+ * Tests that a program with a for-loop is parsed correctly
+ */
+char *test_for_loop() {
+
+	LinkedList *prog_tokens = lex("              \
+		fn main() {                              \
+			for i <- 20, i < 30, i <- i + 1 {    \
+				print i;                         \
+			}                                    \
+			return 999;                          \
+		}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	// Hand-built AST:
+	LinkedList *stmts = LinkedList_init();
+	LinkedList *for_stmts = LinkedList_init();
+	LinkedList_append(for_stmts, Print_init(Identifier_init(safe_strdup("i"))));
+	LinkedList_append(stmts,
+		For_init(
+			Assignment_init(
+				safe_strdup("i"),
+				IntegerLiteral_init(20)
+			),
+			BooleanExpr_init(
+				Identifier_init(
+					safe_strdup("i")
+				),
+				safe_strdup("<"),
+				IntegerLiteral_init(30)
+			),
+			Assignment_init(
+				safe_strdup("i"),
+				ArithmeticExpr_init(
+					Identifier_init(
+						safe_strdup("i")
+					),
+					safe_strdup("+"),
+					IntegerLiteral_init(1)
+				)
+			),
+			for_stmts
+		)
+	);
+	LinkedList_append(stmts, Return_init(IntegerLiteral_init(999)));
+	LinkedList *fns = LinkedList_init();
+	LinkedList_append(fns, FNDecl_init(
+		safe_strdup("main"),
+		LinkedList_init(),
+		stmts));
+	Program *ast = Program_init(fns);
+
+	// Make the assertion
+	mu_assert(Program_equals(parsed_prog, ast), "test_for_loop failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
+/*
+ * Tests that a program with a for-loop is parsed correctly
+ */
+char *test_while_loop() {
+
+	LinkedList *prog_tokens = lex("\
+		fn main(num) {             \
+			while(num < 10) {      \
+				print num;         \
+			}                      \
+			return 0;              \
+		}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	// Hand-built AST:
+	LinkedList *stmts = LinkedList_init_with(
+		While_init(
+			BooleanExpr_init(
+				Identifier_init(
+					safe_strdup("num")
+				),
+				safe_strdup("<"),
+				IntegerLiteral_init(10)
+			),
+			LinkedList_init_with((void *)
+				Print_init(Identifier_init(safe_strdup("num"))))
+		)
+	);
+	LinkedList_append(stmts, Return_init(IntegerLiteral_init(0)));
+	LinkedList *fns = LinkedList_init();
+	LinkedList_append(fns, FNDecl_init(
+		safe_strdup("main"),
+		LinkedList_init_with(safe_strdup("num")),
+		stmts));
+	Program *ast = Program_init(fns);
+
+	// Make the assertion
+	mu_assert(Program_equals(parsed_prog, ast), "test_while_loop failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
 char *all_tests() {
 
 	mu_suite_start();
@@ -292,6 +413,8 @@ char *all_tests() {
 	mu_run_test(test_two_functions);
 	mu_run_test(test_big_expression);
 	mu_run_test(test_brackets);
+	mu_run_test(test_for_loop);
+	mu_run_test(test_while_loop);
 
 	return NULL;
 }

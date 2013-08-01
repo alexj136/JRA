@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
-#include "AST.h"
 #include "minty_util.h"
+#include "AST.h"
 
 /*
  * Constructor for BooleanExpr Expressions

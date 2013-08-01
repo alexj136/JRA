@@ -42,6 +42,8 @@ struct LinkedList{
 
 LinkedList *LinkedList_init();
 
+LinkedList *LinkedList_init_with(void *element);
+
 void *LinkedList_get(LinkedList *ll, int index);
 
 int LinkedList_length(LinkedList *ll);

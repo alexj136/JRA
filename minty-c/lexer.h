@@ -12,11 +12,71 @@
 #ifndef LEXER
 #define LEXER
 
+
+/*
+ * Enum used to represent the different types a token can have
+ */
+typedef enum {
+
+	// The error token
+	ERROR,
+
+	// Tokens that carry associated values
+	IDENTIFIER,
+	LITERAL,	
+
+	// Keywords
+	FN,
+	FOR,
+	WHILE,
+	IF,
+	ELSE,
+	PRINT,
+	RETURN,
+	
+	// Boolean operations
+	EQUAL,
+	NOT_EQUAL,
+	LESS_THAN,
+	LESS_OR_EQUAL,
+	GREATER_THAN,
+	GREATER_OR_EQUAL,
+
+	// Arithmetic operations
+	PLUS,
+	MINUS,
+	MULTIPLY,
+	DIVIDE,
+	MODULO,
+
+	// Assignment operators
+	ASSIGNMENT,
+	INCREMENT,
+	DECREMENT,
+	INCREMENT_BY,
+	DECREMENT_BY,
+
+	// Brackets
+	OPEN_BRACE,
+	CLOSE_BRACE,
+	OPEN_PAREN,
+	CLOSE_PAREN,
+
+	// Delimiters
+	COMMA,
+	SEMICOLON,
+
+	// Ternary operator tokens
+	QUESTION_MARK,
+	COLON
+
+} token_type;
+
 /*
  * Struct used to represent a token
  */
 typedef struct {
-	char *type;
+	token_type type;
 	char *info;
 } Token;
 

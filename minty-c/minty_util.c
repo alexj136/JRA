@@ -134,6 +134,16 @@ LinkedList *LinkedList_init() {
 }
 
 /*
+ * Creates a new Linkedlist with the given argument as the first element
+ */
+LinkedList *LinkedList_init_with(void *element) {
+	LinkedList *ll = safe_alloc(sizeof(LinkedList));
+	ll->head_node = NULL;
+	LinkedList_append(ll, element);
+	return ll;
+}
+
+/*
  * Used by LinkedList_get to retrieve an item from the LinkedList at the given
  * index by recursing to the required node
  */

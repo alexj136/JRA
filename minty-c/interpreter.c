@@ -222,10 +222,33 @@ void Scope_free(Scope *scope) {
 int interpret_expression(Expression *expr, Scope *scope) {
 	switch(expr->type) {
 		case expr_BooleanExpr: {
-			
+			int lhs = interpret_expression(expr->expr->blean->lhs);
+			int rhs = interpret_expression(expr->expr->blean->rhs);
+
+			if(str_equal("=", expr->expr->blean->op)) return lhs = rhs;
+			if(str_equal("!=", expr->expr->blean->op)) return lhs != rhs;
+			if(str_equal("<", expr->expr->blean->op)) return lhs < rhs;
+			if(str_equal(">", expr->expr->blean->op)) return lhs > rhs;
+			if(str_equal("<=", expr->expr->blean->op)) return lhs <= rhs;
+			if(str_equal(">=", expr->expr->blean->op)) return lhs >= rhs;
+			else {
+				printf("Invalid boolean operation\n");
+				exit(EXIT_FAILURE);
+			}
 		}
 		case expr_ArithmeticExpr: {
+			int lhs = interpret_expression(expr->expr->arith->lhs);
+			int rhs = interpret_expression(expr->expr->arith->rhs);
 
+			if(str_equal("+", expr->expr->arith->op)) return lhs + rhs;
+			if(str_equal("-", expr->expr->arith->op)) return lhs - rhs;
+			if(str_equal("*", expr->expr->arith->op)) return lhs * rhs;
+			if(str_equal("/", expr->expr->arith->op)) return lhs / rhs;
+			if(str_equal("%", expr->expr->arith->op)) return lhs % rhs;
+			else {
+				printf("Invalid arithmetic operation\n");
+				exit(EXIT_FAILURE);
+			}
 		}
 		case expr_Identifier: {
 			// Retrieve the value associated with the identifier from the scope
