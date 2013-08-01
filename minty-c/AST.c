@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
 #include "minty_util.h"
@@ -7,7 +8,16 @@
 /*
  * Constructor for BooleanExpr Expressions
  */
-Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
+Expression *BooleanExpr_init(Expression *lhs, token_type op, Expression *rhs) {
+	
+	// Ensure that the passed token type is a boolean operation
+	if(op != EQUAL && op != NOT_EQUAL && op != LESS_THAN &&
+		op != GREATER_THAN && op != LESS_OR_EQUAL && op != GREATER_OR_EQUAL) {
+
+		printf("BooleanExpr_init given non-boolean token type\n");
+		exit(EXIT_FAILURE);
+	}
+
  	// First create the underlying BooleanExpr struct
  	BooleanExpr *booleanexpr_expr = safe_alloc(sizeof(BooleanExpr));
  	booleanexpr_expr->lhs = lhs;
@@ -31,7 +41,17 @@ Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs) {
 /*
  * Constructor for ArithmeticExpr Expressions
  */
-Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs) {
+Expression *ArithmeticExpr_init(
+	Expression *lhs, token_type op, Expression *rhs) {
+ 	
+	// Ensure that the passed token type is a arithmetic operation
+	if(op != PLUS && op != MINUS && op != MULTIPLY &&
+		op != DIVIDE && op != MODULO) {
+
+		printf("BooleanExpr_init given non-boolean token type\n");
+		exit(EXIT_FAILURE);
+	}
+
  	// First create the underlying ArithmeticExpr struct
  	ArithmeticExpr *arithmeticexpr_expr = safe_alloc(sizeof(ArithmeticExpr));
  	arithmeticexpr_expr->lhs = lhs;
@@ -152,7 +172,7 @@ char *Expression_str(Expression *expr) {
 
 			// Concat an open bracket, lhs, a space and op
 			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", expr->expr->blean->op);
+				"(", str_lhs, " ", token_to_string[expr->expr->blean->op]);
 
 			// Concat a space and rhs, with the close bracket
 			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
@@ -172,7 +192,7 @@ char *Expression_str(Expression *expr) {
 
 			// Concat an open bracket, lhs, a space and op
 			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", expr->expr->arith->op);
+				"(", str_lhs, " ", token_to_string[expr->expr->arith->op]);
 
 			// Concat a space and rhs, with the close bracket
 			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
@@ -296,9 +316,8 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				Expression_equals(
 					expr1->expr->blean->lhs,
 					expr2->expr->blean->lhs) &&
-				str_equal(
-					expr1->expr->blean->op,
-					expr2->expr->blean->op) &&
+				(expr1->expr->blean->op ==
+				expr2->expr->blean->op) &&
 				Expression_equals(
 					expr1->expr->blean->rhs,
 					expr2->expr->blean->rhs));
@@ -311,9 +330,8 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 				Expression_equals(
 					expr1->expr->arith->lhs,
 					expr2->expr->arith->lhs) &&
-				str_equal(
-					expr1->expr->arith->op,
-					expr2->expr->arith->op) &&
+				(expr1->expr->arith->op ==
+				expr2->expr->arith->op) &&
 				Expression_equals(
 					expr1->expr->arith->rhs,
 					expr2->expr->arith->rhs));
@@ -394,7 +412,6 @@ void Expression_free(Expression *expr) {
 		case expr_BooleanExpr:
 			// Free lhs, op, rhs
 			Expression_free(expr->expr->blean->lhs);
-			free(expr->expr->blean->op);
 			Expression_free(expr->expr->blean->rhs);
 
 			// Free BooleanExpr object itself
@@ -407,7 +424,6 @@ void Expression_free(Expression *expr) {
 		case expr_ArithmeticExpr:
 			// Free lhs, op, rhs
 			Expression_free(expr->expr->arith->lhs);
-			free(expr->expr->arith->op);
 			Expression_free(expr->expr->arith->rhs);
 
 			// Free ArithmeticExpr object itself

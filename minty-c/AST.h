@@ -7,6 +7,10 @@
 #include "minty_util.h"
 #endif // MINTY_UTIL
 
+#ifndef LEXER
+#include "lexer.h"
+#endif // LEXER
+
 #ifndef AST
 #define AST
 
@@ -20,26 +24,49 @@
  * (mulitplucation), / (integer division) and % (modulo/remainder after integer
  * division)
  */
-typedef enum {
-	PLUS,
-	MINUS,
-	MULTIPLY,
-	DIVIDE,
-	MODULO
-} op_arithmetic;
+// typedef enum {
+// 	PLUS,
+// 	MINUS,
+// 	MULTIPLY,
+// 	DIVIDE,
+// 	MODULO
+// } op_arithmetic;
+
+/*
+ * String representations of the arithmetic operations for printing to terminal
+ */
+// char *op_arithmetic_str[] = {
+// 	"PLUS",
+// 	"MINUS",
+// 	"MULTIPLY",
+// 	"DIVIDE",
+// 	"MODULO"
+// };
 
 /*
  * op_boolean is used to denote = (equality), != (inequality), < (less-than),
  * > (greater-than), <= (less or equal) and >= (greater or equal)
  */
-typedef enum {
-	EQUAL,
-	NOT_EQUAL,
-	LESS_THAN,
-	LESS_OR_EQUAL,
-	GREATER_THAN,
-	GREATER_OR_EQUAL
-} op_boolean;
+// typedef enum {
+// 	EQUAL,
+// 	NOT_EQUAL,
+// 	LESS_THAN,
+// 	LESS_OR_EQUAL,
+// 	GREATER_THAN,
+// 	GREATER_OR_EQUAL
+// } op_boolean;
+
+/*
+ * String representations of the boolean operations for printing to terminal
+ */
+// char *op_boolean_str[] = {
+// 	"EQUAL",
+// 	"NOT_EQUAL",
+// 	"LESS_THAN",
+// 	"LESS_OR_EQUAL",
+// 	"GREATER_THAN",
+// 	"GREATER_OR_EQUAL"
+// };
 
 /*
  * The following data structures are used to represent expressions. Expression
@@ -101,7 +128,7 @@ typedef struct {
 typedef struct BooleanExpr BooleanExpr;
 struct BooleanExpr {
 	Expression *lhs;
-	char *op;
+	token_type op;
 	Expression *rhs;
 };
 
@@ -112,7 +139,7 @@ struct BooleanExpr {
 typedef struct ArithmeticExpr ArithmeticExpr;
 struct ArithmeticExpr {
 	Expression *lhs;
-	char *op;
+	token_type op;
 	Expression *rhs;
 };
 
@@ -269,9 +296,10 @@ typedef struct {
  * Forward declarations for constructors for the above structs, defined in AST.c
  */
 
-Expression *BooleanExpr_init(Expression *lhs, char *op, Expression *rhs);
+Expression *BooleanExpr_init(Expression *lhs, token_type op, Expression *rhs);
 
-Expression *ArithmeticExpr_init(Expression *lhs, char *op, Expression *rhs);
+Expression *ArithmeticExpr_init(
+	Expression *lhs, token_type op, Expression *rhs);
 
 Expression *Identifier_init(char *ident);
 

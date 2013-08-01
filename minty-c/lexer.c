@@ -58,44 +58,7 @@ void Token_free(Token *token) {
  * Prints a token in the format 'T_type' or 'T_type_info'
  */
 void Token_print(Token *token) {
-	char *type_str;
-	switch(token->type) {
-		case ERROR:            type_str = "ERROR";            break;
-		case IDENTIFIER:       type_str = "IDENTIFIER";       break;
-		case LITERAL:          type_str = "LITERAL";          break;
-		case FN:               type_str = "FN";               break;
-		case FOR:              type_str = "FOR";              break;
-		case WHILE:            type_str = "WHILE";            break;
-		case IF:               type_str = "IF";               break;
-		case ELSE:             type_str = "ELSE";             break;
-		case PRINT:            type_str = "PRINT";            break;
-		case RETURN:           type_str = "RETURN";           break;
-		case EQUAL:            type_str = "EQUAL";            break;
-		case NOT_EQUAL:        type_str = "NOT_EQUAL";        break;
-		case LESS_THAN:        type_str = "LESS_THAN";        break;
-		case LESS_OR_EQUAL:    type_str = "LESS_OR_EQUAL";    break;
-		case GREATER_THAN:     type_str = "GREATER_THAN";     break;
-		case GREATER_OR_EQUAL: type_str = "GREATER_OR_EQUAL"; break;
-		case PLUS:             type_str = "PLUS";             break;
-		case MINUS:            type_str = "MINUS";            break;
-		case MULTIPLY:         type_str = "MULTIPLY";         break;
-		case DIVIDE:           type_str = "DIVIDE";           break;
-		case MODULO:           type_str = "MODULO";           break;
-		case ASSIGNMENT:       type_str = "ASSIGNMENT";       break;
-		case INCREMENT:        type_str = "INCREMENT";        break;
-		case DECREMENT:        type_str = "DECREMENT";        break;
-		case INCREMENT_BY:     type_str = "INCREMENT_BY";     break;
-		case DECREMENT_BY:     type_str = "DECREMENT_BY";     break;
-		case OPEN_BRACE:       type_str = "OPEN_BRACE";       break;
-		case CLOSE_BRACE:      type_str = "CLOSE_BRACE";      break;
-		case OPEN_PAREN:       type_str = "OPEN_PAREN";       break;
-		case CLOSE_PAREN:      type_str = "CLOSE_PAREN";      break;
-		case COMMA:            type_str = "COMMA";            break;
-		case SEMICOLON:        type_str = "SEMICOLON";        break;
-		case QUESTION_MARK:    type_str = "QUESTION_MARK";    break;
-		case COLON:            type_str = "COLON";            break;
-	}
-	printf("T_%s", type_str);
+	printf("T_%s", token_to_string[token->type]);
 	if(*(token->info) != '\0') printf("_%s\n", token->info);
 	else printf("\n");
 }

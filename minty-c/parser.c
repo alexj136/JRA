@@ -76,7 +76,7 @@ static char *FOR[] = {"for"};
 static char *ID[] = {"ID"};
 static int ID_SIZE = 1;
 
-static char *INT[] = {"INT"};
+static char *INTEGER[] = {INTEGER};
 // static int INT_SIZE = 1;
 
 static char *OPAREN[] = {"("};
@@ -136,35 +136,35 @@ static char *NEQUAL[] = {"!="};
 static char *LESS[] = {"<"};
 // static int LESS_SIZE = 1;
 
-static char *GRTR[] = {">"};
+static char *GREATER_THAN[] = {GREATER_THAN};
 // static int GRTR_SIZE = 1;
 
-static char *LESSEQ[] = {"<="};
+static char *LESS_OR_EQUAL[] = {LESS_OR_EQUAL}};
 // static int LESSEQ_SIZE = 1;
 
-static char *GRTREQ[] = {">="};
+static char *GREATER_OR_EQUAL[] = {GREATER_OR_EQUAL};
 // static int GRTREQ_SIZE = 1;
 
-static char *QMARK[] = {"?"};
+static char QUESTION_MARK[] = {QUESTION_MARK};
 // static int QMARK_SIZE = 1;
 
-static char *COLON[] = {":"};
+static token_type COLON[] = {COLON};
 static int COLON_SIZE = 1;
 
-static char *ARGLIST[] = {"ID", ","};
+static token_type ARGLIST[] = {IDENTIFIER, COMMA};
 static int ARGLIST_SIZE = 2;
 
-static char *ARGDELIM[] = {",", ")"};
+static token_type ARGDELIM[] = {COMMA, CLOSE_PAREN};
 static int ARGDELIM_SIZE = 2;
 
-// static char *ARITH[] = {"+", "-", "*", "/", "%"};
+// static token_type ARITH[] = {PLUS, MINUS, MULTIPLY, DIVIDE, MODULO};
 // static int ARITH_SIZE = 5;
 
-// static char *BOOL[] = {"=", "!=", "<", ">", "<=", ">="};
+// static token_type BOOL[] = {EQUAL, NOT_EQUAL, LESS_THAN, GREATER_THAN,
+//	LESS_OR_EQUAL, GREATER_OR_EQUAL};
 // static int BOOL_SIZE = 6;
 
-static char *STMTSTART[] =
-	{"print", "for", "return", "if", "while", "ID"};
+static token_type STMTSTART[] = {PRINT, FOR, RETURN, IF, WHILE, IDENTIFIER};
 static int STMTSTART_SIZE = 6;
 
 /*
