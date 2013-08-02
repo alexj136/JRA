@@ -292,6 +292,8 @@ void FNDecl_free(FNDecl *func);
 
 Program *Program_init(LinkedList *function_list);
 
+FNDecl *Program_get_FNDecl(Program *prog, char *name);
+
 bool Program_equals(Program *p1, Program *p2);
 
 void Program_free(Program *prog);

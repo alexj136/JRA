@@ -52,9 +52,10 @@ static void Variable_free(Variable *var) {
 }
 
 /*
- * Initiate a brand new Scope
+ * Initiate a brand new Scope - creates variables with the given names and
+ * values
  */
-Scope *Scope_init() {
+Scope *Scope_init(LinkedList *arg_names, LinkedList *args_given) {
 	// Allocate space for the Scope object
 	Scope *scope = (Scope *)safe_alloc(sizeof(Scope));
 	
@@ -63,6 +64,14 @@ Scope *Scope_init() {
 
 	// Indicate that the scope does not have a return value
 	scope->has_return = false;
+
+	// Initialise the arguments to the function
+	int i;
+	for(i = 0; i < LinkedList_length(arg_names); i++) {
+		Scope_update(scope,
+			(char *)LinkedList_get(arg_names, i),
+			(int)LinkedList_get(args_given, i));
+	}
 
 	return scope;
 }
@@ -220,12 +229,24 @@ void Scope_free(Scope *scope) {
 	free(scope);
 }
 
-int interpret_expression(Expression *expr, Scope *scope) {
-	switch(expr->type) {
-		case expr_BooleanExpr: {
-			int lhs = interpret_expression(expr->expr->blean->lhs, scope);
-			int rhs = interpret_expression(expr->expr->blean->rhs, scope);
+/*
+ * Evaluates and returns the Expression expr in the context of the given scope
+ * and functions available in the given program.
+ */
+int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 
+	// Increment the counter for number of executions
+	expr->exec_count++;
+
+	// Interpret the expression in the appropriate way
+	switch(expr->type) {
+	
+		case expr_BooleanExpr: {
+			// Interpret the left and right hand side
+			int lhs = interpret_expression(expr->expr->blean->lhs, scope, prog);
+			int rhs = interpret_expression(expr->expr->blean->rhs, scope, prog);
+
+			// Return the results with the appropriate operation applied
 			if(EQUAL == expr->expr->blean->op) return lhs = rhs;
 			if(NOT_EQUAL == expr->expr->blean->op) return lhs != rhs;
 			if(LESS_THAN == expr->expr->blean->op) return lhs < rhs;
@@ -238,9 +259,11 @@ int interpret_expression(Expression *expr, Scope *scope) {
 			}
 		}
 		case expr_ArithmeticExpr: {
-			int lhs = interpret_expression(expr->expr->arith->lhs, scope);
-			int rhs = interpret_expression(expr->expr->arith->rhs, scope);
+			// Interpret the left and right hand side
+			int lhs = interpret_expression(expr->expr->arith->lhs, scope, prog);
+			int rhs = interpret_expression(expr->expr->arith->rhs, scope, prog);
 
+			// Return the results with the appropriate operation applied
 			if(PLUS == expr->expr->arith->op) return lhs + rhs;
 			if(MINUS == expr->expr->arith->op) return lhs - rhs;
 			if(MULTIPLY == expr->expr->arith->op) return lhs * rhs;
@@ -272,30 +295,214 @@ int interpret_expression(Expression *expr, Scope *scope) {
 				
 				LinkedList_append(evaluated_args, (void *)interpret_expression(
 					(Expression *)LinkedList_get(expr->expr->fncall->args, i),
-						scope));
+						scope, prog));
 			}
 
 			// Return the result of interpreting the function with the given
 			// arguments
-			return interpret_function(expr->expr->fncall->name, evaluated_args);
+			return interpret_function(Program_get_FNDecl(prog,
+				expr->expr->fncall->name), evaluated_args, prog);
 		}
 		case expr_Ternary: {
+			// If the boolean expression evaluates to true...
+			if(interpret_expression(
+				expr->expr->trnry->bool_expr, scope, prog)) {
 
+				// Return the result of evaluating the true expression
+				return interpret_expression(
+					expr->expr->trnry->true_expr, scope, prog);
+			}
+			else {
+				// Else return the result of evaluating the false expression
+				return interpret_expression(
+					expr->expr->trnry->false_expr, scope, prog);
+			}
 		}
 	}
-	expr->exec_count++;
+	// If we exit the switch, an error has occurred because the individual cases
+	// are supposed to return something, so raise an error
+	printf("Cannot interpret expression: invalid expression type\n");
+	exit(EXIT_FAILURE);
 	return (int) NULL;
 }
 
-void interpret_statement(Statement *stmt) {
+/*
+ * Evaluates the Statement stmt in the context of the given scope and functions
+ * available in the given program.
+ */
+void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
+	
+	// Increment the counter for number of executions
+	stmt->exec_count++;
 
+	// Interpret the expression in the appropriate way
+	switch(stmt->type) {
+
+		case stmt_For: {
+			// Interpret the assignment in the for loop declaration
+			interpret_statement(stmt->stmt->_for->assignment, scope, prog);
+
+			// Repeatedly execute each sub-statement, and do the specified
+			// incrementation after each iteration
+			while(interpret_expression(
+				stmt->stmt->_for->bool_expr, scope, prog)) {
+
+				// Proliferate the scope for this iteration of the for-loop body
+				Scope_proliferate(scope);
+
+				// Interpret each statement for this iteration
+				int i;
+				for(i = 0; i < LinkedList_length(
+					stmt->stmt->_for->stmts); i++) {
+					
+					interpret_statement(LinkedList_get(
+						stmt->stmt->_for->stmts, i), scope, prog);
+
+					// If a return value is found after any statement, we must
+					// break, not interpreting any more statements in the
+					// function
+					if(scope->has_return) break;
+				}
+
+				// Recede the scope now that this loop iteration has finished
+				Scope_recede(scope);
+
+				if(scope->has_return) break;
+
+				// If we reach this statement, we have not reached a return, so
+				// increment the loop control variable for the next iteration
+				interpret_statement(stmt->stmt->_for->incrementor, scope, prog);
+			}
+		}
+		case stmt_While: {
+			// Repeatedly execute each sub-statement, and do the specified
+			// incrementation after each iteration
+			while(interpret_expression(
+				stmt->stmt->_while->bool_expr, scope, prog)) {
+
+				// Proliferate the scope for this iteration of the for-loop body
+				Scope_proliferate(scope);
+
+				// Interpret each statement for this iteration
+				int i;
+				for(i = 0; i < LinkedList_length(
+					stmt->stmt->_while->stmts); i++) {
+					
+					interpret_statement(LinkedList_get(
+						stmt->stmt->_while->stmts, i), scope, prog);
+
+					// If a return value is found after any statement, we must
+					// break, not interpreting any more statements in the
+					// function
+					if(scope->has_return) break;
+				}
+
+				// Recede the scope now that this loop iteration has finished
+				Scope_recede(scope);
+
+				if(scope->has_return) break;
+			}
+		}
+		case stmt_If: {
+			// Determine which statement list will be interpreted
+			LinkedList *stmts_to_interpret = 
+				interpret_expression(stmt->stmt->_if->bool_expr, scope, prog) ?
+					stmt->stmt->_if->true_stmts : stmt->stmt->_if->false_stmts;
+
+			// Proliferate the scope for the if/else statements
+			Scope_proliferate(scope);
+
+			// Interpret each statement
+			int i;
+			for(i = 0; i < LinkedList_length(stmts_to_interpret); i++) {
+				
+				interpret_statement(LinkedList_get(
+					stmts_to_interpret, i), scope, prog);
+
+				// If a return value is found after any statement, we must
+				// break, not interpreting any more statements in the function
+				if(scope->has_return) break;
+			}
+
+			// Recede the scope now that this loop iteration has finished
+			Scope_recede(scope);
+		}
+		case stmt_Print: {
+			// Just print the given expression
+			printf("%d\n", interpret_expression(
+				stmt->stmt->_print->expr, scope, prog));
+		}
+		case stmt_Assignment: {
+			// Update the scope with a value for the variable name
+			Scope_update(scope, stmt->stmt->_assignment->name, 
+				interpret_expression(
+					stmt->stmt->_assignment->expr, scope, prog));
+		}
+		case stmt_Return: {
+			// Record the return value as the interpreted expression
+			scope->return_value = interpret_expression(
+				stmt->stmt->_return->expr, scope, prog);
+
+			// Mark the scope has having evaluated a return statement
+			scope->has_return = true;
+		}
+	}
 }
 
-int interpret_function(char *name, LinkedList *args) {
-	// ASSERT LENGTH OF PASSED ARGS == THAT OF DECLARED ARGS
-	return (int) NULL;
+/*
+ * Interpret and return the result of the given function with the given
+ * arguments in the context of the given program
+ */
+int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
+
+	// Check that the function has been called with the appropriate number of
+	// arguments
+	if(LinkedList_length(args) != LinkedList_length(function->arg_names)) {
+
+		printf("Function: '%s' takes %d arguments, %d given",
+			function->name,
+			LinkedList_length(function->arg_names),
+			LinkedList_length(args));
+		exit(EXIT_FAILURE);
+	}
+
+	// Create the VariableScope for this function
+	Scope *scope = Scope_init(function->arg_names, args);
+
+	// Interpret each statement
+	int i;
+	for(i = 0; i < LinkedList_length(function->stmts); i++) {
+		
+		interpret_statement(LinkedList_get(
+			function->stmts, i), scope, prog);
+
+		// If a return value is found after any statement, we must
+		// break, not interpreting any more statements in the function
+		if(scope->has_return) break;
+	}
+
+	// If the statement interpretation loop finishes without returning, an error
+	// has occurred in that the function had no return statement, so raise an
+	// error
+	if(!(scope->has_return)) {
+		printf("Reached end of function '%s' without return statement\n",
+			function->name);
+		exit(EXIT_FAILURE);
+		return (int) NULL;
+	}
+	// Otherwise return the return value
+	else {
+		int return_value = scope->return_value;
+		Scope_free(scope);
+		return return_value;
+	}
 }
 
 int interpret_program(Program *prog, LinkedList *args) {
+
+	int i;
+	for(i = 0; i < LinkedList_length(prog->function_list); i++) {
+
+	}
 	return (int) NULL;
 }

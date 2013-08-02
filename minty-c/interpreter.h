@@ -51,11 +51,11 @@ void Scope_free(Scope *scope);
  * Interpreter functions
  */
  
-int interpret_expression(Expression *expr, Scope *scope);
+int interpret_expression(Expression *expr, Scope *scope, Program *prog);
 
-void interpret_statement(Statement *stmt);
+void interpret_statement(Statement *stmt, Scope *scope, Program *prog);
 
-int interpret_function(char *name, LinkedList *args);
+int interpret_function(FNDecl *function, LinkedList *args, Program *prog);
 
 int interpret_program(Program *prog, LinkedList *args);
 

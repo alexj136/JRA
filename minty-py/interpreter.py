@@ -275,7 +275,9 @@ def interpret_statement(statement, scope):
 def interpret_expression(expression, scope):
 	"""
 	interpret_expression is an integer-typed function used to evaluate integer
-	expressions. There are four kinds of integer expression:
+	expressions. There are six kinds of expression:
+
+		Boolean expressions - handled by interpret_boolean
 
 		Arithmetic expressions - basic operations on integers such as addition,
 		subtraction, multiplication, division and modulo.
@@ -287,9 +289,6 @@ def interpret_expression(expression, scope):
 
 		Function call - the call to a function which will return an integer
 		value
-
-		Incrementor - increment or decrements an expression and then evaluates
-		the resulting expression
 
 		Ternary - evaluates to one of two possible expressions based on the
 		value of a boolean

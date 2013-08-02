@@ -907,6 +907,45 @@ Program *Program_init(LinkedList *function_list) {
 	return prog;
 }
 
+/*
+ * Retrieves a function declaration from a Program object
+ */
+FNDecl *Program_get_FNDecl(Program *prog, char *name) {
+
+	// Sequential-search the program's functions for a function with the given
+	// name
+	bool found = false;
+	int list_size = LinkedList_length(prog->function_list);
+	int i = 0;
+	
+	while((!found) && i < list_size) {
+
+		// If we find the variable, stop searching - i now has the index of the
+		// variable
+		if(str_equal(name,
+			((FNDecl *)LinkedList_get(prog->function_list, i))->name)) {
+
+			found = true;
+		}
+
+		else {
+			i++;
+		}
+	}
+
+	// If we never found the variable, an error has occurred, so print an error
+	// message and exit
+	if(!found) {
+		printf("No function named '%s' in program\n", name);
+		exit(EXIT_FAILURE);
+	}
+
+	// Otherwise return the variable's value
+	else {
+		return (FNDecl *)LinkedList_get(prog->function_list, i);
+	}
+}
+
 bool Program_equals(Program *p1, Program *p2) {
 	// If the programs have different numbers of functions, we can immediately
 	//return false
