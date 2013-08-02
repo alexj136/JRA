@@ -173,7 +173,7 @@ char *Expression_str(Expression *expr) {
 
 			// Concat an open bracket, lhs, a space and op
 			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", token_to_string[expr->expr->blean->op]);
+				"(", str_lhs, " ", Token_str(expr->expr->blean->op));
 
 			// Concat a space and rhs, with the close bracket
 			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
@@ -193,7 +193,7 @@ char *Expression_str(Expression *expr) {
 
 			// Concat an open bracket, lhs, a space and op
 			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", token_to_string[expr->expr->arith->op]);
+				"(", str_lhs, " ", Token_str(expr->expr->arith->op));
 
 			// Concat a space and rhs, with the close bracket
 			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");

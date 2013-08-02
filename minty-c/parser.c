@@ -88,12 +88,12 @@ void check_valid_multiple(token_type *poss_tokens, int num_poss_tokens,
 	// useful error message and exit
 	if(!match_found){
 		printf("Found token:\n");
-		printf("    %s\n", token_to_string[found]);
+		printf("    %s\n", Token_str(found));
 		printf("Expected:\n");
 
 		int i;
 		for(i = 0; i < num_poss_tokens; i++)
-			printf("    %s\n", token_to_string[poss_tokens[i]]);
+			printf("    %s\n", Token_str(poss_tokens[i]));
 
 		exit(EXIT_FAILURE);
 	}
@@ -111,9 +111,9 @@ void check_valid_single(token_type expected, token_type found) {
 	if(expected != found) {
 
 		printf("Found token:\n");
-		printf("    %s\n", token_to_string[found]);
+		printf("    %s\n", Token_str(found));
 		printf("Expected:\n");
-		printf("    %s\n", token_to_string[expected]);
+		printf("    %s\n", Token_str(expected));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -297,7 +297,7 @@ Expression *parse_expression(LinkedList *tokens) {
 
 	else {
 		printf("Could not parse expression production, %s not expected\n",
-			token_to_string[next_token->type]);
+			Token_str(next_token->type));
 		exit(EXIT_FAILURE);
 	}
 

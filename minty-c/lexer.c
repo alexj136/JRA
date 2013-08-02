@@ -190,8 +190,8 @@ static TupleIntToken *get_next_token(char *input) {
 	Token *next_token = Token_init(-1, "");
 
 	// Char array to build the token array into
-	char *token_str = safe_alloc(sizeof(char));
-	*token_str = '\0';
+	char *token_builder = safe_alloc(sizeof(char));
+	*token_builder = '\0';
 
 	// The state number for the final state after FSM traversal
 	int final_state = 0;
@@ -223,7 +223,7 @@ static TupleIntToken *get_next_token(char *input) {
 		// If the next state produces a valid token...
 		if(next_state != -1) {
 			// Add the next char to the current string 
-			token_str = str_append(token_str, next_char);
+			token_builder = str_append(token_builder, next_char);
 
 			// Record the current state as final
 			final_state = next_state;
@@ -242,10 +242,12 @@ static TupleIntToken *get_next_token(char *input) {
 	// If the token is not a 'valueless token' - i.e. a valid token that is
 	// not an INT or ID - we store the string we've built up in the info
 	// field.
-	if(!in_valueless_tokens(token_str)) Token_set_info(next_token, token_str);
+	if(!in_valueless_tokens(token_builder)) {
+		Token_set_info(next_token, token_builder);
+	}
 	
 	// Free the string that was built up - Token_set_info makes its own copy
-	free(token_str);
+	free(token_builder);
 
 	// If the text found was an error, process any remaining erroneous text
 	if(final_mapping[final_state] == ERROR) {
