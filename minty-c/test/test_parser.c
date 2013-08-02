@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include "minunit.h"
 #include "../minty_util.h"
+#include "../token.h"
 #include "../lexer.h"
 #include "../parser.h"
 #include "../AST.h"
@@ -120,7 +121,7 @@ char *test_two_functions() {
 	LinkedList_append(binary_add_stmts, Return_init(
 		ArithmeticExpr_init(
 			Identifier_init(safe_strdup("num1")),
-			safe_strdup("+"),
+			PLUS,
 			Identifier_init(safe_strdup("num2")))));
 	FNDecl *binary_add_fn = FNDecl_init(
 		safe_strdup("binary_add"),
@@ -163,25 +164,25 @@ char *test_big_expression() {
 	Statement* ret = Return_init(
 			ArithmeticExpr_init(
 				IntegerLiteral_init(1),
-				safe_strdup("-"),
+				MINUS,
 				ArithmeticExpr_init(
 					IntegerLiteral_init(2),
-					safe_strdup("+"),
+					PLUS,
 					Ternary_init(
 						BooleanExpr_init(
 							IntegerLiteral_init(3),
-							safe_strdup("<"),
+							LESS_THAN,
 							IntegerLiteral_init(4)),
 						IntegerLiteral_init(1),
 						ArithmeticExpr_init(
 							IntegerLiteral_init(2),
-							safe_strdup("*"),
+							MULTIPLY,
 							ArithmeticExpr_init(
 								IntegerLiteral_init(2),
-								safe_strdup("/"),
+								DIVIDE,
 								ArithmeticExpr_init(
 									IntegerLiteral_init(7),
-									safe_strdup("%"),
+									MODULO,
 									IntegerLiteral_init(6)
 								)
 							)
@@ -240,17 +241,17 @@ char *test_brackets() {
 				ArithmeticExpr_init(
 					ArithmeticExpr_init(
 						IntegerLiteral_init(7),
-						safe_strdup("-"),
+						MINUS,
 						IntegerLiteral_init(2)
 					),
-					safe_strdup("*"),
+					MULTIPLY,
 					ArithmeticExpr_init(
 						IntegerLiteral_init(20),
-						safe_strdup("/"),
+						DIVIDE,
 						IntegerLiteral_init(4)
 					)
 				),
-				safe_strdup("%"),
+				MODULO,
 				IntegerLiteral_init(2)
 			)
 		);
@@ -315,7 +316,7 @@ char *test_for_loop() {
 				Identifier_init(
 					safe_strdup("i")
 				),
-				safe_strdup("<"),
+				LESS_THAN,
 				IntegerLiteral_init(30)
 			),
 			Assignment_init(
@@ -324,7 +325,7 @@ char *test_for_loop() {
 					Identifier_init(
 						safe_strdup("i")
 					),
-					safe_strdup("+"),
+					PLUS,
 					IntegerLiteral_init(1)
 				)
 			),
@@ -375,7 +376,7 @@ char *test_while_loop() {
 				Identifier_init(
 					safe_strdup("num")
 				),
-				safe_strdup("<"),
+				LESS_THAN,
 				IntegerLiteral_init(10)
 			),
 			LinkedList_init_with((void *)

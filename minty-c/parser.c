@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "minty_util.h"
+#include "token.h"
 #include "lexer.h"
 #include "AST.h"
 #include "parser.h"
@@ -10,7 +11,7 @@
  * built up into expression trees.
  */
 typedef struct {
-	char *op;
+	token_type op;
 	Expression *expr;
 	bool is_ternary;
 	Expression *true_expr;
@@ -20,7 +21,7 @@ typedef struct {
 /*
  * Constructor of EPrime that represents a ternary expression
  */
-EPrime *EPrime_tern_init(char *op, Expression *expr,
+EPrime *EPrime_tern_init(token_type op, Expression *expr,
 	Expression *true_expr, Expression *false_expr) {
 
 	EPrime *this_eprime = safe_alloc(sizeof(EPrime));
@@ -35,7 +36,7 @@ EPrime *EPrime_tern_init(char *op, Expression *expr,
 /*
  * Constructor of EPrime that does not represent a ternary expression
  */
-EPrime *EPrime_init(char *op, Expression* expr) {
+EPrime *EPrime_init(token_type op, Expression* expr) {
 
 	EPrime *this_eprime = safe_alloc(sizeof(EPrime));
 	this_eprime->op = op;
@@ -47,161 +48,74 @@ EPrime *EPrime_init(char *op, Expression* expr) {
 }
 
 /*
- * The following variables are used with the check_valid function defined below,
- * which is used to assert that the parser remains in a safe state, i.e. that it
- * will never return an AST if the input is invalid. The commented ones are not
- * currently used - uncomment to use.
+ * The following arrays are used with the check_valid_multiple function defined
+ * below, which is used to assert that the parser input is correct, i.e. that it
+ * will never return an AST if the input is invalid.
  */
-static char *FN[] = {"fn"};
-static int FN_SIZE = 1;
-
-static char *PRINT[] = {"print"};
-// static int PRINT_SIZE = 1;
-
-static char *RETURN[] = {"return"};
-// static int RETURN_SIZE = 1;
-
-static char *IF[] = {"if"};
-// static int IF_SIZE = 1;
-
-static char *ELSE[] = {"else"};
-static int ELSE_SIZE = 1;
-
-static char *WHILE[] = {"while"};
-// static int WHILE_SIZE = 1;
-
-static char *FOR[] = {"for"};
-// static int FOR_SIZE = 1;
-
-static char *ID[] = {"ID"};
-static int ID_SIZE = 1;
-
-static char *INTEGER[] = {INTEGER};
-// static int INT_SIZE = 1;
-
-static char *OPAREN[] = {"("};
-static int OPAREN_SIZE = 1;
-
-static char *CPAREN[] = {")"};
-static int CPAREN_SIZE = 1;
-
-static char *OBRACE[] = {"{"};
-static int OBRACE_SIZE = 1;
-
-static char *CBRACE[] = {"}"};
-// static int CBRACE_SIZE = 1;
-
-static char *COMMA[] = {","};
-static int COMMA_SIZE = 1;
-
-static char *SEMICO[] = {";"};
-static int SEMICO_SIZE = 1;
-
-static char *PLUS[] = {"+"};
-// static int PLUS_SIZE = 1;
-
-static char *PLPL[] = {"++"};
-// static int PLPL_SIZE = 1;
-
-static char *PLEQ[] = {"+="};
-// static int PLEQ_SIZE = 1;
-
-static char *MINUS[] = {"-"};
-// static int MINUS_SIZE = 1;
-
-static char *MIMI[] = {"--"};
-// static int MIMI_SIZE = 1;
-
-static char *MIEQ[] = {"-="};
-// static int MIEQ_SIZE = 1;
-
-static char *ASSIGN[] = {"<-"};
-// static int ASSIGN_SIZE = 1;
-
-static char *TIMES[] = {"*"};
-// static int TIMES_SIZE = 1;
-
-static char *DIVIDE[] = {"/"};
-// static int DIVIDE_SIZE = 1;
-
-static char *MODULO[] = {"%"};
-// static int MODULO_SIZE = 1;
-
-static char *EQUAL[] = {"="};
-// static int EQUAL_SIZE = 1;
-
-static char *NEQUAL[] = {"!="};
-// static int NEQUAL_SIZE = 1;
-
-static char *LESS[] = {"<"};
-// static int LESS_SIZE = 1;
-
-static char *GREATER_THAN[] = {GREATER_THAN};
-// static int GRTR_SIZE = 1;
-
-static char *LESS_OR_EQUAL[] = {LESS_OR_EQUAL}};
-// static int LESSEQ_SIZE = 1;
-
-static char *GREATER_OR_EQUAL[] = {GREATER_OR_EQUAL};
-// static int GRTREQ_SIZE = 1;
-
-static char QUESTION_MARK[] = {QUESTION_MARK};
-// static int QMARK_SIZE = 1;
-
-static token_type COLON[] = {COLON};
-static int COLON_SIZE = 1;
-
 static token_type ARGLIST[] = {IDENTIFIER, COMMA};
 static int ARGLIST_SIZE = 2;
 
-static token_type ARGDELIM[] = {COMMA, CLOSE_PAREN};
-static int ARGDELIM_SIZE = 2;
+static token_type ARGUMENT_DELIMIT[] = {COMMA, CLOSE_PAREN};
+static int ARGUMENT_DELIMIT_SIZE = 2;
 
-// static token_type ARITH[] = {PLUS, MINUS, MULTIPLY, DIVIDE, MODULO};
-// static int ARITH_SIZE = 5;
-
-// static token_type BOOL[] = {EQUAL, NOT_EQUAL, LESS_THAN, GREATER_THAN,
-//	LESS_OR_EQUAL, GREATER_OR_EQUAL};
-// static int BOOL_SIZE = 6;
-
-static token_type STMTSTART[] = {PRINT, FOR, RETURN, IF, WHILE, IDENTIFIER};
-static int STMTSTART_SIZE = 6;
+static token_type STATEMENT_START[] =
+	{PRINT, FOR, RETURN, IF, WHILE, IDENTIFIER};
+static int STATEMENT_START_SIZE = 6;
 
 /*
- * Checks that the 'found' string is equal to 'expected', and if not, quits the
- * program with a suitable error message
+ * Asserts the correctness of syntax found by the parser. The poss_tokens
+ * parameter is a list of token types, which are tokens that are valid input at
+ * the point at which this function is called. num_poss_tokens is the number of
+ * token_types in said list. 'found' is the token type that was actually found.
  */
-void check_valid(char **expected, int expected_size, char *found) {
+void check_valid_multiple(token_type *poss_tokens, int num_poss_tokens,
+	token_type found) {
 
-	// Have we found a match between found & expected?
+	// Have we found a match between found & poss_tokens?
 	bool match_found = false;
 
-	// Which index of expected to look at next
-	int expected_index = 0;
+	// Which index of poss_tokens to look at next
+	int poss_tokens_index = 0;
 
-	// Iterate over each value in expected until we reach the end or until no
+	// Iterate over each value in poss_tokens until we reach the end or until no
 	// match is found
-	while((!match_found) && expected_index < expected_size) {
-		if(str_equal(expected[expected_index], found)) match_found = true;
-		expected_index++;
+	while((!match_found) && poss_tokens_index < num_poss_tokens) {
+		if(poss_tokens[poss_tokens_index] == found) match_found = true;
+		poss_tokens_index++;
 	}
 
 	// If we didn't find a match, the input had a syntax error, so we print a
 	// useful error message and exit
 	if(!match_found){
 		printf("Found token:\n");
-		printf("    %s\n", found);
+		printf("    %s\n", token_to_string[found]);
 		printf("Expected:\n");
 
 		int i;
-		for(i = 0; i < expected_size; i++)
-			printf("    %s\n", expected[i]);
+		for(i = 0; i < num_poss_tokens; i++)
+			printf("    %s\n", token_to_string[poss_tokens[i]]);
 
 		exit(EXIT_FAILURE);
 	}
 	// Otherwise, a match was found, so the found token was valid, and we can
 	// return to the caller for them to carry on
 	else return;
+}
+
+/*
+ * Asserts the correctness of syntax found by the parser. The 'expected'
+ * parameter is the token type which is valid input at the point at which this
+ * function is called. 'found' is the token type that was actually found.
+ */
+void check_valid_single(token_type expected, token_type found) {
+	if(expected != found) {
+
+		printf("Found token:\n");
+		printf("    %s\n", token_to_string[found]);
+		printf("Expected:\n");
+		printf("    %s\n", token_to_string[expected]);
+		exit(EXIT_FAILURE);
+	}
 }
 
 /*
@@ -239,34 +153,32 @@ EPrime *parse_e_prime(LinkedList *tokens) {
 	Token *next_token = (Token *)LinkedList_get(tokens, 0);
 
 	// If the next token is an arithmetic expression...
-	if(str_equal(next_token->type, *PLUS) ||
-		str_equal(next_token->type, *MINUS) ||
-		str_equal(next_token->type, *TIMES) ||
-		str_equal(next_token->type, *DIVIDE) ||
-		str_equal(next_token->type, *MODULO)) {
+	if((next_token->type == PLUS) ||
+		(next_token->type == MINUS) ||
+		(next_token->type == MULTIPLY) ||
+		(next_token->type == DIVIDE) ||
+		(next_token->type == MODULO)) {
 
 		// We can pop the token in this case
 		LinkedList_pop(tokens);
 
 		// Return a non-ternary EPrime
-		return EPrime_init(
-			safe_strdup(next_token->type),
-			parse_expression(tokens));
+		return EPrime_init(next_token->type, parse_expression(tokens));
 	}
 
 	// Or if the next token is an boolean expression...
-	else if(str_equal(next_token->type, *EQUAL) ||
-		str_equal(next_token->type, *NEQUAL) ||
-		str_equal(next_token->type, *LESS) ||
-		str_equal(next_token->type, *GRTR) ||
-		str_equal(next_token->type, *LESSEQ) ||
-		str_equal(next_token->type, *GRTREQ)) {
+	else if((next_token->type == EQUAL) ||
+		(next_token->type == NOT_EQUAL) ||
+		(next_token->type == LESS_THAN) ||
+		(next_token->type == GREATER_THAN) ||
+		(next_token->type == LESS_OR_EQUAL) ||
+		(next_token->type == GREATER_OR_EQUAL)) {
 
 		// We can pop the token in this case
 		LinkedList_pop(tokens);
 
 		// Record the op type
-		char *op = safe_strdup(next_token->type);
+		token_type op = next_token->type;
 
 		// Parse the initial expression
 		Expression *expr = parse_expression(tokens);
@@ -275,7 +187,7 @@ EPrime *parse_e_prime(LinkedList *tokens) {
 		next_token = (Token *)LinkedList_get(tokens, 0);
 
 		// If it's a ternary...
-		if(str_equal(next_token->type, *QMARK)) {
+		if(next_token->type == QUESTION_MARK) {
 
 			// We can pop the token in this case
 			LinkedList_pop(tokens);
@@ -285,7 +197,7 @@ EPrime *parse_e_prime(LinkedList *tokens) {
 
 			// Grab the colon
 			next_token = (Token *)LinkedList_pop(tokens);
-			check_valid(COLON, COLON_SIZE, next_token->type);
+			check_valid_single(COLON, next_token->type);
 
 			// Grab false expression
 			Expression *false_expr = parse_expression(tokens);
@@ -323,8 +235,8 @@ Expression *parse_expression(LinkedList *tokens) {
 	Expression *left_part;
 
 	// Function call case: T_ID T_( T_ID T_, T_ID ...
-	if(str_equal(next_token->type, *ID) &&
-		str_equal(((Token *)LinkedList_get(tokens, 0))->type, *OPAREN)) {
+	if(next_token->type == IDENTIFIER &&
+		(((Token *)LinkedList_get(tokens, 0))->type == OPEN_PAREN)) {
 		
 		// Record the name of the function
 		char *fn_name = safe_strdup(next_token->info);
@@ -341,20 +253,21 @@ Expression *parse_expression(LinkedList *tokens) {
 
 		// Keep processing an arg, then a comma, until the close-bracket is
 		// reached. The args are added to the list, the commas are thrown away
-		while(!str_equal(next_token->type, *CPAREN)) {
+		while(!(next_token->type == CLOSE_PAREN)) {
 	
 			LinkedList_append(arguments, parse_expression(tokens));
 
 			// Peek at the next token - should be a ',' if there are more args,
 			// or a ')' if not
 			next_token = (Token *)LinkedList_get(tokens, 0);
-			check_valid(ARGDELIM, ARGDELIM_SIZE, next_token->type);
+			check_valid_multiple(ARGUMENT_DELIMIT, ARGUMENT_DELIMIT_SIZE,
+				next_token->type);
 
 			// If the next token is a ',', we can pop it, and look for the next
 			// argument. It it's a '(' we cannot pop it here - it must be done
 			// outside the loop in case no arguments are found at all and the
 			// loop is never entered
-			if(str_equal(next_token->type, *COMMA)) LinkedList_pop(tokens);
+			if(next_token->type == COMMA) LinkedList_pop(tokens);
 		}
 
 		// Clear the ')' from the token list
@@ -364,26 +277,27 @@ Expression *parse_expression(LinkedList *tokens) {
 	}
 
 	// Identifier case
-	else if(str_equal(next_token->type, *ID))
+	else if(next_token->type == IDENTIFIER) {
 		left_part = Identifier_init(safe_strdup(next_token->info));
+	}
 
 	// Integer literal case
-	else if(str_equal(next_token->type, *INT))
+	else if(next_token->type == LITERAL)
 		left_part = IntegerLiteral_init(
 			(int)strtol(next_token->info, (char **)NULL, 10));
 
 	// Brackets case
-	else if (str_equal(next_token->type, *OPAREN)) {
+	else if(next_token->type == OPEN_PAREN) {
 		left_part = parse_expression(tokens);
 
 		// Process the close-bracket
 		next_token = (Token *)LinkedList_pop(tokens);
-		check_valid(CPAREN, CPAREN_SIZE, next_token->type);
+		check_valid_single(CLOSE_PAREN, next_token->type);
 	}
 
 	else {
 		printf("Could not parse expression production, %s not expected\n",
-			next_token->type);
+			token_to_string[next_token->type]);
 		exit(EXIT_FAILURE);
 	}
 
@@ -399,43 +313,42 @@ Expression *parse_expression(LinkedList *tokens) {
 
 	// If parse_e_prime returned a non-ternary EPrime with an arithmetic
 	// operation, create an ArithmeticExpr and return it
-	else if((str_equal(e_prime->op, *PLUS) ||
-		str_equal(e_prime->op, *MINUS) ||
-		str_equal(e_prime->op, *TIMES) ||
-		str_equal(e_prime->op, *DIVIDE) ||
-		str_equal(e_prime->op, *MODULO)) &&
+	else if(((e_prime->op == PLUS) ||
+		(e_prime->op == MINUS) ||
+		(e_prime->op == MULTIPLY) ||
+		(e_prime->op == DIVIDE) ||
+		(e_prime->op == MODULO)) &&
 		!e_prime->is_ternary) {
-			result = ArithmeticExpr_init(left_part, e_prime->op, e_prime->expr);
-			free(e_prime);
-		}
+
+		result = ArithmeticExpr_init(left_part, e_prime->op, e_prime->expr);
+		free(e_prime);
+	}
 
 	// If parse_e_prime returned a ternary EPrime with an boolean operation,
 	// create an Ternary and return it
-	else if((str_equal(e_prime->op, *EQUAL) ||
-		str_equal(e_prime->op, *NEQUAL) ||
-		str_equal(e_prime->op, *LESS) ||
-		str_equal(e_prime->op, *GRTR) ||
-		str_equal(e_prime->op, *LESSEQ) ||
-		str_equal(e_prime->op, *GRTREQ)) &&
+	else if(((e_prime->op == EQUAL) ||
+		(e_prime->op == NOT_EQUAL) ||
+		(e_prime->op == LESS_THAN) ||
+		(e_prime->op == GREATER_THAN) ||
+		(e_prime->op == LESS_OR_EQUAL) ||
+		(e_prime->op == GREATER_OR_EQUAL)) &&
 		e_prime->is_ternary) {
+
 			result = Ternary_init(
-				BooleanExpr_init(
-					left_part,
-					e_prime->op,
-					e_prime->expr),
-				e_prime->true_expr,
-				e_prime->false_expr);
-				free(e_prime);
-			}
+				BooleanExpr_init(left_part, e_prime->op, e_prime->expr),
+				e_prime->true_expr, e_prime->false_expr);
+			free(e_prime);
+		}
 
 	// Else if parse_e_prime returned a non-ternary EPrime with an boolean
 	// operation, create a BooleanExpr and return it
-	else if(str_equal(e_prime->op, *EQUAL) ||
-		str_equal(e_prime->op, *NEQUAL) ||
-		str_equal(e_prime->op, *LESS) ||
-		str_equal(e_prime->op, *GRTR) ||
-		str_equal(e_prime->op, *LESSEQ) ||
-		str_equal(e_prime->op, *GRTREQ)) {
+	else if((e_prime->op == EQUAL) ||
+		(e_prime->op == NOT_EQUAL) ||
+		(e_prime->op == LESS_THAN) ||
+		(e_prime->op == GREATER_THAN) ||
+		(e_prime->op == LESS_OR_EQUAL) ||
+		(e_prime->op == GREATER_OR_EQUAL)) {
+
 			result = BooleanExpr_init(left_part, e_prime->op, e_prime->expr);
 			free(e_prime);
 		}
@@ -457,43 +370,38 @@ Statement *parse_statement(LinkedList *tokens) {
 	// Retrieve the next token, and check that it's valid, i.e. if it's in the
 	// list: ['print', 'for', 'return', 'if', 'while', 'ID']
 	Token *next_token = (Token *)LinkedList_pop(tokens);
-	check_valid(STMTSTART, STMTSTART_SIZE, next_token->type);
+	check_valid_multiple(STATEMENT_START, STATEMENT_START_SIZE,
+		next_token->type);
 
 	// If the token is a print, parse the corresponding expression and return it
 	// in a Print Statement object
-	if(str_equal(next_token->type, *PRINT)) {
+	if(next_token->type == PRINT) {
 	
 		// Grab the expression from the token list, create an Print Statement
 		// object with it
-		Statement *print_statement = Print_init(parse_expression(tokens));
-
-		// Return the generated Statement object
-		return print_statement;
+		return Print_init(parse_expression(tokens));
 	}
 
 	// A return token is handled the same way as a print token, except the
 	// object returned is a Return Statement object as opposed to a Print
-	else if(str_equal(next_token->type, *RETURN)) {
+	else if(next_token->type == RETURN) {
 
 		// Grab the expression from the token list, create an Return Statement
 		// object with it
-		Statement *return_statement =  Return_init(parse_expression(tokens));
-
-		// Return the generated Statement object
-		return return_statement;
+		return Return_init(parse_expression(tokens));
 	}
 
 	// An if-statement requires a boolean expression of the form 'E COMP E' to
 	// be parsed, followed by a statement block, which a call to 
 	// parse_statement_block() handles, after which an 'else' token should be
 	// parsed, and finally a futher statement block.
-	else if(str_equal(next_token->type, *IF)) {
+	else if(next_token->type == IF) {
 		
 		// Parse the BoolExpression, assert that it is a BoolExpression
 		Expression *bool_expr = parse_expression(tokens);
 		if(bool_expr->type != expr_BooleanExpr) {
 			printf("Parse error on if-statement: boolean expression expected, \
-				other expression type found\n");
+				arithmetic expression found\n");
 			exit(EXIT_FAILURE);
 		}
 
@@ -502,7 +410,7 @@ Statement *parse_statement(LinkedList *tokens) {
 
 		// Retrieve the next token, check it's an 'else'
 		next_token = (Token *)LinkedList_pop(tokens);
-		check_valid(ELSE, ELSE_SIZE, next_token->type);
+		check_valid_single(ELSE, next_token->type);
 
 		// Create a list for the else's statements
 		LinkedList *false_stmts = parse_statement_block(tokens);
@@ -513,7 +421,7 @@ Statement *parse_statement(LinkedList *tokens) {
 
 	// While loops are simpler than if-statements to parse: just a boolean and
 	// a single statement block to handle.
-	else if(str_equal(next_token->type, *WHILE)) {
+	else if(next_token->type == WHILE) {
 			
 		// Parse the BoolExpression, assert that it is a BoolExpression
 		Expression *bool_expr = parse_expression(tokens);
@@ -534,7 +442,7 @@ Statement *parse_statement(LinkedList *tokens) {
 	// For loops require parsing an assignment, a boolean expression, and a
 	// further assignment statement, separated by commas, and finally the
 	// statement block.
-	else if(str_equal(next_token->type, *FOR)) {
+	else if(next_token->type == FOR) {
 
 		// Parse the assignment statement of the for loop, checking that it is
 		// in fact an assignment (parse_statement can return other stuff)
@@ -547,7 +455,7 @@ Statement *parse_statement(LinkedList *tokens) {
 
 		// Pop the comma, making sure that it is a comma
 		next_token = (Token *)LinkedList_pop(tokens);
-		check_valid(COMMA, COMMA_SIZE, next_token->type);
+		check_valid_single(COMMA, next_token->type);
 
 		// Parse the BooleanExpr, assert that it is a BooleanExpr
 		Expression *bool_expr = parse_expression(tokens);
@@ -559,7 +467,7 @@ Statement *parse_statement(LinkedList *tokens) {
 
 		// Pop the second comma, making sure that it is a comma
 		next_token = (Token *)LinkedList_pop(tokens);
-		check_valid(COMMA, COMMA_SIZE, next_token->type);
+		check_valid_single(COMMA, next_token->type);
 
 		// Parse the 'incrementor' - an Assignment - from the token list
 		Statement *incrementor = parse_statement(tokens);
@@ -579,7 +487,7 @@ Statement *parse_statement(LinkedList *tokens) {
 
 	// If the token is an identifier, this indicates an assignment statement
 	// - something with a ++, --, +=, -=, or an explicit ID <- E.
-	else if(str_equal(next_token->type, *ID)) {
+	else if(next_token->type == IDENTIFIER) {
 	
 		// Record the name of the ID
 		char *assignee = safe_strdup(next_token->info);
@@ -590,42 +498,40 @@ Statement *parse_statement(LinkedList *tokens) {
 
 		// Switch on the assignment operator type so as to build the
 		// appropriate syntax tree
-		if(str_equal(next_token->type, *PLPL)) return // ++ operator
+		if(next_token->type == INCREMENT) return // ++ operator
 			Assignment_init(
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					safe_strdup(*PLUS),
+					PLUS,
 					IntegerLiteral_init(1)));
 
-		else if(str_equal(next_token->type, *MIMI)) return // -- operator
+		else if(next_token->type == DECREMENT) return // -- operator
 			Assignment_init(
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					safe_strdup(*MINUS),
+					MINUS,
 					IntegerLiteral_init(1)));
 
-		else if(str_equal(next_token->type, *PLEQ)) return // += operator
+		else if(next_token->type == INCREMENT_BY) return // += operator
 			Assignment_init(
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					safe_strdup(*PLUS),
+					PLUS,
 					parse_expression(tokens)));
 
-		else if(str_equal(next_token->type, *MIEQ)) return // -= operator
+		else if(next_token->type == DECREMENT_BY) return // -= operator
 			Assignment_init(
 				assignee,
 				ArithmeticExpr_init(
 					Identifier_init(assignee),
-					safe_strdup(*MINUS),
+					MINUS,
 					parse_expression(tokens)));
 
-		else if(str_equal(next_token->type, *ASSIGN)) return // <- operator
-			Assignment_init(
-				assignee,
-				parse_expression(tokens));
+		else if(next_token->type == ASSIGNMENT) return // <- operator
+			Assignment_init(assignee, parse_expression(tokens));
 
 		else {
 			printf("'++', '--', '+=', '-=' or '<-' operator expected after \
@@ -635,8 +541,8 @@ Statement *parse_statement(LinkedList *tokens) {
 	}
 
 	else {
-		printf("'ID', 'print', 'for', 'if', 'while' or 'return' token expected \
-			within statement block, none found\n");
+		printf("'IDENTIFIER', 'print', 'for', 'if', 'while' or 'return' token \
+			expected within statement block, none found\n");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -653,7 +559,7 @@ LinkedList *parse_statement_block(LinkedList *tokens) {
 
 	// Retrieve the opening curly-bracket
 	Token *next_token = (Token *)LinkedList_pop(tokens);
-	check_valid(OBRACE, OBRACE_SIZE, next_token->type);
+	check_valid_single(OPEN_BRACE, next_token->type);
 
 	// Peek at the next token - otherwise we will enter the loop on an empty
 	// statement block which will cause an exception
@@ -662,20 +568,20 @@ LinkedList *parse_statement_block(LinkedList *tokens) {
 	// Repeatedly parse statements until a '}' is seen (note that '}'s within
 	// the block that do not end this loop will be handled by a recursive call
 	// to parse_statement_block, and will not cause the iteration to end early)
-	while(!str_equal(next_token->type, *CBRACE)) {
+	while(!(next_token->type == CLOSE_BRACE)) {
 	
 		// See if we need to process a semicolon after the statement
 		bool expecting_semicolon =
-			str_equal(next_token->type, *PRINT) ||
-			str_equal(next_token->type, *RETURN) ||
-			str_equal(next_token->type, *ID);
+			next_token->type == PRINT ||
+			next_token->type == RETURN ||
+			next_token->type == IDENTIFIER;
 
 		LinkedList_append(statements, (void *)parse_statement(tokens));
 
 		// Parse the semicolon if necessary
 		if(expecting_semicolon) {
 			next_token = (Token *)LinkedList_pop(tokens);
-			check_valid(SEMICO, SEMICO_SIZE, next_token->type);
+			check_valid_single(SEMICOLON, next_token->type);
 		}
 
 		// Peek at the next token for purposes of loop-control
@@ -707,18 +613,18 @@ FNDecl *parse_function(LinkedList *tokens) {
 
 	// Retrieve the first token, check that it's an FN
 	Token *next_token = (Token *)LinkedList_pop(tokens);
-	check_valid(FN, FN_SIZE, next_token->type);
+	check_valid_single(FN, next_token->type);
 
 	// Retrieve the next token, check that it's an ID
 	next_token = (Token *)LinkedList_pop(tokens);
-	check_valid(ID, ID_SIZE, next_token->type);
+	check_valid_single(IDENTIFIER, next_token->type);
 
 	// We know it's an ID now, so store its name
 	char *function_name = safe_strdup(next_token->info);
 
 	// Retrieve the next token, check it's an open-bracket
 	next_token = (Token *)LinkedList_pop(tokens);
-	check_valid(OPAREN, OPAREN_SIZE, next_token->type);
+	check_valid_single(OPEN_PAREN, next_token->type);
 
 	// Create a list for the argument names to be stored in
 	LinkedList *arg_names = LinkedList_init();
@@ -728,14 +634,14 @@ FNDecl *parse_function(LinkedList *tokens) {
 
 	// Keep looking for argument names until we hit a ')' or an exit occurs due
 	// to a call to check_valid
-	while(!str_equal(next_token->type, *CPAREN)) {
+	while(!(next_token->type == CLOSE_PAREN)) {
 	
 		// The only valid tokens at this point are IDs and commas to delimit
 		// them
-		check_valid(ARGLIST, ARGLIST_SIZE, next_token->type);
+		check_valid_multiple(ARGLIST, ARGLIST_SIZE, next_token->type);
 
 		// Add the ID to the list of argument names
-		if(str_equal(next_token->type, *ID))
+		if(next_token->type == IDENTIFIER)
 			LinkedList_append(arg_names, safe_strdup(next_token->info));
 
 		// Retrieve the next token

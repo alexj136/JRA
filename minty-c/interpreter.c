@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include "minty_util.h"
+#include "token.h"
 #include "AST.h"
 #include "interpreter.h"
 
@@ -222,29 +223,29 @@ void Scope_free(Scope *scope) {
 int interpret_expression(Expression *expr, Scope *scope) {
 	switch(expr->type) {
 		case expr_BooleanExpr: {
-			int lhs = interpret_expression(expr->expr->blean->lhs);
-			int rhs = interpret_expression(expr->expr->blean->rhs);
+			int lhs = interpret_expression(expr->expr->blean->lhs, scope);
+			int rhs = interpret_expression(expr->expr->blean->rhs, scope);
 
-			if(str_equal("=", expr->expr->blean->op)) return lhs = rhs;
-			if(str_equal("!=", expr->expr->blean->op)) return lhs != rhs;
-			if(str_equal("<", expr->expr->blean->op)) return lhs < rhs;
-			if(str_equal(">", expr->expr->blean->op)) return lhs > rhs;
-			if(str_equal("<=", expr->expr->blean->op)) return lhs <= rhs;
-			if(str_equal(">=", expr->expr->blean->op)) return lhs >= rhs;
+			if(EQUAL == expr->expr->blean->op) return lhs = rhs;
+			if(NOT_EQUAL == expr->expr->blean->op) return lhs != rhs;
+			if(LESS_THAN == expr->expr->blean->op) return lhs < rhs;
+			if(GREATER_THAN == expr->expr->blean->op) return lhs > rhs;
+			if(LESS_OR_EQUAL == expr->expr->blean->op) return lhs <= rhs;
+			if(GREATER_OR_EQUAL == expr->expr->blean->op) return lhs >= rhs;
 			else {
 				printf("Invalid boolean operation\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 		case expr_ArithmeticExpr: {
-			int lhs = interpret_expression(expr->expr->arith->lhs);
-			int rhs = interpret_expression(expr->expr->arith->rhs);
+			int lhs = interpret_expression(expr->expr->arith->lhs, scope);
+			int rhs = interpret_expression(expr->expr->arith->rhs, scope);
 
-			if(str_equal("+", expr->expr->arith->op)) return lhs + rhs;
-			if(str_equal("-", expr->expr->arith->op)) return lhs - rhs;
-			if(str_equal("*", expr->expr->arith->op)) return lhs * rhs;
-			if(str_equal("/", expr->expr->arith->op)) return lhs / rhs;
-			if(str_equal("%", expr->expr->arith->op)) return lhs % rhs;
+			if(PLUS == expr->expr->arith->op) return lhs + rhs;
+			if(MINUS == expr->expr->arith->op) return lhs - rhs;
+			if(MULTIPLY == expr->expr->arith->op) return lhs * rhs;
+			if(DIVIDE == expr->expr->arith->op) return lhs / rhs;
+			if(MODULO == expr->expr->arith->op) return lhs % rhs;
 			else {
 				printf("Invalid arithmetic operation\n");
 				exit(EXIT_FAILURE);

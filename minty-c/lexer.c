@@ -8,60 +8,8 @@
 #include <string.h>
 #include <malloc.h>
 #include "minty_util.h"
+#include "token.h"
 #include "lexer.h"
-
-/*
- * 'Constructor' for Token structs. Tokens can indicate errors as well as valid
- * tokens. Errors simply have "ERROR" in their type field, whereas valid tokens
- * have token type names. Takes pointers to info & type strings, and uses them
- * to create heap-allocated copies. If they were not copies, the struct would
- * not be the only owner of the strings, which would potentially cause problems.
- */
-static Token *Token_init(token_type type, char *info) {
-	// Allocate heap space for this Token
-	Token *token = safe_alloc(sizeof(Token));
-
-	// Copy & allocate the type string
-	token->type = type;
-
-	// Copy and allocate the info string
-	token->info = safe_strdup(info);
-
-	// Return a pointer to this Token
-	return token;
-}
-
-/*
- * Setter for the token type field
- */
-static void Token_set_type(Token *token, token_type type) {
-	token->type = type;
-}
-
-/*
- * Setter for the token info field - frees the old value, allocates the new one
- */
-static void Token_set_info(Token *token, char *info) {
-	free(token->info);
-	token->info = safe_strdup(info);
-}
-
-/*
- * Deallocates a token object from the heap
- */
-void Token_free(Token *token) {
-	free(token->info);
-	free(token);
-}
-
-/*
- * Prints a token in the format 'T_type' or 'T_type_info'
- */
-void Token_print(Token *token) {
-	printf("T_%s", token_to_string[token->type]);
-	if(*(token->info) != '\0') printf("_%s\n", token->info);
-	else printf("\n");
-}
 
 /*
  * Struct that contains the information returned as a result of retrieving a

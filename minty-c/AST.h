@@ -7,66 +7,16 @@
 #include "minty_util.h"
 #endif // MINTY_UTIL
 
+#ifndef TOKEN
+#include "token.h"
+#endif // TOKEN
+
 #ifndef LEXER
 #include "lexer.h"
 #endif // LEXER
 
 #ifndef AST
 #define AST
-
-/*
- * The following enumerations are used by AST structures to represent operators
- * in expressions where multiple operator types are valid.
- */
-
-/*
- * op_arithmetic is used to denote + (addition), - (subtraction), *
- * (mulitplucation), / (integer division) and % (modulo/remainder after integer
- * division)
- */
-// typedef enum {
-// 	PLUS,
-// 	MINUS,
-// 	MULTIPLY,
-// 	DIVIDE,
-// 	MODULO
-// } op_arithmetic;
-
-/*
- * String representations of the arithmetic operations for printing to terminal
- */
-// char *op_arithmetic_str[] = {
-// 	"PLUS",
-// 	"MINUS",
-// 	"MULTIPLY",
-// 	"DIVIDE",
-// 	"MODULO"
-// };
-
-/*
- * op_boolean is used to denote = (equality), != (inequality), < (less-than),
- * > (greater-than), <= (less or equal) and >= (greater or equal)
- */
-// typedef enum {
-// 	EQUAL,
-// 	NOT_EQUAL,
-// 	LESS_THAN,
-// 	LESS_OR_EQUAL,
-// 	GREATER_THAN,
-// 	GREATER_OR_EQUAL
-// } op_boolean;
-
-/*
- * String representations of the boolean operations for printing to terminal
- */
-// char *op_boolean_str[] = {
-// 	"EQUAL",
-// 	"NOT_EQUAL",
-// 	"LESS_THAN",
-// 	"LESS_OR_EQUAL",
-// 	"GREATER_THAN",
-// 	"GREATER_OR_EQUAL"
-// };
 
 /*
  * The following data structures are used to represent expressions. Expression

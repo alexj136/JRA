@@ -2,6 +2,10 @@
 #include "minty_util.h"
 #endif // MINTY_UTIL
 
+#ifndef TOKEN
+#include "token.h"
+#endif // TOKEN
+
 #ifndef AST
 #include "AST.h"
 #endif // AST

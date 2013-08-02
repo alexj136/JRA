@@ -1,4 +1,4 @@
- /* file: minunit.h */
+/* file: minunit.h */
 #ifndef MINUNIT
 #define MINUNIT
 

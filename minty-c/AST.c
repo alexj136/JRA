@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include "minty_util.h"
+#include "token.h"
 #include "AST.h"
 
 /*

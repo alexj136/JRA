@@ -4,10 +4,10 @@ LINK = $(COMPILER) -Wall -g
 COMPILE = $(COMPILER) -Wall -g -c
 
 # File lists
-SOURCES = minty_util.c lexer.c AST.c parser.c interpreter.c minty.c
+SOURCES = minty_util.c token.c lexer.c AST.c parser.c interpreter.c minty.c
 TESTSRC = test/test_parser.c test/test_minty_util.c
 
-OBJECTS = minty_util.o lexer.o AST.o parser.o interpreter.o
+OBJECTS = minty_util.o token.o lexer.o AST.o parser.o interpreter.o
 TESTS = test/test_parser test/test_minty_util test/test_interpreter
 OUTPUTS = $(OBJECTS) $(TESTS) minty
 
@@ -33,6 +33,9 @@ minty: $(OBJECTS) minty.c
 minty_util.o: minty_util.c
 	$(COMPILE) minty_util.c -o minty_util.o
 
+token.o: token.c
+	$(COMPILE) token.c -o token.o
+
 lexer.o: lexer.c
 	$(COMPILE) lexer.c -o lexer.o
 
@@ -50,8 +53,8 @@ test/test_minty_util: test/test_minty_util.c
 	$(LINK) test/test_minty_util.c minty_util.o -o test/test_minty_util
 	test/test_minty_util
 
-test/test_parser: test/test_parser.c minty_util.o lexer.o AST.o parser.o
-	$(LINK) test/test_parser.c minty_util.o lexer.o AST.o parser.o \
+test/test_parser: test/test_parser.c minty_util.o token.o lexer.o AST.o parser.o
+	$(LINK) test/test_parser.c minty_util.o token.o lexer.o AST.o parser.o \
 		-o test/test_parser
 
 test/test_interpreter: test/test_interpreter.c minty_util.o AST.o interpreter.o
