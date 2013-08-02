@@ -498,11 +498,31 @@ int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
 	}
 }
 
+/*
+ * Interpret a program with the given arguments - control initiates at the main
+ * function. The result of main is returned.
+ */
 int interpret_program(Program *prog, LinkedList *args) {
 
-	int i;
-	for(i = 0; i < LinkedList_length(prog->function_list); i++) {
-
+	// Search for a function named 'main', storing it in a temporary variable
+	// when found
+	FNDecl *main_function = NULL;
+	int i = 0;
+	while(!main_function && i < LinkedList_length(prog->function_list)) {
+		if(str_equal(((FNDecl *)
+			LinkedList_get(prog->function_list, i))->name, "main")) {
+		
+			main_function = (FNDecl *)LinkedList_get(prog->function_list, i);
+		}
+		else i++;
 	}
-	return (int) NULL;
+
+	// If no main function was found, print an error message and exit
+	if(!main_function) {
+		printf("No main function found\n");
+		exit(EXIT_FAILURE);
+	}
+
+	// Otherwise, return the result of the main function
+	else return interpret_function(main_function, args, prog);
 }

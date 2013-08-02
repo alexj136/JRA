@@ -11,7 +11,7 @@ int tests_run = 0;
  */
 char *test_Scope() {
 
-	Scope *scope = Scope_init();
+	Scope *scope = Scope_init(LinkedList_init(), LinkedList_init());
 
 	// Add some variables
 	Scope_update(scope, safe_strdup("x"), 1);
