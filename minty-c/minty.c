@@ -8,7 +8,14 @@
 
 int main() {
 	
-	Program *prog  = parse_program(lex("fn main(){return 1 + 2;}"));
+	Program *prog  = parse_program(lex("\
+		fn main() {                     \
+			return hundred();           \
+		}                               \
+		fn hundred() {                  \
+			return 100;                 \
+		}"));
+
 	printf("%d\n", interpret_program(prog, LinkedList_init()));
 
 	return 0;

@@ -118,3 +118,13 @@ WEDNESDAY 31ST JULY
 - Wrote more unit tests
 - Made improvements to Makefile so that building and running tests is much
   easier
+
+THURSDAY 1ST AUGUST
+- Continued interpreter implementation
+
+FRIDAY 2ND AUGUST
+- Finished initial interpreter implementation
+- Began unit-testing interpreter
+
+MONDAY 5TH AUGUST
+- Continued unit-testing interpreter

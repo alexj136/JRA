@@ -60,8 +60,6 @@ char *test_LinkedList_remove() {
 }
 
 char *all_tests() {
-
-	mu_suite_start();
 	
 	mu_run_test(test_LinkedList_remove);
 

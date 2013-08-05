@@ -355,7 +355,7 @@ char *test_for_loop() {
 }
 
 /*
- * Tests that a program with a for-loop is parsed correctly
+ * Tests that a program with a while-loop is parsed correctly
  */
 char *test_while_loop() {
 
@@ -405,9 +405,62 @@ char *test_while_loop() {
 	return NULL;
 }
 
-char *all_tests() {
+/*
+ * Tests that a program with an if-statement is parsed correctly
+ */
+char *test_if_statement() {
 
-	mu_suite_start();
+	LinkedList *prog_tokens = lex("\
+		fn main(num) {             \
+			if(num < 10) {         \
+				return 1;          \
+			}                      \
+			else {                 \
+				return 0;          \
+			}                      \
+		}");
+
+	Program *parsed_prog = parse_program(prog_tokens);
+
+	Program *ast = Program_init(
+		LinkedList_init_with(
+			FNDecl_init(
+				safe_strdup("main"),
+				LinkedList_init_with(safe_strdup("num")),
+				LinkedList_init_with(
+					If_init(
+						BooleanExpr_init(
+							Identifier_init(
+								safe_strdup("num")
+							),
+							LESS_THAN,
+							IntegerLiteral_init(10)
+						),
+						LinkedList_init_with((void *)
+							Return_init(IntegerLiteral_init(1))),
+						LinkedList_init_with((void *)
+							Return_init(IntegerLiteral_init(0)))
+					)
+				)
+			)
+		)
+	);
+
+	// Make the assertion
+	mu_assert(Program_equals(parsed_prog, ast), "test_if_statement failed!");
+
+	// Free things
+	int i;
+	for(i = 0; i < LinkedList_length(prog_tokens); i++)
+		Token_free((Token *)LinkedList_get(prog_tokens, i));
+	LinkedList_free(prog_tokens);
+	Program_free(parsed_prog);
+	Program_free(ast);
+
+	return NULL;
+}
+
+char *all_tests() {
 	
 	mu_run_test(test_tiny_prog_same);
 	mu_run_test(test_tiny_prog_diff);
@@ -416,6 +469,7 @@ char *all_tests() {
 	mu_run_test(test_brackets);
 	mu_run_test(test_for_loop);
 	mu_run_test(test_while_loop);
+	mu_run_test(test_if_statement);
 
 	return NULL;
 }

@@ -58,8 +58,8 @@ test/test_parser: test/test_parser.c minty_util.o token.o lexer.o AST.o parser.o
 		-o test/test_parser
 	@test/test_parser
 
-test/test_interpreter: test/test_interpreter.c minty_util.o token.o AST.o \
-	interpreter.o
-	$(LINK) test/test_interpreter.c minty_util.o token.o AST.o interpreter.o \
-		-o test/test_interpreter
+test/test_interpreter: test/test_interpreter.c minty_util.o lexer.o token.o \
+	AST.o parser.o interpreter.o
+	$(LINK) test/test_interpreter.c minty_util.o lexer.o token.o AST.o \
+	parser.o interpreter.o -o test/test_interpreter
 	@test/test_interpreter

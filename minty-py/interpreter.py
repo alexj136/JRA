@@ -174,7 +174,7 @@ def interpret_statement(statement, scope):
 	case that the statement to be interpreted is a loop construct, this function
 	will recursively call itself for each statement within that loop construct.
 
-	iterpret_statement proceeds a 'return' statement has been evaluated. If a
+	iterpret_statement proceeds until a 'return' statement is evaluated. If a
 	return statement has been evaluated, either in the immediate given
 	statement, or in any statements that exists	within the statement, all loops
 	will break, without evaluating any further sub-statements. The reason for

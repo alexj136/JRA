@@ -68,9 +68,9 @@ Scope *Scope_init(LinkedList *arg_names, LinkedList *args_given) {
 	// Initialise the arguments to the function
 	int i;
 	for(i = 0; i < LinkedList_length(arg_names); i++) {
-		Scope_update(scope,
-			(char *)LinkedList_get(arg_names, i),
-			(int)LinkedList_get(args_given, i));
+		LinkedList_append(scope->variables, Variable_init(
+			safe_strdup((char *)LinkedList_get(arg_names, i)),
+			(int)LinkedList_get(args_given, i)));
 	}
 
 	return scope;
@@ -230,8 +230,31 @@ void Scope_free(Scope *scope) {
 }
 
 /*
- * Evaluates and returns the Expression expr in the context of the given scope
- * and functions available in the given program.
+ * interpret_expression evaluates and returns the Expression expr in the context
+ * of the given scope and functions available in the given program.
+ * 
+ * interpret_expression is an integer-typed function used to evaluate integer
+ * expressions. There are six kinds of expression:
+ * 
+ *     Boolean expressions - comparison operations such as greater than, less
+ *     than, equal, not equal etc.
+ *
+ *     Arithmetic expressions - basic operations on integers such as addition,
+ *     subtraction, multiplication, division and modulo.
+ *
+ *     Identifier - the use of a previously declared (and therefore stored)
+ *     integer variable
+ *
+ *     Integer literal - an definite, explicitly given integer
+ *
+ *     Function call - the call to a function which will return an integer
+ *     value
+ *
+ *     Ternary - evaluates to one of two possible expressions based on the
+ *     value of a boolean
+ * 
+ * The function determines the type of the integer expression, and handles it
+ * accordingly.
  */
 int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 
@@ -247,7 +270,7 @@ int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 			int rhs = interpret_expression(expr->expr->blean->rhs, scope, prog);
 
 			// Return the results with the appropriate operation applied
-			if(EQUAL == expr->expr->blean->op) return lhs = rhs;
+			if(EQUAL == expr->expr->blean->op) return lhs == rhs;
 			if(NOT_EQUAL == expr->expr->blean->op) return lhs != rhs;
 			if(LESS_THAN == expr->expr->blean->op) return lhs < rhs;
 			if(GREATER_THAN == expr->expr->blean->op) return lhs > rhs;
@@ -298,10 +321,16 @@ int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 						scope, prog));
 			}
 
-			// Return the result of interpreting the function with the given
+			// get the result of interpreting the function with the given
 			// arguments
-			return interpret_function(Program_get_FNDecl(prog,
+			int call_result = interpret_function(Program_get_FNDecl(prog,
 				expr->expr->fncall->name), evaluated_args, prog);
+
+			// Free the list of evaluated arguments
+			LinkedList_free(evaluated_args);
+
+			// Return the result of the function call
+			return call_result;
 		}
 		case expr_Ternary: {
 			// If the boolean expression evaluates to true...
@@ -327,8 +356,18 @@ int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 }
 
 /*
- * Evaluates the Statement stmt in the context of the given scope and functions
- * available in the given program.
+ * interpret_statement is a function that interprets a single statement. In the
+ * case that the statement to be interpreted is a loop construct, this function
+ * will recursively call itself for each statement within that loop construct.
+ * 
+ * iterpret_statement proceeds until a 'return' statement is evaluated. If a
+ * return statement has been evaluated, either in the immediate given
+ * statement, or in any statements that exists	within the statement, all loops
+ * will break, without evaluating any further sub-statements. The reason for
+ * this is given in the doc-string for interpret_function.
+ * 
+ * There are 6 kinds of statement: assignment, print, return, for, while and
+ * if. This function begins by checking which of those the given statement is.
  */
 void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 	
@@ -373,6 +412,7 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 				// increment the loop control variable for the next iteration
 				interpret_statement(stmt->stmt->_for->incrementor, scope, prog);
 			}
+			break;
 		}
 		case stmt_While: {
 			// Repeatedly execute each sub-statement, and do the specified
@@ -402,6 +442,7 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 
 				if(scope->has_return) break;
 			}
+			break;
 		}
 		case stmt_If: {
 			// Determine which statement list will be interpreted
@@ -426,17 +467,23 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 
 			// Recede the scope now that this loop iteration has finished
 			Scope_recede(scope);
+
+			break;
 		}
 		case stmt_Print: {
 			// Just print the given expression
 			printf("%d\n", interpret_expression(
 				stmt->stmt->_print->expr, scope, prog));
+
+			break;
 		}
 		case stmt_Assignment: {
 			// Update the scope with a value for the variable name
 			Scope_update(scope, stmt->stmt->_assignment->name, 
 				interpret_expression(
 					stmt->stmt->_assignment->expr, scope, prog));
+
+			break;
 		}
 		case stmt_Return: {
 			// Record the return value as the interpreted expression
@@ -445,13 +492,37 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 
 			// Mark the scope has having evaluated a return statement
 			scope->has_return = true;
+
+			break;
 		}
 	}
 }
 
 /*
- * Interpret and return the result of the given function with the given
- * arguments in the context of the given program
+ * interpret_function is responsible for the interpretation of the AST objects
+ * that correspond to functions. Since a function should have its own scope, a
+ * Scope object is created, which will allows access to any variable in the
+ * scope of this function. The initial values in a Scope object are the
+ * function's arguments.
+ * 
+ * Once the Scope has been created, all that remains is to	execute the
+ * statements that comprise the function.
+ * 
+ * An important issue when dealing with interpreted functions is handling
+ * return statements. In a compiled language, return statements have the
+ * ability to 'manage' their own execution - they are machine code statements
+ * that the CPU will execute. With an interpreted language, a return
+ * statement consists of a 'dummy object' with no ability to ensure that the
+ * operation it specifies is carried out. To deal with this issue, this
+ * implementation checks if a return operation has occurred after every
+ * statement. If a statement is not a return, no action need be taken,
+ * sequential execution of statements can continue. When a return statement is
+ * reached, this is recorded setting the Scope object's has_return field to
+ * true. This will cause all enclosing blocks of code to break, and indicate to
+ * the containing function that a return operation has occurred, meaning that
+ * there will be a stored return value in the Scope object. The function stops
+ * without any further statement interpretation and returns that value to the
+ * caller.
  */
 int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
 
@@ -497,10 +568,20 @@ int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
 		return return_value;
 	}
 }
-
 /*
- * Interpret a program with the given arguments - control initiates at the main
- * function. The result of main is returned.
+ * interpret_program is the 'highest-level' function used to interpret ASTs,
+ * intended for external calls.
+ * 
+ * A traditional compiler will compile and store generated code for every
+ * function that encounters. At runtime, functions that are called will have
+ * their target-language code executed. Since interpreters operate 'on the
+ * fly', there is no need to compile functions in advance. The AST nodes that
+ * correspond to functions are simply stored so that they can be interpreted
+ * when the function that they represent is called.
+ * 
+ * This function takes a list of functions (a program) as its argument. Its job
+ * is simply to store the functions in a dictionary so that they can be
+ * accessed by any caller. After this, the main function is executed.
  */
 int interpret_program(Program *prog, LinkedList *args) {
 

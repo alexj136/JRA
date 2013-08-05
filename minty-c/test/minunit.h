@@ -4,8 +4,6 @@
 
 #include <stdio.h>
 
-#define mu_suite_start() char *message = NULL
-
 #define mu_assert(test, message) \
 	if (!(test)) { \
 		return message; \
@@ -18,9 +16,9 @@
 		if (message) return message;\
 	} while (0)
 
-#define RUN_TESTS(name) \
+#define RUN_TESTS(tests) \
 int main() { \
-	char *result = all_tests(); \
+	char *result = tests(); \
 	if (result != NULL) { \
 		printf("%s\n", result); \
 	} \
