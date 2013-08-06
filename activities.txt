@@ -128,3 +128,7 @@ FRIDAY 2ND AUGUST
 
 MONDAY 5TH AUGUST
 - Continued unit-testing interpreter
+
+TUESDAY 6TH AUGUST
+- Researched x86/GAS assembler
+- Began code generator implementation
