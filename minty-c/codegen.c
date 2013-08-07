@@ -5,65 +5,73 @@
 #include "token.h"
 #include "AST.h"
 
-#define MUL_EBX_TO_EAX "???? %ebx, %eax\n"
-#define DIV_EBX_TO_EAX "???? %ebx, %eax\n"
-#define MOD_EBX_TO_EAX "???? %ebx, %eax\n"
+/*
+ * Macros for arithmetic operations
+ */
+#define ADD "addl %ebx, %eax\n"
+#define SUB "subl %ebx, %eax\n"
+#define MUL "imull %ebx\n"
+#define DIV "idivl %ebx\n"
+#define MOD "idivl %ebx\nmovl %edx, %eax"
 
 char *codegen_expression(Expression *expr) {
 
 	switch(expr->type) {
+
 		case expr_BooleanExpr: {
 
+			// Generate strings for the left & right hand sides
+			char *lhs = codegen_expression(expr->expr->blean->lhs);
+			char *rhs = codegen_expression(expr->expr->blean->rhs);
+
+			
 		}
 
 		case expr_ArithmeticExpr: {
 
+			// The general strategy for generating arithmetic expressions is to
+			// generate the right hand side, such that the rhs result is in the
+			// accumulator (%eax), push it onto the stack, the generate the left
+			// hand side, so the lhs is on the accumulator. Then we pop the rhs
+			// into a secondary register (%ebx) and do the operation, storing
+			// the result in the accumulator (%eax)
+
+			// Generate strings for the left & right hand sides
 			char *lhs = codegen_expression(expr->expr->arith->lhs);
 			char *rhs = codegen_expression(expr->expr->arith->rhs);
 
+			// opcode will store the operation specified by the AST
+			char *opcode;
+
+			// out is the return variable to point to out output string
 			char *out;
 
-			// The add operation being used has the form: addl %rg1, %rg2. addl
-			// refers to 'add long', i.e. 32 bit operands. %rg1 is the source
-			// register, %r2 is the destination. the result is %r1 + %r2 and the
-			// result is left in %r2.
-			if(expr->expr->arith->op == PLUS) {
-				out = str_concat_five(
-				lhs,
-				"push %eax\n",
-				rhs,
-				"pop %ebx\n",
-				"addl %ebx, %eax\n");
-			}
-
-			// Subtraction works in almost exactly the same way: the result is
-			// %r2 - %r1, stored in %r2.
-			else if(expr->expr->arith->op == MINUS) {
-				out = str_concat_five(
-				lhs,
-				"push %eax\n",
-				rhs,
-				"pop %ebx\n",
-				"subl %ebx, %eax\n");
-			}
-			else if(expr->expr->arith->op == MULTIPLY) {
-				out = str_concat_five(
-				rhs,
-				"push %eax\n",
-				lhs,
-				"pop %ebx\n",
-				"imul %ebx\n");
-			}
-			// else if(expr->expr->arith->op == DIVIDE) op = DIV_EBX_TO_EAX;
-			// else if(expr->expr->arith->op == MODULO) op = MOD_EBX_TO_EAX;
+			// Store the appropriate opcode - see the #defined macros for each
+			// at the top of this file
+			if(expr->expr->arith->op == PLUS) opcode = ADD;
+			else if(expr->expr->arith->op == MINUS) opcode = SUB;
+			else if(expr->expr->arith->op == MULTIPLY) opcode = MUL;
+			else if(expr->expr->arith->op == DIVIDE) opcode = DIV;
+			else if(expr->expr->arith->op == MODULO) opcode = MOD;
 			else {
 				printf("Invalid operation type in AST\n");
 				exit(EXIT_FAILURE);
 			}
 
+			// Concatenate everything together to get the compiled AST
+			out = str_concat_five(
+				rhs,
+				"push %eax\n",
+				lhs,
+				"pop %ebx\n",
+				opcode);
+
+			// We can free lhs and rhs as their contents are copied into out by
+			// str_concat_five
 			free(lhs);
 			free(rhs);
 
+			// Return the generated string
 			return out;
 		}
 
@@ -71,7 +79,7 @@ char *codegen_expression(Expression *expr) {
 
 		}
 		case expr_IntegerLiteral: {
-			// Allcoate a new character buffer on the heap
+			// Allocate a new character buffer on the heap
 			char *buffer = safe_alloc(sizeof(char) * 30);
 
 			// Generate the correct string in the buffer
@@ -99,11 +107,11 @@ int main() {
 					IntegerLiteral_init(4),
 					MULTIPLY,
 					IntegerLiteral_init(5)),
-				MINUS,
+				MODULO,
 				ArithmeticExpr_init(
-					IntegerLiteral_init(6),
+					IntegerLiteral_init(4),
 					PLUS,
-					IntegerLiteral_init(7)
+					IntegerLiteral_init(3)
 				)
 			)
 		)

@@ -132,3 +132,7 @@ MONDAY 5TH AUGUST
 TUESDAY 6TH AUGUST
 - Researched x86/GAS assembler
 - Began code generator implementation
+
+WEDNESDAY 7TH AUGUST
+- More assembly research
+- Continued code generator implementation
