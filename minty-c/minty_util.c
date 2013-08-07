@@ -38,7 +38,8 @@ bool str_equal(char *str1, char *str2) {
 
 /*
  * Creates a string which is the concatenation of the two input strings, and
- * returns a pointer to the concatenated string
+ * returns a pointer to the concatenated string. Works on arbitrarily long
+ * strings and the buffer produced has no wasted space.
  */
 char *str_concat(char *str1, char *str2) {
 	// Record the lengths of the two strings
