@@ -97,6 +97,32 @@ char *str_concat_five(char *str1, char *str2,
 }
 
 /*
+ * Does the same thing as str_concat, but with six arguments rather than two,
+ * using str_concat and str_concat_five.
+ */
+char *str_concat_six(char *str1, char *str2, char *str3
+	char *str4, char *str5, char *str6) {
+	
+	char *str_tmp = str_concat_five(str1, str2, str3, str4, str5);
+	char *str_tmp2 = str_concat(str_tmp, str6);
+	free(str_tmp);
+	return str_tmp2;
+}
+
+/*
+ * Does the same thing as str_concat, but with seven arguments rather than two,
+ * using str_concat and str_concat_six.
+ */
+char *str_concat_seven(char *str1, char *str2, char *str3
+	char *str4, char *str5, char *str6, char *str7) {
+	
+	char *str_tmp = str_concat_five(str1, str2, str3, str4, str5, str6);
+	char *str_tmp2 = str_concat(str_tmp, str7);
+	free(str_tmp);
+	return str_tmp2;
+}
+
+/*
  * Takes a pointer to a char array and returns a pointer to a value-equal
  * string (but for the appended character) on the heap. Will cause a memory leak
  * if the string at the returned pointer is not freed when appropriate.
