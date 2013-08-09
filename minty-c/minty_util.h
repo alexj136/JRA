@@ -18,20 +18,9 @@ char *safe_strdup(char *str);
 
 bool str_equal(char *str1, char *str2);
 
-char *str_concat(char *str1, char *str2);
+char *str_concat(int count, ...);
 
-char *str_concat_three(char *str1, char *str2, char *str3);
-
-char *str_concat_four(char *str1, char *str2, char *str3, char *str4);
-
-char *str_concat_five(char *str1, char *str2,
-	char *str3, char *str4, char *str5);
-
-char *str_concat_six(char *str1, char *str2, char *str3
-	char *str4, char *str5, char *str6);
-
-char *str_concat_seven(char *str1, char *str2, char *str3
-	char *str4, char *str5, char *str6, char *str7);
+char *str_concat_2(char *str1, char *str2);
 
 char *str_append(char *str, char c);
 

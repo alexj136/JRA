@@ -1,8 +1,49 @@
 #include <stdio.h>
+#include <malloc.h>
 #include "minunit.h"
 #include "../minty_util.h"
 
 int tests_run = 0;
+
+char *test_str_concat() {
+
+	// Try some example concatenations and assert that they produce the correct
+	// string as output
+
+	char *str = str_concat(0, "Tee Hee");
+	mu_assert(str == NULL, "str_concat returned incorrect string");
+
+	str = str_concat(1, "Hello!");
+	mu_assert(str_equal(str, "Hello!"), "str_concat returned incorrect string");
+	free(str);
+
+	str = str_concat(2, "Hello!", " How are you?");
+	mu_assert(str_equal(str, "Hello! How are you?"),
+		"str_concat returned incorrect string");
+	free(str);
+
+	str = str_concat(3, "Hello!", " How are you?", " You look well!");
+	mu_assert(str_equal(str, "Hello! How are you? You look well!"),
+		"str_concat returned incorrect string");
+	free(str);
+
+	str = str_concat(4, "YOU", "JUST", "WATCH", "YOURSELF");
+	mu_assert(str_equal(str, "YOUJUSTWATCHYOURSELF"),
+		"str_concat returned incorrect string");
+	free(str);
+
+	str = str_concat(5, "YOU ", "JUST ", "WATCH ", "YOURSELF ", "OKAY");
+	mu_assert(str_equal(str, "YOU JUST WATCH YOURSELF OKAY"),
+		"str_concat returned incorrect string");
+	free(str);
+
+	str = str_concat(6, "YOU ", "JUST ", "WATCH ", "YOUR ", "BACK ", "OKAY");
+	mu_assert(str_equal(str, "YOU JUST WATCH YOUR BACK OKAY"),
+		"str_concat returned incorrect string");
+	free(str);
+
+	return NULL;
+}
 
 char *test_LinkedList_remove() {
 
@@ -61,6 +102,7 @@ char *test_LinkedList_remove() {
 
 char *all_tests() {
 	
+	mu_run_test(test_str_concat);
 	mu_run_test(test_LinkedList_remove);
 
 	return NULL;

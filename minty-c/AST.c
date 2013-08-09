@@ -171,17 +171,15 @@ char *Expression_str(Expression *expr) {
 			char *str_lhs = Expression_str(expr->expr->blean->lhs);
 			char *str_rhs = Expression_str(expr->expr->blean->rhs);
 
-			// Concat an open bracket, lhs, a space and op
-			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", Token_str(expr->expr->blean->op));
-
-			// Concat a space and rhs, with the close bracket
-			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
+			// Concat everything together
+			expr_str = str_concat(7,
+				"(", str_lhs, " ",
+				Token_str(expr->expr->blean->op),
+				" ", str_rhs, ")");
 
 			// Free the intermediates
 			free(str_lhs);
 			free(str_rhs);
-			free(str_lhs_op);
 
 			break;
 		}
@@ -191,17 +189,15 @@ char *Expression_str(Expression *expr) {
 			char *str_lhs = Expression_str(expr->expr->arith->lhs);
 			char *str_rhs = Expression_str(expr->expr->arith->rhs);
 
-			// Concat an open bracket, lhs, a space and op
-			char *str_lhs_op = str_concat_four(
-				"(", str_lhs, " ", Token_str(expr->expr->arith->op));
-
-			// Concat a space and rhs, with the close bracket
-			expr_str = str_concat_four(str_lhs_op, " ", str_rhs, ")");
+			// Concat everything together
+			expr_str = str_concat(7,
+				"(", str_lhs, " ",
+				Token_str(expr->expr->arith->op),
+				" ", str_rhs, ")");
 
 			// Free the intermediates
 			free(str_lhs);
 			free(str_rhs);
-			free(str_lhs_op);
 
 			break;
 		}
@@ -237,20 +233,20 @@ char *Expression_str(Expression *expr) {
 			int num_args = LinkedList_length(expr->expr->fncall->args);
 
 			// Concatenate the name and the '('
-			char *str_builder = str_concat(expr->expr->fncall->name, "(");
+			char *str_builder = str_concat_2(expr->expr->fncall->name, "(");
 
 			// If there are no arguments, just add the ')'
-			if(num_args < 1) expr_str = str_concat(str_builder, ")");
+			if(num_args < 1) expr_str = str_concat_2(str_builder, ")");
 
 			// If there are arguments...
 			else {
 				// Add the first argument
 				char *first_arg = Expression_str((Expression *)
 					LinkedList_get(expr->expr->fncall->args, 0));
-				char *temp = str_concat(str_builder, first_arg);
+				char *temp = str_concat_2(str_builder, first_arg);
 				free(str_builder);
 				free(first_arg);
-				str_builder = str_concat(temp, first_arg);
+				str_builder = str_concat_2(temp, first_arg);
 				free(temp);
 
 				// Then repeatedly add the ', ' and the next arg name, if any
@@ -258,7 +254,7 @@ char *Expression_str(Expression *expr) {
 				for(i = 1; i < num_args; i++) {
 					char *next_arg = Expression_str((Expression *)
 						LinkedList_get(expr->expr->fncall->args, i));
-					char *temp = str_concat_three(str_builder, ", ", next_arg);
+					char *temp = str_concat(3, str_builder, ", ", next_arg);
 					free(str_builder);
 					free(next_arg);
 					str_builder = temp;
@@ -266,7 +262,7 @@ char *Expression_str(Expression *expr) {
 				}
 
 				// Then add the ')'
-				expr_str = str_concat(str_builder, ")");
+				expr_str = str_concat_2(str_builder, ")");
 			}
 			
 			free(str_builder);
@@ -282,14 +278,13 @@ char *Expression_str(Expression *expr) {
 
 			// Concatenate all the sub expressions together with the '?' and ':'
 			// characters, bracketed
-			char *temp_str = str_concat_four("(", b_expr, " ? ", t_expr);
-			expr_str = str_concat_four(temp_str, " : ", f_expr, ")");
+			expr_str = str_concat(7,
+				"(", b_expr, " ? ", t_expr, " : ", f_expr, ")");
 
 			// Free the intermediate strings
 			free(b_expr);
 			free(t_expr);
 			free(f_expr);
-			free(temp_str);
 
 			break;
 		}

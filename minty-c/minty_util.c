@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
@@ -37,11 +38,55 @@ bool str_equal(char *str1, char *str2) {
 }
 
 /*
+ * Varargs function used to concatenate any number of strings - a new string is
+ * allocated and a pointer to it is returned. Works on arbitrarily long strings
+ * and the buffer produced has no wasted space. The 'count' parameter is the
+ * number of strings being passed. If count is 0, a NULL pointer is returned. If
+ * count is greater than the number of given arguments, this function's
+ * behaviour is undefined.
+ */
+char *str_concat(int count, ...) {
+
+	// If count is zero, there is nothing to do, return NULL as specified.
+	if(count == 0) return NULL;
+
+	// Prepare varargs for usage
+	va_list args;
+	va_start(args, count);
+
+	// Copy the first argument into str. If we don't use a copy, the for loop
+	// would free the passed string, which would be very, very bad.
+	char *str = safe_strdup(va_arg(args, char *));
+
+	// If count is one, copy the string using safe_strdup and return a pointer
+	// to it (we must also call va_end to clean up the varargs)
+	if(count == 1) {
+		va_end(args);
+		return str;
+	}
+
+	// Repeatedly get the next string, concatenate it to the previous one, and
+	// free the previous one.
+	int i;
+	for(i = 1; i < count; i++) {
+		char *str_temp = va_arg(args, char *);
+		char *str_temp_2 = str_concat_2(str, str_temp);
+
+		free(str);
+		str = str_temp_2;
+	}
+
+	// Clean up varargs and use 
+	va_end(args);
+	return str;
+}
+
+/*
  * Creates a string which is the concatenation of the two input strings, and
  * returns a pointer to the concatenated string. Works on arbitrarily long
  * strings and the buffer produced has no wasted space.
  */
-char *str_concat(char *str1, char *str2) {
+char *str_concat_2(char *str1, char *str2) {
 	// Record the lengths of the two strings
 	int str1_len = strlen(str1);
 	int str2_len = strlen(str2);
@@ -59,67 +104,6 @@ char *str_concat(char *str1, char *str2) {
 
 	// Return the new string
 	return new_str;
-}
-
-/*
- * Does the same thing as str_concat, but with three arguments rather than two,
- * using str_concat.
- */
-char *str_concat_three(char *str1, char *str2, char *str3) {
-	char *str_tmp = str_concat(str1, str2);
-	char *str_tmp2 = str_concat(str_tmp, str3);
-	free(str_tmp);
-	return str_tmp2;
-}
-
-/*
- * Does the same thing as str_concat, but with four arguments rather than two,
- * using str_concat and str_concat_three.
- */
-char *str_concat_four(char *str1, char *str2, char *str3, char *str4) {
-	char *str_tmp = str_concat_three(str1, str2, str3);
-	char *str_tmp2 = str_concat(str_tmp, str4);
-	free(str_tmp);
-	return str_tmp2;
-}
-
-/*
- * Does the same thing as str_concat, but with five arguments rather than two,
- * using str_concat and str_concat_four.
- */
-char *str_concat_five(char *str1, char *str2,
-	char *str3, char *str4, char *str5) {
-	
-	char *str_tmp = str_concat_four(str1, str2, str3, str4);
-	char *str_tmp2 = str_concat(str_tmp, str5);
-	free(str_tmp);
-	return str_tmp2;
-}
-
-/*
- * Does the same thing as str_concat, but with six arguments rather than two,
- * using str_concat and str_concat_five.
- */
-char *str_concat_six(char *str1, char *str2, char *str3
-	char *str4, char *str5, char *str6) {
-	
-	char *str_tmp = str_concat_five(str1, str2, str3, str4, str5);
-	char *str_tmp2 = str_concat(str_tmp, str6);
-	free(str_tmp);
-	return str_tmp2;
-}
-
-/*
- * Does the same thing as str_concat, but with seven arguments rather than two,
- * using str_concat and str_concat_six.
- */
-char *str_concat_seven(char *str1, char *str2, char *str3
-	char *str4, char *str5, char *str6, char *str7) {
-	
-	char *str_tmp = str_concat_five(str1, str2, str3, str4, str5, str6);
-	char *str_tmp2 = str_concat(str_tmp, str7);
-	free(str_tmp);
-	return str_tmp2;
 }
 
 /*

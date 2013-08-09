@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <malloc.h>
 #include "minunit.h"
 #include "../minty_util.h"
 #include "../lexer.h"
