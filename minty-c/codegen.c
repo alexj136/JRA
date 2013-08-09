@@ -80,6 +80,7 @@ static char *label_number(int *label) {
 static int label_ternary    = 0;
 static int label_arithmetic = 0;
 static int label_boolean    = 0;
+static int label_print      = 0;
 static int label_if         = 0;
 static int label_else       = 0;
 static int label_while      = 0;
@@ -276,7 +277,36 @@ char *codegen_statement(Statement *stmt) {
 		}
 		
 		case stmt_Print: {
+			
+			// Get the label number for this boolean expression (only used in
+			// generated comments, there are no jumps in boolean expressions)
+			char *label_no = label_number(&label_print);
 
+			// Generate the code for the expression being printed
+			char *expr = codegen_expression(stmt->stmt->_print->expr);
+
+			// codegen_program() declares printf_str as "%d\n", which can be
+			// used to print any integer in the manner below
+			char *out = str_concat(10,
+				"# BEGIN PRINT STATEMENT ", label_no, "\n",
+				
+				// Evaluate the expression and put is value in %eax
+				expr,
+
+				// Push %eax on the stack (second argument to printf())
+				"pushl %eax\n",
+
+				// Push the address of the format string on the stack(first
+				// argument to printf())
+				"pushl $printf_str\n",
+
+				// And call printf
+				"call printf\n",
+				"# END PRINT STATEMENT ", label_no, "\n");
+
+			free(expr);
+
+			return out;
 		}
 		
 		case stmt_Assignment: {
@@ -294,37 +324,36 @@ char *codegen_statement(Statement *stmt) {
 
 int main() {
 	// (4 * 5) % (4 + (4 < 5 ? (10 != 9 ? 3 : 123) : 500)) should equal 6
-	printf("%s\n",
-		codegen_expression(
+	Statement *stmt = Print_init(
+		ArithmeticExpr_init(
 			ArithmeticExpr_init(
-				ArithmeticExpr_init(
-					IntegerLiteral_init(4),
-					MULTIPLY,
-					IntegerLiteral_init(5)),
-				MODULO,
-				ArithmeticExpr_init(
-					IntegerLiteral_init(4),
-					PLUS,
+				IntegerLiteral_init(4),
+				MULTIPLY,
+				IntegerLiteral_init(5)),
+			MODULO,
+			ArithmeticExpr_init(
+				IntegerLiteral_init(4),
+				PLUS,
+				Ternary_init(
+					BooleanExpr_init(
+						IntegerLiteral_init(4),
+						LESS_THAN,
+						IntegerLiteral_init(5)
+					),
 					Ternary_init(
 						BooleanExpr_init(
-							IntegerLiteral_init(4),
-							LESS_THAN,
-							IntegerLiteral_init(5)
+							IntegerLiteral_init(10),
+							NOT_EQUAL,
+							IntegerLiteral_init(9)
 						),
-						Ternary_init(
-							BooleanExpr_init(
-								IntegerLiteral_init(10),
-								NOT_EQUAL,
-								IntegerLiteral_init(9)
-							),
-							IntegerLiteral_init(3),
-							IntegerLiteral_init(123)
-						),
-						IntegerLiteral_init(500)
-					)
+						IntegerLiteral_init(3),
+						IntegerLiteral_init(123)
+					),
+					IntegerLiteral_init(500)
 				)
 			)
 		)
 	);
+	printf("%s\n", codegen_statement(stmt));
 	return 0;
 }
