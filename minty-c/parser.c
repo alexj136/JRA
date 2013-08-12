@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "minty_util.h"
 #include "token.h"
-#include "lexer.h"
 #include "AST.h"
 #include "parser.h"
 

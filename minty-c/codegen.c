@@ -81,10 +81,9 @@ static int label_ternary    = 0;
 static int label_arithmetic = 0;
 static int label_boolean    = 0;
 static int label_print      = 0;
-static int label_if         = 0;
-static int label_else       = 0;
-static int label_while      = 0;
 static int label_for        = 0;
+static int label_while      = 0;
+static int label_if         = 0;
 static int label_etcetera   = 0;
 
 /*
@@ -138,7 +137,7 @@ char *codegen_expression(Expression *expr) {
 				"# END BOOLEAN EXPRESSION ", label_no, "\n");
 
 			// We can free lhs and rhs as their contents are copied into out by
-			// str_concat_five
+			// str_concat
 			free(lhs);
 			free(rhs);
 			free(label_no);
@@ -193,7 +192,7 @@ char *codegen_expression(Expression *expr) {
 				"# END ARITHMETIC EXPRESSION ", label_no, "\n");
 
 			// We can free lhs and rhs as their contents are copied into the out
-			// string by str_concat_five
+			// string by str_concat
 			free(lhs);
 			free(rhs);
 			free(label_no);
@@ -220,6 +219,34 @@ char *codegen_expression(Expression *expr) {
 
 		case expr_FNCall: {
 
+			// Obtain a string that represents an integer which is the amount of
+			// space which the arguments being passed to the function will
+			// occupy on the stack
+			char *stack_space = malloc(sizeof(char) * 12);
+			sprintf(stack_space, "%d",
+				4 * LinkedList_length(expr->expr->fncall->args));
+
+			char *push_args = "";
+
+			for(i = 0; i < LinkedList_length(expr->expr->fncall->args); i++) {
+				char *arg = codegen_expression(
+					(Expression *)LinkedList_get(expr->expr->fncall->args, i));
+			}
+
+			char *out = str_concat(20
+				"subl $", stack_space, ", %esp\n",
+
+
+				"pushl %ebp\n",
+				"movl %esp, %ebp\n",
+				push_args,
+				"call ", expr->expr->fncall->name, "\n",
+				"movl %ebp, %esp\n"
+				"popl %ebp\n");
+
+			free(push_args);
+
+			return out;
 		}
 
 		case expr_Ternary: {
@@ -258,6 +285,35 @@ char *codegen_expression(Expression *expr) {
 }
 
 /*
+ * Generate code for a given list of statements
+ */
+char *codegen_statement_list(LinkedList *stmts) {
+
+	// If the list is empty, this is valid, but produces no output, so return
+	// the empty string, rather than null
+	if(LinkedList_length(stmts) == 0) {
+		return "";
+	}
+
+	// Generate the code for the first expression
+	char *out = codegen_statement((Statement *)LinkedList_get(stmts, 0));
+
+	// Append the code for any subsequent expressions
+	int i;
+	for(i = 1; i < LinkedList_length(stmts); i++) {
+		char *temp = codegen_statement((Statement *)LinkedList_get(stmts, i));
+		char *temp2 = str_concat_2(out, temp);
+
+		free(out);
+		free(temp);
+
+		out = temp2;
+	}
+
+	return out;
+}
+
+/*
  * Generate code for a given statement
  */
 char *codegen_statement(Statement *stmt) {
@@ -270,16 +326,107 @@ char *codegen_statement(Statement *stmt) {
 		
 		case stmt_While: {
 
+			// Get the label number for this if-statement
+			char *label_no = label_number(&label_while);
+
+			// Genrate code for the boolean expression, and the true & false
+			// statement lists
+			char *b_exp = codegen_expression(stmt->stmt->_while->bool_expr);
+			char *stmts = codegen_statement_list(stmt->stmt->_while->stmts);
+
+			char *out = str_concat(21,
+				"# BEGIN WHILE STATEMENT ", label_no, "\n",
+
+				"while_begin_", label_no, ":\n",
+
+				// Evaluate the boolean expression and put the result in %eax
+				b_exp,
+
+				// Compare the boolean expression with 0
+				"cmpl $0, %eax\n",
+
+				// If the boolean is 0, i.e. if the statement is false, jump out
+				// of the loop
+				"je while_end_", label_no, "\n",
+
+				// If the jump to the end of the loop was not taken, the boolean
+				// expression was true, so execute the statement block
+				t_stmts,
+
+				// Then jump unconditionally back to the comparison
+				"jmp while_begin", label_no, "\n",
+
+				// Jump here after when the boolean evaluates to true, exiting
+				// the loop
+				"while_end_", label_no, ":\n",
+
+				"# END WHILE STATEMENT ", label_no, "\n");
+
+			free(b_exp);
+			free(stmts);
+			free(label_no);
+
+			return out;
 		}
 		
 		case stmt_If: {
 
+			// Get the label number for this if-statement
+			char *label_no = label_number(&label_if);
+
+			// Genrate code for the boolean expression, and the true & false
+			// statement lists
+			char *b_exp = codegen_expression(stmt->stmt->_if->bool_expr);
+			char *t_stmts = codegen_statement_list(
+				stmt->stmt->_if->true_stmts);
+			char *f_stmts = codegen_statement_list(
+				stmt->stmt->_if->false_stmts);
+
+			char *out = str_concat(22,
+				"# BEGIN IF STATEMENT ", label_no, "\n",
+
+				// Evaluate the boolean expression and put the result in %eax
+				b_exp,
+
+				// Compare the boolean expression with 0
+				"cmpl $0, %eax\n",
+
+				// If the boolean is 0, i.e. if the expression is false, jump to
+				// the else statement label
+				"je else_branch_", label_no, "\n",
+
+				// If the jump to the else label was not taken, the expression
+				// was true, so execute the true statement block
+				t_stmts,
+
+				// Then jump unconditionally over the else statements to the end
+				// of the else statements
+				"jmp if_end_", label_no, "\n",
+
+				// Jump here when the statement is false
+				"else_branch_", label_no, ":\n",
+
+				// Evaluate the false statement list
+				f_stmts,
+
+				// Jump here after executing the true statements list, skipping
+				// the false statement list
+				"if_end_", label_no, ":\n",
+
+				"# END IF STATEMENT ", label_no, "\n");
+
+			free(b_exp);
+			free(t_stmts);
+			free(f_stmts);
+			free(label_no);
+
+			return out;
 		}
 		
 		case stmt_Print: {
 			
-			// Get the label number for this boolean expression (only used in
-			// generated comments, there are no jumps in boolean expressions)
+			// Get the label number for this print statement (only used in
+			// generated comments, there are no jumps in print statements)
 			char *label_no = label_number(&label_print);
 
 			// Generate the code for the expression being printed
@@ -302,6 +449,7 @@ char *codegen_statement(Statement *stmt) {
 
 				// And call printf
 				"call printf\n",
+
 				"# END PRINT STATEMENT ", label_no, "\n");
 
 			free(expr);
