@@ -77,9 +77,18 @@ Expression *ArithmeticExpr_init(
  * Constructor for Identifier Expressions
  */
 Expression *Identifier_init(char *ident) {
+
+	// First create the underlying Identifier struct
+	Identifier *identifier_expr = safe_alloc(sizeof(Identifier));
+	identifier_expr->name = ident;
+
+	// -1 is used as the 'null' value for stack_offset. If the stack offset is
+	// -1, it is assumed as not having been set.
+	identifier_expr->stack_offset = -1;
+
 	// Create a union object to point at the Identifier name string
 	u_expr *u_identifier = safe_alloc(sizeof(u_expr));
-	u_identifier->ident = ident;
+	u_identifier->ident = identifier_expr;
 
 	// Then create the Expression struct wrapper
 	Expression *the_exp = safe_alloc(sizeof(Expression));
@@ -87,6 +96,20 @@ Expression *Identifier_init(char *ident) {
 	the_exp->expr = u_identifier;
 	the_exp->exec_count = 0;
 	return the_exp;
+}
+
+/*
+ * Setter for the stack offset field in Identifier structs
+ */
+void Identifier_set_stack_offset(Identifier *ident, int stack_offset) {
+	ident->stack_offset = stack_offset;
+}
+
+/*
+ * Check if the stack offset for this identifier has been set yet
+ */
+bool Identifier_stack_offset_is_set(Identifier *ident) {
+	return ident->stack_offset == -1;
 }
 
 /*
@@ -204,7 +227,7 @@ char *Expression_str(Expression *expr) {
 
 		case expr_Identifier: {
 			// Copy the identifier name
-			expr_str = safe_strdup(expr->expr->ident);
+			expr_str = safe_strdup(expr->expr->ident->name);
 			break;
 		}
 
@@ -333,9 +356,16 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 					expr2->expr->arith->rhs));
 			break;
 
-		// With an identifier, we check if the ID names are the same
+		// With an identifier, we check if the ID names are the same. We do not
+		// check if the stack offsets are the same, because they may not have
+		// been assigned. Even if they have, it is still pointless to do so,
+		// because if they are assigned correctly, they will have the same
+		// offset for the same name and different offsets if they have a
+		// different name.
 		case expr_Identifier:
-			same = str_equal(expr1->expr->ident, expr2->expr->ident);
+			same = str_equal(
+				expr1->expr->ident->name,
+				expr2->expr->ident->name);
 			break;
 
 		// With an integer literal, check that the literal values are the same
@@ -431,6 +461,9 @@ void Expression_free(Expression *expr) {
 
 		case expr_Identifier:
 			// Free Identifier name
+			free(expr->expr->ident->name);
+
+			// Free the Identifier struct
 			free(expr->expr->ident);
 
 			// Free the union object
@@ -826,6 +859,11 @@ FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts) {
 	func->name = name;
 	func->arg_names = arg_names;
 	func->stmts = stmts;
+
+	// -1 for the variable count indicates that it has not been calculated yet.
+	// It is assumed that if the variable count has been calculated, then each
+	// identifier in the function has also been assigned its stack offset.
+	func->variable_count = -1;
 	return func;
 }
 
@@ -867,6 +905,20 @@ bool FNDecl_equals(FNDecl *f1, FNDecl *f2) {
 }
 
 /*
+ * Calculates the number of variables that this function requires space for in
+ * its stack when compiled, and records it in the variable_count field of the
+ * function object. It also determines the stack offset for each identifier and
+ * sets the stack_offset field appropriately for each identifier in the
+ * function.
+ */
+void FNDecl_calculate_count_and_offsets(FNDecl *func) {
+	// WORK OUT THE OFFSET FOR EACH PARAMETER
+	// THEN FOR EACH DECLARED VARIABLE
+	printf("FNDecl_calculate_count_and_offsets NOT IMPLEMENTED\n");
+	exit(EXIT_FAILURE);
+}
+
+/*
  * Destructor for FNDecl objects
  */
 void FNDecl_free(FNDecl *func) {
@@ -891,7 +943,6 @@ void FNDecl_free(FNDecl *func) {
 	// Free the FNDecl object
 	free(func);
 }
-
 
 /*
  * Constructor for Program objects

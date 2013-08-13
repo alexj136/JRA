@@ -300,7 +300,7 @@ int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 		case expr_Identifier: {
 			// Retrieve the value associated with the identifier from the scope
 			// and return it
-			return Scope_get(scope, expr->expr->ident);
+			return Scope_get(scope, expr->expr->ident->name);
 		}
 		case expr_IntegerLiteral: {
 			// Simply return the value of the IntegerLiteral

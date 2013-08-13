@@ -4,6 +4,7 @@
 #include "minty_util.h"
 #include "token.h"
 #include "AST.h"
+#include "codegen.h"
 
 /*
  * Macros for boolean operations
@@ -81,10 +82,11 @@ static int label_ternary    = 0;
 static int label_arithmetic = 0;
 static int label_boolean    = 0;
 static int label_print      = 0;
+static int label_return     = 0;
 static int label_for        = 0;
 static int label_while      = 0;
 static int label_if         = 0;
-static int label_etcetera   = 0;
+static int label_assignment = 0;
 
 /*
  * Generate code for a given expression
@@ -228,20 +230,47 @@ char *codegen_expression(Expression *expr) {
 
 			char *push_args = "";
 
+			int i;
 			for(i = 0; i < LinkedList_length(expr->expr->fncall->args); i++) {
+				
+				// Generate the code for this argument
 				char *arg = codegen_expression(
 					(Expression *)LinkedList_get(expr->expr->fncall->args, i));
+
+				// Append to the current string the compilation of the argument,
+				// followed by storing that argument at the appropriate position
+				// on the stack
+				char *temp = str_concat(5,
+					push_args,
+					arg,
+					"pushl %eax\n");
+
+				free(push_args);
+				push_args = temp;
 			}
 
-			char *out = str_concat(20
-				"subl $", stack_space, ", %esp\n",
-
-
+			char *out = str_concat(20,
+				// Save our stack base pointer for restoration later
 				"pushl %ebp\n",
-				"movl %esp, %ebp\n",
 				push_args,
+
+				// Subtract from OUR stack pointer the size that the arguments
+				// occupy, thereby putting them into the callee's frame
+				"addl $", stack_space, ", %esp\n",
+
+				// Set our stack pointer as the callee's base pointer - the
+				// callee's frame has the arguments
+				"movl %esp, %ebp\n",
+
+				// Call the function
 				"call ", expr->expr->fncall->name, "\n",
-				"movl %ebp, %esp\n"
+
+				// Now the function has run, set out stack pointer as the
+				// callee's base pointer (this pops off all the arguments we
+				// pushed)
+				"movl %ebp, %esp\n",
+				
+				// Finally restore our base pointer
 				"popl %ebp\n");
 
 			free(push_args);
@@ -351,7 +380,7 @@ char *codegen_statement(Statement *stmt) {
 
 				// If the jump to the end of the loop was not taken, the boolean
 				// expression was true, so execute the statement block
-				t_stmts,
+				stmts,
 
 				// Then jump unconditionally back to the comparison
 				"jmp while_begin", label_no, "\n",
@@ -459,49 +488,60 @@ char *codegen_statement(Statement *stmt) {
 		
 		case stmt_Assignment: {
 
+			char *stack_offset = "VARIABLES NOT YET IMPLEMENTED ";
+
+			// Get the label number for this assignment statement (only used in
+			// generated comments, there are no jumps in assignment statements)
+			char *label_no = label_number(&label_assignment);
+
+			// Generate the code for the expression being assigned
+			char *expr = codegen_expression(stmt->stmt->_assignment->expr);
+
+			// codegen_program() declares printf_str as "%d\n", which can be
+			// used to print any integer in the manner below
+			char *out = str_concat(10,
+				"# BEGIN ASSIGNMENT STATEMENT ", label_no, "\n",
+				
+				// Evaluate the expression and put is value in %eax
+				expr,
+
+				// Store the expression's value at the appropriate location on
+				// the stack
+				"movl %eax, ", stack_offset, "(%ebp)\n",
+
+				"# END ASSIGNMENT STATEMENT ", label_no, "\n");
+
+			free(expr);
+
+			return out;
 		}
 		
 		case stmt_Return: {
 
+			// Get the label number for this return statement (only used in
+			// generated comments, return statements do not generate labels)
+			char *label_no = label_number(&label_return);
+
+			// Generate the code for the expression being returned
+			char *expr = codegen_expression(stmt->stmt->_return->expr);
+
+			char *out = str_concat(8,
+				"# BEGIN RETURN STATEMENT ", label_no, "\n",
+				
+				// Evaluate the expression and put is value in %eax
+				expr,
+
+				// Jump bac to the caller
+				"ret\n",
+
+				"# END RETURN STATEMENT ", label_no, "\n");
+
+			free(expr);
+
+			return out;
 		}
 	}
 	printf("Invalid statement type in AST\n");
 	exit(EXIT_FAILURE);
 	return NULL;
-}
-
-int main() {
-	// (4 * 5) % (4 + (4 < 5 ? (10 != 9 ? 3 : 123) : 500)) should equal 6
-	Statement *stmt = Print_init(
-		ArithmeticExpr_init(
-			ArithmeticExpr_init(
-				IntegerLiteral_init(4),
-				MULTIPLY,
-				IntegerLiteral_init(5)),
-			MODULO,
-			ArithmeticExpr_init(
-				IntegerLiteral_init(4),
-				PLUS,
-				Ternary_init(
-					BooleanExpr_init(
-						IntegerLiteral_init(4),
-						LESS_THAN,
-						IntegerLiteral_init(5)
-					),
-					Ternary_init(
-						BooleanExpr_init(
-							IntegerLiteral_init(10),
-							NOT_EQUAL,
-							IntegerLiteral_init(9)
-						),
-						IntegerLiteral_init(3),
-						IntegerLiteral_init(123)
-					),
-					IntegerLiteral_init(500)
-				)
-			)
-		)
-	);
-	printf("%s\n", codegen_statement(stmt));
-	return 0;
 }

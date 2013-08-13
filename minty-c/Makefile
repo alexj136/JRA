@@ -4,11 +4,14 @@ LINK = $(COMPILER) -Wall -g
 COMPILE = $(COMPILER) -Wall -g -c
 
 # File lists
-SOURCES = minty_util.c token.c lexer.c AST.c parser.c interpreter.c minty.c
-TESTSRC = test/test_parser.c test/test_minty_util.c test/test_interpreter.c
+SOURCES = minty_util.c token.c lexer.c AST.c parser.c interpreter.c codegen.c \
+	minty.c
+TESTSRC = test/test_parser.c test/test_minty_util.c test/test_interpreter.c \
+	test/test_codegen.c
 
-OBJECTS = minty_util.o token.o lexer.o AST.o parser.o interpreter.o
-TESTS = test/test_parser test/test_minty_util test/test_interpreter
+OBJECTS = minty_util.o token.o lexer.o AST.o parser.o interpreter.o codegen.o
+TESTS = test/test_parser test/test_minty_util test/test_interpreter \
+	test/test_codegen
 OUTPUTS = $(OBJECTS) $(TESTS) minty
 
 # Adding this line means you can just run 'make' and everything than needs
@@ -20,10 +23,11 @@ all: $(OUTPUTS)
 clean:
 	rm -f $(OUTPUTS)
 
-test: test/test_minty_util test/test_parser test/test_interpreter
+test: $(TESTS)
 	test/test_minty_util
 	test/test_parser
 	test/test_interpreter
+	test/test_codegen
 
 # Final compilation & linkage:
 minty: $(OBJECTS) minty.c
@@ -48,18 +52,26 @@ parser.o: parser.c
 interpreter.o: interpreter.c
 	$(COMPILE) interpreter.c -o interpreter.o
 
+codegen.o: codegen.c
+	$(COMPILE) codegen.c -o codegen.o
+
 # Compile, link & run tests:
 test/test_minty_util: test/test_minty_util.c
 	$(LINK) test/test_minty_util.c minty_util.o -o test/test_minty_util
 	@test/test_minty_util
 
-test/test_parser: test/test_parser.c minty_util.o token.o AST.o parser.o
-	$(LINK) test/test_parser.c minty_util.o token.o AST.o parser.o \
+test/test_parser: test/test_parser.c minty_util.o token.o lexer.o AST.o parser.o
+	$(LINK) test/test_parser.c minty_util.o token.o lexer.o AST.o parser.o \
 		-o test/test_parser
 	@test/test_parser
 
 test/test_interpreter: test/test_interpreter.c minty_util.o token.o AST.o \
 	parser.o interpreter.o
-	$(LINK) test/test_interpreter.c minty_util.o lexer.o AST.o parser.o \
-		interpreter.o -o test/test_interpreter
+	$(LINK) test/test_interpreter.c minty_util.o token.o lexer.o AST.o \
+		parser.o interpreter.o -o test/test_interpreter
 	@test/test_interpreter
+
+test/test_codegen: test/test_codegen.c minty_util.o token.o AST.o codegen.o
+	$(LINK) test/test_codegen.c minty_util.o token.o lexer.o AST.o codegen.o \
+		-o test/test_codegen
+	@test/test_codegen
