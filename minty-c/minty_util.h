@@ -56,4 +56,26 @@ void LinkedList_remove(LinkedList *ll, int index);
 
 void LinkedList_free(LinkedList *ll);
 
+/*
+ * LLIterators provide more efficient iteration over LinkedLists. Since
+ * LinkedLists are singly linked, LLIterators can only iterate over LinkedLists
+ * in the forward direction (following the pointers).
+ */
+typedef struct LLIterator LLIterator;
+struct LLIterator {
+	LinkedList *list;
+	LinkedListNode *current_node;
+	int index;
+};
+
+LLIterator *LLIterator_init(LinkedList *list);
+
+bool LLIterator_ended(LLIterator *iter);
+
+void *LLIterator_get_current(LLIterator *iter);
+
+int LLIterator_current_index(LLIterator *iter);
+
+void LLIterator_advance(LLIterator *iter);
+
 #endif // MINTY_UTIL

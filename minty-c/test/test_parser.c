@@ -115,8 +115,8 @@ char *test_two_functions() {
 
 	// binary_add function
 	LinkedList *callee_args = LinkedList_init();
-	LinkedList_append(callee_args, safe_strdup("num1"));
-	LinkedList_append(callee_args, safe_strdup("num2"));
+	LinkedList_append(callee_args, Identifier_init(safe_strdup("num1")));
+	LinkedList_append(callee_args, Identifier_init(safe_strdup("num2")));
 	LinkedList *binary_add_stmts = LinkedList_init();
 	LinkedList_append(binary_add_stmts, Return_init(
 		ArithmeticExpr_init(
@@ -387,7 +387,7 @@ char *test_while_loop() {
 	LinkedList *fns = LinkedList_init();
 	LinkedList_append(fns, FNDecl_init(
 		safe_strdup("main"),
-		LinkedList_init_with(safe_strdup("num")),
+		LinkedList_init_with(Identifier_init(safe_strdup("num"))),
 		stmts));
 	Program *ast = Program_init(fns);
 
@@ -426,7 +426,7 @@ char *test_if_statement() {
 		LinkedList_init_with(
 			FNDecl_init(
 				safe_strdup("main"),
-				LinkedList_init_with(safe_strdup("num")),
+				LinkedList_init_with(Identifier_init(safe_strdup("num"))),
 				LinkedList_init_with(
 					If_init(
 						BooleanExpr_init(

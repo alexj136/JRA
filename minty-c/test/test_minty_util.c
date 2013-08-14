@@ -100,10 +100,37 @@ char *test_LinkedList_remove() {
 	return NULL;
 }
 
+char *test_LLIterator() {
+
+	// Create a LinkedList of ints: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+	LinkedList *ll = LinkedList_init();
+	int i;
+	for(i = 0; i < 10; i++) {
+		LinkedList_append(ll, (void *)i);
+	}
+
+	// Create an iterator for the list
+	LLIterator *iter = LLIterator_init(ll);
+
+	// Iterate and ensure that the elements match the list index as the
+	// iteration occurs
+	while(!LLIterator_ended(iter)) {
+		mu_assert(((int)LLIterator_get_current(iter)) ==
+			LLIterator_current_index(iter), "test_LLIterator failed");
+		LLIterator_advance(iter);
+	}
+	
+	LinkedList_free(ll);
+	free(iter);
+
+	return NULL;
+}
+
 char *all_tests() {
 	
 	mu_run_test(test_str_concat);
 	mu_run_test(test_LinkedList_remove);
+	mu_run_test(test_LLIterator);
 
 	return NULL;
 }

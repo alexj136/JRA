@@ -68,8 +68,19 @@ Scope *Scope_init(LinkedList *arg_names, LinkedList *args_given) {
 	// Initialise the arguments to the function
 	int i;
 	for(i = 0; i < LinkedList_length(arg_names); i++) {
+
+		// Get a pointer to the next Identifier object from the list
+		Expression *current_ident = (Expression *)LinkedList_get(arg_names, i);
+
+		// Check that it's an Identifier - if not, an error has occured
+		if(current_ident->type != expr_Identifier) {
+			printf("Non-identifier expression in function argument list given \
+				to Scope_init()\n");
+			exit(EXIT_FAILURE);
+		}
+
 		LinkedList_append(scope->variables, Variable_init(
-			safe_strdup((char *)LinkedList_get(arg_names, i)),
+			safe_strdup(current_ident->expr->ident->name),
 			(int)LinkedList_get(args_given, i)));
 	}
 
@@ -524,21 +535,21 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
  * without any further statement interpretation and returns that value to the
  * caller.
  */
-int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
+int interpret_function(FNDecl *function, LinkedList *arg_vals, Program *prog) {
 
 	// Check that the function has been called with the appropriate number of
 	// arguments
-	if(LinkedList_length(args) != LinkedList_length(function->arg_names)) {
+	if(LinkedList_length(arg_vals) != LinkedList_length(function->args)) {
 
 		printf("Function: '%s' takes %d arguments, %d given",
 			function->name,
-			LinkedList_length(function->arg_names),
-			LinkedList_length(args));
+			LinkedList_length(function->args),
+			LinkedList_length(arg_vals));
 		exit(EXIT_FAILURE);
 	}
 
 	// Create the VariableScope for this function
-	Scope *scope = Scope_init(function->arg_names, args);
+	Scope *scope = Scope_init(function->args, arg_vals);
 
 	// Interpret each statement
 	int i;
@@ -583,7 +594,7 @@ int interpret_function(FNDecl *function, LinkedList *args, Program *prog) {
  * is simply to store the functions in a dictionary so that they can be
  * accessed by any caller. After this, the main function is executed.
  */
-int interpret_program(Program *prog, LinkedList *args) {
+int interpret_program(Program *prog, LinkedList *arg_vals) {
 
 	// Search for a function named 'main', storing it in a temporary variable
 	// when found
@@ -605,5 +616,5 @@ int interpret_program(Program *prog, LinkedList *args) {
 	}
 
 	// Otherwise, return the result of the main function
-	else return interpret_function(main_function, args, prog);
+	else return interpret_function(main_function, arg_vals, prog);
 }

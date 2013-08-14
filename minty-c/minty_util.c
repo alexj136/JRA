@@ -397,3 +397,55 @@ void LinkedList_free(LinkedList *ll) {
 	if(ll->head_node) LinkedListNode_free_recursive(ll->head_node);
 	free(ll);
 }
+
+/*
+ * Creates a new LLIterator which provides efficient (linear time) iteration
+ * over LinkedLists in the 'forward' direction i.e. in the direction of the
+ * pointer chain. Iteration over a LinkedList naively becomes slower as the
+ * iteration progresses down the list, as with each iteration, access to the
+ * next node requires pointer-hopping from the beginning of the list. It is
+ * therefore polynomial time, so use of iterators is recommended.
+ *
+ * LLIterators never allocate any space other than that which they occupy, so
+ * they can be freed without a dedicated free function:
+ *
+ *     free(iter);
+ */
+LLIterator *LLIterator_init(LinkedList *list) {
+	LLIterator *lli = malloc(sizeof(LLIterator));
+	lli->list = list;
+	lli->current_node = list->head_node;
+	lli->index = 0;
+	return lli;
+}
+
+/*
+ * Tests whether or not the iteration has completed. Returns true if it has
+ * completed, and false if there are elements left to iterate over.
+ */
+bool LLIterator_ended(LLIterator *iter) {
+	return iter->current_node == NULL;
+}
+
+/*
+ * Returns the element at the LLIterator's current position
+ */
+void *LLIterator_get_current(LLIterator *iter) {
+	if(!iter->current_node) return NULL;
+	else return iter->current_node->element;
+}
+
+/*
+ * Returns the index of the current position in the list
+ */
+int LLIterator_current_index(LLIterator *iter) {
+	return iter->index;
+}
+
+/*
+ * Advances the LLIterator to the next element of the list
+ */
+void LLIterator_advance(LLIterator *iter) {
+	iter->current_node = iter->current_node->child_node;
+	(iter->index)++;
+}

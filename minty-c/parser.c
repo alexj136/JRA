@@ -625,8 +625,8 @@ FNDecl *parse_function(LinkedList *tokens) {
 	next_token = (Token *)LinkedList_pop(tokens);
 	check_valid_single(OPEN_PAREN, next_token->type);
 
-	// Create a list for the argument names to be stored in
-	LinkedList *arg_names = LinkedList_init();
+	// Create a list for the arguments to be stored in
+	LinkedList *args = LinkedList_init();
 
 	// Grab the first token in the argument list
 	next_token = (Token *)LinkedList_pop(tokens);
@@ -639,9 +639,10 @@ FNDecl *parse_function(LinkedList *tokens) {
 		// them
 		check_valid_multiple(ARGLIST, ARGLIST_SIZE, next_token->type);
 
-		// Add the ID to the list of argument names
+		// Add the ID to the list of arguments
 		if(next_token->type == IDENTIFIER)
-			LinkedList_append(arg_names, safe_strdup(next_token->info));
+			LinkedList_append(args,
+				Identifier_init(safe_strdup(next_token->info)));
 
 		// Retrieve the next token
 		next_token = (Token *)LinkedList_pop(tokens);
@@ -649,8 +650,8 @@ FNDecl *parse_function(LinkedList *tokens) {
 	// Create a list for the function's statements
 	LinkedList *statements = parse_statement_block(tokens);
 
-	// Return the function object
-	return FNDecl_init(function_name, arg_names, statements);
+	// Construct & return the function object
+	return FNDecl_init(function_name, args, statements);
 }
 
 /*

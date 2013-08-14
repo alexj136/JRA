@@ -247,7 +247,7 @@ struct Return {
  */
 typedef struct {
 	char *name;
-	LinkedList *arg_names;
+	LinkedList *args;
 	LinkedList *stmts;
 	int variable_count;
 } FNDecl;
@@ -270,9 +270,9 @@ Expression *ArithmeticExpr_init(
 
 Expression *Identifier_init(char *ident);
 
-void Identifier_set_stack_offset(Identifier *ident, int stack_offset);
+void Identifier_set_stack_offset(Expression *ident, int stack_offset);
 
-bool Identifier_stack_offset_is_set(Identifier *ident);
+bool Identifier_stack_offset_is_set(Expression *ident);
 
 Expression *IntegerLiteral_init(int intgr);
 
@@ -305,7 +305,7 @@ bool Statement_equals(Statement *stmt1, Statement *stmt2);
 
 void Statement_free(Statement *stmt);
 
-FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts);
+FNDecl *FNDecl_init(char *name, LinkedList *args, LinkedList *stmts);
 
 bool FNDecl_equals(FNDecl *f1, FNDecl *f2);
 

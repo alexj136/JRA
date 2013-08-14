@@ -101,15 +101,15 @@ Expression *Identifier_init(char *ident) {
 /*
  * Setter for the stack offset field in Identifier structs
  */
-void Identifier_set_stack_offset(Identifier *ident, int stack_offset) {
-	ident->stack_offset = stack_offset;
+void Identifier_set_stack_offset(Expression *ident, int stack_offset) {
+	ident->expr->ident->stack_offset = stack_offset;
 }
 
 /*
  * Check if the stack offset for this identifier has been set yet
  */
-bool Identifier_stack_offset_is_set(Identifier *ident) {
-	return ident->stack_offset == -1;
+bool Identifier_stack_offset_is_set(Expression *ident) {
+	return ident->expr->ident->stack_offset != -1;
 }
 
 /*
@@ -430,6 +430,72 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
 }
 
 /*
+ * Walks over an expression and sets the stack offsets for every identifier
+ * found in that expression
+ */
+void Expression_set_stack_offsets(Expression *expr, LinkedList *mappings) {
+	
+	switch(expr->type) {
+
+		case expr_BooleanExpr:
+			Expression_set_stack_offsets(
+				expr->expr->blean->lhs,
+				mappings);
+			Expression_set_stack_offsets(
+				expr->expr->blean->rhs,
+				mappings);
+			break;
+
+		case expr_ArithmeticExpr:
+			Expression_set_stack_offsets(
+				expr->expr->arith->lhs,
+				mappings);
+			Expression_set_stack_offsets(
+				expr->expr->arith->rhs,
+				mappings);
+			break;
+		
+		case expr_Identifier:
+			/* Do something interesting */
+			break;
+
+		case expr_IntegerLiteral:
+			/* Do nothing */
+			break;
+
+		case expr_FNCall:
+			// Create an iterator for the statement list
+			LLIterator *expr_iter = LLIterator_init(expr->expr->fncall->args);
+
+			// Use the iterator to call Expression_set_stack_offsets() on each
+			// expression inthe list
+			while(!LLIterator_ended(expr_iter)) {
+
+				Expression_set_stack_offsets(
+					LLIterator_get_current(expr_iter),
+					mappings);
+
+				LLIterator_advance(expr_iter);
+			}
+
+			free(expr_iter);
+			break;
+
+		case expr_Ternary:
+			Expression_set_stack_offsets(
+				expr->expr->trnry->bool_expr,
+				mappings);
+			Expression_set_stack_offsets(
+				expr->expr->trnry->true_expr,
+				mappings);
+			Expression_set_stack_offsets(
+				expr->expr->trnry->false_expr,
+				mappings);
+			break;
+	}
+}
+
+/*
  * Destructor for all Expression objects
  */
 void Expression_free(Expression *expr) {
@@ -678,12 +744,10 @@ bool Statement_equals(Statement *stmt1, Statement *stmt2) {
 
 	// If they are of the same type, (recursively) inspect them to see if their
 	// properties are the same
-	bool same = false;
 	switch(stmt1->type) {
 
 		case stmt_For:
-			same = (
-				Statement_equals(
+			return Statement_equals(
 					stmt1->stmt->_for->assignment,
 					stmt2->stmt->_for->assignment) &&
 				Expression_equals(
@@ -694,22 +758,18 @@ bool Statement_equals(Statement *stmt1, Statement *stmt2) {
 					stmt2->stmt->_for->incrementor) &&
 				stmt_list_equals(
 					stmt1->stmt->_for->stmts,
-					stmt2->stmt->_for->stmts));
-			break;
+					stmt2->stmt->_for->stmts);
 
 		case stmt_While:
-			same = (
-				Expression_equals(
+			return Expression_equals(
 					stmt1->stmt->_while->bool_expr,
 					stmt2->stmt->_while->bool_expr) &&
 				stmt_list_equals(
 					stmt1->stmt->_while->stmts,
-					stmt2->stmt->_while->stmts));
-			break;
+					stmt2->stmt->_while->stmts);
 
 		case stmt_If:
-			same = (
-				Expression_equals(
+			return Expression_equals(
 					stmt1->stmt->_if->bool_expr,
 					stmt2->stmt->_if->bool_expr) &&
 				stmt_list_equals(
@@ -717,32 +777,112 @@ bool Statement_equals(Statement *stmt1, Statement *stmt2) {
 					stmt2->stmt->_if->true_stmts) &&
 				stmt_list_equals(
 					stmt1->stmt->_if->false_stmts,
-					stmt2->stmt->_if->false_stmts));
-			break;
+					stmt2->stmt->_if->false_stmts);
 
 		case stmt_Print:
-			same = Expression_equals(
+			return Expression_equals(
 				stmt1->stmt->_print->expr,
 				stmt2->stmt->_print->expr);
-			break;
 
 		case stmt_Assignment:
-			same = (
-				Expression_equals(
+			return Expression_equals(
 					stmt1->stmt->_assignment->expr,
 					stmt2->stmt->_assignment->expr) &&
 				str_equal(
 					stmt1->stmt->_assignment->name,
-					stmt2->stmt->_assignment->name));
+					stmt2->stmt->_assignment->name);
+
+		case stmt_Return:
+			return Expression_equals(
+				stmt1->stmt->_return->expr,
+				stmt2->stmt->_return->expr);
+	}
+}
+
+/*
+ * Walks over the AST and sets the stack offsets for every identifier found in
+ * the AST
+ */
+void Statement_set_stack_offsets(Statement *stmt, LinkedList *mappings) {
+	
+	switch(stmt->type) {
+
+		case stmt_For:
+			Statement_set_stack_offsets(
+				stmt->stmt->_for->assignment,
+				mappings);
+			Expression_set_stack_offsets(
+				stmt->stmt->_for->bool_expr
+				mappings);
+			Statement_set_stack_offsets(
+				stmt->stmt->_for->incrementor,
+				mappings);
+			stmt_list_set_stack_offsets(
+				stmt->stmt->_for->stmts,
+				mappings);
+			break;
+
+		case stmt_While:
+			Expression_set_stack_offsets(
+				stmt->stmt->_while->bool_expr,
+				mappings);
+			stmt_list_set_stack_offsets(
+				stmt->stmt->_while->stmts,
+				mappings);
+			break;
+		
+		case stmt_If:
+			Expression_set_stack_offsets(
+				stmt->stmt->_if->bool_expr,
+				mappings);
+			stmt_list_set_stack_offsets(
+				stmt->stmt->_if->true_stmts,
+				mappings);
+			stmt_list_set_stack_offsets(
+				stmt->stmt->_if->false_stmts,
+				mappings);
+			break;
+
+		case stmt_Print:
+			Expression_set_stack_offsets(
+				stmt->stmt->_print->expr,
+				mappings);
+			break;
+
+		case stmt_Assignment:
+			Expression_set_stack_offsets(
+				stmt->stmt->_assignment->expr,
+				mappings);
 			break;
 
 		case stmt_Return:
-			same = Expression_equals(
-				stmt1->stmt->_return->expr,
-				stmt2->stmt->_return->expr);
+			Expression_set_stack_offsets(
+				stmt->stmt->_return->expr,
+				mappings);
 			break;
 	}
-	return same;
+}
+
+/*
+ * Iterates over a list of statements, and sets the stack offsets for every
+ * identifier found in those statements
+ */
+void stmt_list_set_stack_offsets(LinkedList *stmts, LinkedList *mappings) {
+	// Create an iterator for the statement list
+	LLIterator *stmts_iter = LLIterator_init(stmts);
+
+	// Use the iterator to call Statement_set_stack_offsets() on each contained
+	// statement
+	while(!LLIterator_ended(stmts_iter)) {
+
+		Statement_set_stack_offsets(
+			LLIterator_get_current(stmts_iter),
+			mappings);
+
+		LLIterator_advance(stmts_iter);
+	}
+
+	free(stmts_iter);
 }
 
 /*
@@ -854,10 +994,10 @@ void Statement_free(Statement *stmt) {
 /*
  * Constructor for FNDecl objects
  */
-FNDecl *FNDecl_init(char *name, LinkedList *arg_names, LinkedList *stmts) {
+FNDecl *FNDecl_init(char *name, LinkedList *args, LinkedList *stmts) {
 	FNDecl *func = safe_alloc(sizeof(FNDecl));
 	func->name = name;
-	func->arg_names = arg_names;
+	func->args = args;
 	func->stmts = stmts;
 
 	// -1 for the variable count indicates that it has not been calculated yet.
@@ -876,22 +1016,22 @@ bool FNDecl_equals(FNDecl *f1, FNDecl *f2) {
 	if(!(
 		str_equal(f1->name, f2->name) &&
 		stmt_list_equals(f1->stmts, f2->stmts) && (
-
-			LinkedList_length(f1->arg_names) ==
-			LinkedList_length(f2->arg_names) ))) {
+			LinkedList_length(f1->args) ==
+			LinkedList_length(f2->args) ))) {
 
 		return false;
 	}
 
-	// Otherwise we must check to see that all the argument names are the same
+	// Otherwise we must check to see that all the argument identifiers are the
+	// same
 	else {
 		bool diff_not_found = true;
 		int i = 0;
-		while(diff_not_found && i < LinkedList_length(f1->arg_names)) {
+		while(diff_not_found && i < LinkedList_length(f1->args)) {
 
-			if(!str_equal(
-				(char *)LinkedList_get(f1->arg_names, i),
-				(char *)LinkedList_get(f2->arg_names, i))) {
+			if(!Expression_equals(
+				(Expression *)LinkedList_get(f1->args, i),
+				(Expression *)LinkedList_get(f2->args, i))) {
 
 				diff_not_found = false;
 			}
@@ -906,15 +1046,44 @@ bool FNDecl_equals(FNDecl *f1, FNDecl *f2) {
 
 /*
  * Calculates the number of variables that this function requires space for in
- * its stack when compiled, and records it in the variable_count field of the
- * function object. It also determines the stack offset for each identifier and
- * sets the stack_offset field appropriately for each identifier in the
+ * its stack frame when compiled, and records it in the variable_count field of
+ * the function object. It also determines the stack offset for each identifier
+ * and sets the stack_offset field appropriately for each identifier in the
  * function.
  */
 void FNDecl_calculate_count_and_offsets(FNDecl *func) {
-	// WORK OUT THE OFFSET FOR EACH PARAMETER
-	// THEN FOR EACH DECLARED VARIABLE
-	printf("FNDecl_calculate_count_and_offsets NOT IMPLEMENTED\n");
+
+	// Keep a running count of the number of declared variables. Store it as a
+	// reference so that other variables can modify it
+	int *running_count = malloc(sizeof(int));
+
+	// Initialise the running count as the number of paramaters for the function
+	*running_count = LinkedList_length(func->args);
+	
+	// NEED TO DEFINE MAPPINGS
+
+	// Iterate over each argument (with an iterator), and assign to them their
+	// stack offsets
+	LLIterator args_iter = LLIterator_init(func->args);
+	while(!LLIterator_ended(args_iter)) {
+
+		// Set the stack offset based on the argument's position in the list
+		Identifier_set_stack_offset(
+			(Expression *)LLIterator_get_current(args_iter),
+			LLIterator_current_index(args_iter) * 4);
+
+		// Advance the iterator
+		LLIterator_advance(args_iter);
+	}
+	free(args_iter);
+
+	// Calculate the offsets for the identifiers used in the function
+	stmt_list_set_stack_offsets(func->stmts, mappings);
+
+	// Walk the AST and increment the counter for every variable that is
+	// declared
+
+	printf("FNDecl_calculate_count_and_offsets INCOMPLETE IMPLEMENTATION\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -925,15 +1094,15 @@ void FNDecl_free(FNDecl *func) {
 	// Free the name string
 	free(func->name);
 
-	// Free the arg_names list
+	// Free the Identifiers in the argument list
 	int i;
-	for(i = 0; i < LinkedList_length(func->arg_names); i++)
-		free((char *)LinkedList_get(func->arg_names, i));
+	for(i = 0; i < LinkedList_length(func->args); i++)
+		Expression_free((Expression *)LinkedList_get(func->args, i));
 
 	// Free the list itself
-	LinkedList_free(func->arg_names);
+	LinkedList_free(func->args);
 
-	// Free the Statements in the list
+	// Free the Statements in the statement list
 	for(i = 0; i < LinkedList_length(func->stmts); i++)
 		Statement_free((Statement *)LinkedList_get(func->stmts, i));
 
