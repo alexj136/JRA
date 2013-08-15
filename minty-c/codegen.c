@@ -87,11 +87,28 @@ static int label_for        = 0;
 static int label_while      = 0;
 static int label_if         = 0;
 static int label_assignment = 0;
+static int label_identifier = 0;
+
+/*
+ * Sets all the label numbers back to zero
+ */
+static void reset_labels() {
+	label_ternary    = 0;
+	label_arithmetic = 0;
+	label_boolean    = 0;
+	label_print      = 0;
+	label_return     = 0;
+	label_for        = 0;
+	label_while      = 0;
+	label_if         = 0;
+	label_assignment = 0;
+	label_identifier = 0;
+}
 
 /*
  * Generate code for a given expression
  */
-char *codegen_expression(Expression *expr) {
+char *codegen_expression(Expression *expr, Program *prog) {
 
 	switch(expr->type) {
 
@@ -102,8 +119,8 @@ char *codegen_expression(Expression *expr) {
 			char *label_no = label_number(&label_boolean);
 
 			// Generate strings for the left & right hand sides
-			char *lhs = codegen_expression(expr->expr->blean->lhs);
-			char *rhs = codegen_expression(expr->expr->blean->rhs);
+			char *lhs = codegen_expression(expr->expr->blean->lhs, prog);
+			char *rhs = codegen_expression(expr->expr->blean->rhs, prog);
 
 			// opcode will store the operation specified by the AST
 			char *opcode;
@@ -162,8 +179,8 @@ char *codegen_expression(Expression *expr) {
 			char *label_no = label_number(&label_arithmetic);
 
 			// Generate strings for the left & right hand sides
-			char *lhs = codegen_expression(expr->expr->arith->lhs);
-			char *rhs = codegen_expression(expr->expr->arith->rhs);
+			char *lhs = codegen_expression(expr->expr->arith->lhs, prog);
+			char *rhs = codegen_expression(expr->expr->arith->rhs, prog);
 
 			// opcode will store the operation specified by the AST
 			char *opcode;
@@ -205,17 +222,25 @@ char *codegen_expression(Expression *expr) {
 
 		case expr_Identifier: {
 
+			// Allocate a new character buffer on the heap
+			char *buffer = safe_alloc(sizeof(char) * 60);
+
+			// Generate the correct string in the buffer
+			sprintf(buffer, "movl %d(%%ebp), %%eax    # IDENTIFIER\n",
+				expr->expr->ident->stack_offset);
+
+			return buffer;
 		}
 
 		case expr_IntegerLiteral: {
 
 			// Allocate a new character buffer on the heap
-			char *buffer = safe_alloc(sizeof(char) * 30);
+			char *buffer = safe_alloc(sizeof(char) * 60);
 
 			// Generate the correct string in the buffer
-			sprintf(buffer, "movl $%d, %%eax\n", expr->expr->intgr);
+			sprintf(buffer, "movl $%d, %%eax    # INTEGER LITERAL\n",
+				expr->expr->intgr);
 
-			// Return a pointer to the buffer
 			return buffer;
 		}
 
@@ -235,7 +260,8 @@ char *codegen_expression(Expression *expr) {
 				
 				// Generate the code for this argument
 				char *arg = codegen_expression(
-					(Expression *)LinkedList_get(expr->expr->fncall->args, i));
+					(Expression *)LinkedList_get(expr->expr->fncall->args, i),
+					prog);
 
 				// Append to the current string the compilation of the argument,
 				// followed by storing that argument at the appropriate position
@@ -284,9 +310,12 @@ char *codegen_expression(Expression *expr) {
 			char *label_no = label_number(&label_ternary);
 
 			// Codegen each sub-expression
-			char *b_exp = codegen_expression(expr->expr->trnry->bool_expr);
-			char *t_exp = codegen_expression(expr->expr->trnry->true_expr);
-			char *f_exp = codegen_expression(expr->expr->trnry->false_expr);
+			char *b_exp = codegen_expression(
+				expr->expr->trnry->bool_expr, prog);
+			char *t_exp = codegen_expression(
+				expr->expr->trnry->true_expr, prog);
+			char *f_exp = codegen_expression(
+				expr->expr->trnry->false_expr, prog);
 
 			char *out = str_concat(22,
 				"# BEGIN TERNARY EXPRESSION ", label_no, "\n",
@@ -316,7 +345,7 @@ char *codegen_expression(Expression *expr) {
 /*
  * Generate code for a given list of statements
  */
-char *codegen_statement_list(LinkedList *stmts) {
+char *codegen_statement_list(LinkedList *stmts, Program *prog) {
 
 	// If the list is empty, this is valid, but produces no output, so return
 	// the empty string, rather than null
@@ -325,12 +354,13 @@ char *codegen_statement_list(LinkedList *stmts) {
 	}
 
 	// Generate the code for the first expression
-	char *out = codegen_statement((Statement *)LinkedList_get(stmts, 0));
+	char *out = codegen_statement((Statement *)LinkedList_get(stmts, 0), prog);
 
 	// Append the code for any subsequent expressions
 	int i;
 	for(i = 1; i < LinkedList_length(stmts); i++) {
-		char *temp = codegen_statement((Statement *)LinkedList_get(stmts, i));
+		char *temp =
+			codegen_statement((Statement *)LinkedList_get(stmts, i), prog);
 		char *temp2 = str_concat_2(out, temp);
 
 		free(out);
@@ -345,12 +375,14 @@ char *codegen_statement_list(LinkedList *stmts) {
 /*
  * Generate code for a given statement
  */
-char *codegen_statement(Statement *stmt) {
+char *codegen_statement(Statement *stmt, Program *prog) {
 	
 	switch(stmt->type) {
 		
 		case stmt_For: {
-
+			printf("FOR LOOP COMPILATION NOT YET IMPLEMENTED\n");
+			exit(EXIT_FAILURE);
+			return (char *) NULL;
 		}
 		
 		case stmt_While: {
@@ -360,8 +392,10 @@ char *codegen_statement(Statement *stmt) {
 
 			// Genrate code for the boolean expression, and the true & false
 			// statement lists
-			char *b_exp = codegen_expression(stmt->stmt->_while->bool_expr);
-			char *stmts = codegen_statement_list(stmt->stmt->_while->stmts);
+			char *b_exp =
+				codegen_expression(stmt->stmt->_while->bool_expr, prog);
+			char *stmts =
+				codegen_statement_list(stmt->stmt->_while->stmts, prog);
 
 			char *out = str_concat(21,
 				"# BEGIN WHILE STATEMENT ", label_no, "\n",
@@ -405,11 +439,11 @@ char *codegen_statement(Statement *stmt) {
 
 			// Genrate code for the boolean expression, and the true & false
 			// statement lists
-			char *b_exp = codegen_expression(stmt->stmt->_if->bool_expr);
+			char *b_exp = codegen_expression(stmt->stmt->_if->bool_expr, prog);
 			char *t_stmts = codegen_statement_list(
-				stmt->stmt->_if->true_stmts);
+				stmt->stmt->_if->true_stmts, prog);
 			char *f_stmts = codegen_statement_list(
-				stmt->stmt->_if->false_stmts);
+				stmt->stmt->_if->false_stmts, prog);
 
 			char *out = str_concat(22,
 				"# BEGIN IF STATEMENT ", label_no, "\n",
@@ -459,7 +493,7 @@ char *codegen_statement(Statement *stmt) {
 			char *label_no = label_number(&label_print);
 
 			// Generate the code for the expression being printed
-			char *expr = codegen_expression(stmt->stmt->_print->expr);
+			char *expr = codegen_expression(stmt->stmt->_print->expr, prog);
 
 			// codegen_program() declares printf_str as "%d\n", which can be
 			// used to print any integer in the manner below
@@ -495,7 +529,8 @@ char *codegen_statement(Statement *stmt) {
 			char *label_no = label_number(&label_assignment);
 
 			// Generate the code for the expression being assigned
-			char *expr = codegen_expression(stmt->stmt->_assignment->expr);
+			char *expr = codegen_expression(
+				stmt->stmt->_assignment->expr, prog);
 
 			// codegen_program() declares printf_str as "%d\n", which can be
 			// used to print any integer in the manner below
@@ -507,7 +542,9 @@ char *codegen_statement(Statement *stmt) {
 
 				// Store the expression's value at the appropriate location on
 				// the stack
-				"movl %eax, ", stack_offset, "(%ebp)\n",
+				"movl %eax, ",
+					stmt->stmt->_assignment->ident->expr->ident->stack_offset,
+					"(%ebp)\n",
 
 				"# END ASSIGNMENT STATEMENT ", label_no, "\n");
 
@@ -523,7 +560,7 @@ char *codegen_statement(Statement *stmt) {
 			char *label_no = label_number(&label_return);
 
 			// Generate the code for the expression being returned
-			char *expr = codegen_expression(stmt->stmt->_return->expr);
+			char *expr = codegen_expression(stmt->stmt->_return->expr, prog);
 
 			char *out = str_concat(8,
 				"# BEGIN RETURN STATEMENT ", label_no, "\n",
@@ -531,7 +568,7 @@ char *codegen_statement(Statement *stmt) {
 				// Evaluate the expression and put is value in %eax
 				expr,
 
-				// Jump bac to the caller
+				// Jump back to the caller
 				"ret\n",
 
 				"# END RETURN STATEMENT ", label_no, "\n");

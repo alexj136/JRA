@@ -14,7 +14,7 @@
 		char *message = test(); \
 		tests_run++; \
 		if (message) return message;\
-	} while (0)
+	} while(0)
 
 #define RUN_TESTS(tests) \
 int main() { \

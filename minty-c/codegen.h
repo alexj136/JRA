@@ -13,10 +13,10 @@
 #ifndef CODEGEN
 #define CODEGEN
 
-char *codegen_expression(Expression *expr);
+char *codegen_expression(Expression *expr, Program *prog);
 
-char *codegen_statement_list(LinkedList *stmts);
+char *codegen_statement_list(LinkedList *stmts, Program *prog);
 
-char *codegen_statement(Statement *stmt);
+char *codegen_statement(Statement *stmt, Program *prog);
 
 #endif // CODEGEN

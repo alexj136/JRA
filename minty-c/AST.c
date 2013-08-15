@@ -6,6 +6,25 @@
 #include "token.h"
 #include "AST.h"
 
+
+/*
+ * Struct used by FNDecl_generate_offsets(), Statement_generate_offsets(),
+ * stmt_list_generate_offsets() and Expression_generate_offsets()
+ * to record mappings between variable names and stack base offsets
+ */
+typedef struct {
+	char *name;
+	int offset;
+} NameToOffsetMapping;
+
+/*
+ * Free function for NameToOffsetMappings
+ */
+void NameToOffsetMapping_free(NameToOffsetMapping *ntom) {
+	free(ntom->name);
+	free(ntom);
+}
+
 /*
  * Constructor for BooleanExpr Expressions
  */
@@ -96,20 +115,6 @@ Expression *Identifier_init(char *ident) {
 	the_exp->expr = u_identifier;
 	the_exp->exec_count = 0;
 	return the_exp;
-}
-
-/*
- * Setter for the stack offset field in Identifier structs
- */
-void Identifier_set_stack_offset(Expression *ident, int stack_offset) {
-	ident->expr->ident->stack_offset = stack_offset;
-}
-
-/*
- * Check if the stack offset for this identifier has been set yet
- */
-bool Identifier_stack_offset_is_set(Expression *ident) {
-	return ident->expr->ident->stack_offset != -1;
 }
 
 /*
@@ -433,62 +438,105 @@ bool Expression_equals(Expression *expr1, Expression *expr2) {
  * Walks over an expression and sets the stack offsets for every identifier
  * found in that expression
  */
-void Expression_set_stack_offsets(Expression *expr, LinkedList *mappings) {
+static void Expression_generate_offsets(
+	Expression *expr, LinkedList *mappings) {
 	
 	switch(expr->type) {
 
 		case expr_BooleanExpr:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->blean->lhs,
 				mappings);
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->blean->rhs,
 				mappings);
 			break;
 
 		case expr_ArithmeticExpr:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->arith->lhs,
 				mappings);
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->arith->rhs,
 				mappings);
 			break;
 		
-		case expr_Identifier:
-			/* Do something interesting */
+		case expr_Identifier: {
+			// First we mush seach the mappings list to see if the mapping for
+			// this variable already exists. If so, record the index of the
+			// matching mapping.
+			bool mapping_exists = false;
+			int mapping_index = -1;
+			LLIterator *mapping_iter = LLIterator_init(mappings);
+			while((!LLIterator_ended(mapping_iter)) && (!mapping_exists)) {
+
+				if(str_equal(expr->expr->ident->name, ((NameToOffsetMapping *)
+						LLIterator_get_current(mapping_iter))->name)) {
+
+					mapping_exists = true;
+					mapping_index = LLIterator_current_index(mapping_iter);
+				}
+
+				LLIterator_advance(mapping_iter);
+			}
+			free(mapping_iter);
+
+			// If the mapping already exists, set the stack offset of this
+			// variable as the stack offset of the matching mapping.
+			if(mapping_exists) {
+				expr->expr->ident->stack_offset = ((NameToOffsetMapping *)
+					LinkedList_get(mappings, mapping_index))->offset;
+			}
+
+			// Otherwise, determine the appropriate stack offset for this
+			// variable, and set it for this Identifier object. Also add a
+			// mapping for this variable name and determined stack offset to the
+			// mappings list.
+			else {
+				// Calculate the offset - note that the offset is 4 times the
+				// length of the list because we want to allocat 4 bytes worth
+				// of stack space to each variable.
+				int offset = LinkedList_length(mappings) * 4;
+
+				// Set the offset for this Identifier object
+				expr->expr->ident->stack_offset = offset;
+
+				// Add a NameToOffsetMapping to the mapping list to represent
+				// the mapping we just determined
+				NameToOffsetMapping *ntom =
+					(NameToOffsetMapping *)malloc(sizeof(NameToOffsetMapping));
+				ntom->name = safe_strdup(expr->expr->ident->name);
+				ntom->offset = offset;
+				LinkedList_append(mappings, (void *)ntom);
+			}
+
+			// Debugging print statement
+			// printf("name: %s, offset: %d\n", expr->expr->ident->name,
+			// 	expr->expr->ident->stack_offset);
+
 			break;
+		}
 
 		case expr_IntegerLiteral:
 			/* Do nothing */
 			break;
 
 		case expr_FNCall:
-			// Create an iterator for the statement list
-			LLIterator *expr_iter = LLIterator_init(expr->expr->fncall->args);
-
-			// Use the iterator to call Expression_set_stack_offsets() on each
-			// expression inthe list
-			while(!LLIterator_ended(expr_iter)) {
-
-				Expression_set_stack_offsets(
-					LLIterator_get_current(expr_iter),
-					mappings);
-
-				LLIterator_advance(expr_iter);
-			}
-
-			free(expr_iter);
+			LLMAP_PARAM(
+				expr->expr->fncall->args,
+				Expression *,
+				Expression_generate_offsets,
+				mappings);
 			break;
 
 		case expr_Ternary:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->trnry->bool_expr,
 				mappings);
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->trnry->true_expr,
 				mappings);
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				expr->expr->trnry->false_expr,
 				mappings);
 			break;
@@ -546,10 +594,7 @@ void Expression_free(Expression *expr) {
 			free(expr->expr->fncall->name);
 
 			// Free the arguments
-			int i;
-			for(i = 0; i < LinkedList_length(expr->expr->fncall->args); i++)
-				Expression_free((Expression *)LinkedList_get(
-					expr->expr->fncall->args, i));
+			LLMAP(expr->expr->fncall->args, Expression *, Expression_free);
 
 			// Free the list that contained the arguments
 			LinkedList_free(expr->expr->fncall->args);
@@ -668,7 +713,7 @@ Statement *Print_init(Expression *expr) {
 Statement *Assignment_init(char *name, Expression *expr) {
 
 	Assignment *assignment_stmt = safe_alloc(sizeof(Assignment));
-	assignment_stmt->name = name;
+	assignment_stmt->ident = Identifier_init(name);
 	assignment_stmt->expr = expr;
 
 	u_stmt *u_assignment = safe_alloc(sizeof(u_stmt));
@@ -788,101 +833,93 @@ bool Statement_equals(Statement *stmt1, Statement *stmt2) {
 			return Expression_equals(
 					stmt1->stmt->_assignment->expr,
 					stmt2->stmt->_assignment->expr) &&
-				str_equal(
-					stmt1->stmt->_assignment->name,
-					stmt2->stmt->_assignment->name);
+				Expression_equals(
+					stmt1->stmt->_assignment->ident,
+					stmt2->stmt->_assignment->ident);
 
 		case stmt_Return:
 			return Expression_equals(
 				stmt1->stmt->_return->expr,
 				stmt2->stmt->_return->expr);
 	}
+	printf("Error: control reached end of Statement_equals() function\n");
+	exit(EXIT_FAILURE);
+	return (bool) NULL;
 }
 
 /*
  * Walks over the AST and sets the stack offsets for every identifier found in
  * the AST
  */
-void Statement_set_stack_offsets(Statement *stmt, LinkedList *mappings) {
+static void Statement_generate_offsets(Statement *stmt, LinkedList *mappings) {
 	
 	switch(stmt->type) {
 
 		case stmt_For:
-			Statement_set_stack_offsets(
+			Statement_generate_offsets(
 				stmt->stmt->_for->assignment,
 				mappings);
-			Expression_set_stack_offsets(
-				stmt->stmt->_for->bool_expr
+			Expression_generate_offsets(
+				stmt->stmt->_for->bool_expr,
 				mappings);
-			Statement_set_stack_offsets(
+			Statement_generate_offsets(
 				stmt->stmt->_for->incrementor,
 				mappings);
-			stmt_list_set_stack_offsets(
+			LLMAP_PARAM(
 				stmt->stmt->_for->stmts,
+				Statement *,
+				Statement_generate_offsets,
 				mappings);
 			break;
 
 		case stmt_While:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				stmt->stmt->_while->bool_expr,
 				mappings);
-			stmt_list_set_stack_offsets(
+			LLMAP_PARAM(
 				stmt->stmt->_while->stmts,
+				Statement *,
+				Statement_generate_offsets,
 				mappings);
 			break;
 		
 		case stmt_If:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				stmt->stmt->_if->bool_expr,
 				mappings);
-			stmt_list_set_stack_offsets(
+			LLMAP_PARAM(
 				stmt->stmt->_if->true_stmts,
+				Statement *,
+				Statement_generate_offsets,
 				mappings);
-			stmt_list_set_stack_offsets(
+			LLMAP_PARAM(
 				stmt->stmt->_if->false_stmts,
+				Statement *,
+				Statement_generate_offsets,
 				mappings);
 			break;
 
 		case stmt_Print:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				stmt->stmt->_print->expr,
 				mappings);
 			break;
 
 		case stmt_Assignment:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				stmt->stmt->_assignment->expr,
+				mappings);
+			Expression_generate_offsets(
+				stmt->stmt->_assignment->ident,
 				mappings);
 			break;
 
 		case stmt_Return:
-			Expression_set_stack_offsets(
+			Expression_generate_offsets(
 				stmt->stmt->_return->expr,
 				mappings);
 			break;
 	}
-}
-
-/*
- * Iterates over a list of statements, and sets the stack offsets for every
- * identifier found in those statements
- */
-void stmt_list_set_stack_offsets(LinkedList *stmts, LinkedList *mappings) {
-	// Create an iterator for the statement list
-	LLIterator *stmts_iter = LLIterator_init(stmts);
-
-	// Use the iterator to call Statement_set_stack_offsets() on each contained
-	// statement
-	while(!LLIterator_ended(stmts_iter)) {
-
-		Statement_set_stack_offsets(
-			LLIterator_get_current(stmts_iter),
-			mappings);
-
-		LLIterator_advance(stmts_iter);
-	}
-
-	free(stmts_iter);
 }
 
 /*
@@ -970,7 +1007,7 @@ void Statement_free(Statement *stmt) {
 
 		case stmt_Assignment:
 			Expression_free(stmt->stmt->_assignment->expr);
-			free(stmt->stmt->_assignment->name);
+			Expression_free(stmt->stmt->_assignment->ident);
 			free(stmt->stmt->_assignment);
 
 			// Free the union object
@@ -1051,40 +1088,32 @@ bool FNDecl_equals(FNDecl *f1, FNDecl *f2) {
  * and sets the stack_offset field appropriately for each identifier in the
  * function.
  */
-void FNDecl_calculate_count_and_offsets(FNDecl *func) {
+void FNDecl_generate_offsets(FNDecl *func) {
 
-	// Keep a running count of the number of declared variables. Store it as a
-	// reference so that other variables can modify it
-	int *running_count = malloc(sizeof(int));
+	// Create a list to store NameToOffsetMappings
+	LinkedList *mappings = LinkedList_init();
 
-	// Initialise the running count as the number of paramaters for the function
-	*running_count = LinkedList_length(func->args);
-	
-	// NEED TO DEFINE MAPPINGS
+	// Assign to each function argument their stack offsets
+	LLMAP_PARAM(
+		func->args,
+		Expression *,
+		Expression_generate_offsets,
+		mappings);
 
-	// Iterate over each argument (with an iterator), and assign to them their
-	// stack offsets
-	LLIterator args_iter = LLIterator_init(func->args);
-	while(!LLIterator_ended(args_iter)) {
+	// Assign the stack offsets to the other identifiers used in the function
+	LLMAP_PARAM(
+		func->stmts,
+		Statement *,
+		Statement_generate_offsets,
+		mappings);
 
-		// Set the stack offset based on the argument's position in the list
-		Identifier_set_stack_offset(
-			(Expression *)LLIterator_get_current(args_iter),
-			LLIterator_current_index(args_iter) * 4);
+	// Set the variable count for the function as the number of mappings that
+	// were created
+	func->variable_count = LinkedList_length(mappings);
 
-		// Advance the iterator
-		LLIterator_advance(args_iter);
-	}
-	free(args_iter);
-
-	// Calculate the offsets for the identifiers used in the function
-	stmt_list_set_stack_offsets(func->stmts, mappings);
-
-	// Walk the AST and increment the counter for every variable that is
-	// declared
-
-	printf("FNDecl_calculate_count_and_offsets INCOMPLETE IMPLEMENTATION\n");
-	exit(EXIT_FAILURE);
+	// Free things
+	LLMAP(mappings, NameToOffsetMapping *, NameToOffsetMapping_free);
+	LinkedList_free(mappings);
 }
 
 /*
@@ -1095,16 +1124,13 @@ void FNDecl_free(FNDecl *func) {
 	free(func->name);
 
 	// Free the Identifiers in the argument list
-	int i;
-	for(i = 0; i < LinkedList_length(func->args); i++)
-		Expression_free((Expression *)LinkedList_get(func->args, i));
+	LLMAP(func->args, Expression *, Expression_free);
 
 	// Free the list itself
 	LinkedList_free(func->args);
 
 	// Free the Statements in the statement list
-	for(i = 0; i < LinkedList_length(func->stmts); i++)
-		Statement_free((Statement *)LinkedList_get(func->stmts, i));
+	LLMAP(func->stmts, Statement *, Statement_free);
 
 	// Free the list itself
 	LinkedList_free(func->stmts);
@@ -1161,6 +1187,9 @@ FNDecl *Program_get_FNDecl(Program *prog, char *name) {
 	}
 }
 
+/*
+ * Checks if two ASTs are equal
+ */
 bool Program_equals(Program *p1, Program *p2) {
 	// If the programs have different numbers of functions, we can immediately
 	//return false
@@ -1192,13 +1221,18 @@ bool Program_equals(Program *p1, Program *p2) {
 }
 
 /*
+ * Generates stack offsets for the variables in a program
+ */
+void Program_generate_offsets(Program *prog) {
+	LLMAP(prog->function_list, FNDecl *, FNDecl_generate_offsets);
+}
+
+/*
  * Destructor for Program objects
  */
 void Program_free(Program *prog) {
 	// Free the functions in the list
-	int i;
-	for(i = 0; i < LinkedList_length(prog->function_list); i++)
-		FNDecl_free((FNDecl *)LinkedList_get(prog->function_list, i));
+	LLMAP(prog->function_list, FNDecl *, FNDecl_free);
 
 	// Free the list itself
 	LinkedList_free(prog->function_list);

@@ -42,7 +42,7 @@ char *test_large_expression() {
 	);
 
 	int result;
-	char *code = codegen_expression(expr);
+	char *code = codegen_expression(expr, NULL);
 	// asm(code
 	// 	: "=r"(result)
 	// 	:  // no input 

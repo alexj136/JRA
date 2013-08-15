@@ -220,12 +220,12 @@ struct Print {
 };
 
 /*
- * Assignment statements store the name of the variable being assigned to, and
- * the expression to be assigned to it
+ * Assignment statements store and Identifier Expression object representing the
+ * variable being assigned to, and the expression to be assigned to it
  */
 typedef struct Assignment Assignment;
 struct Assignment {
-	char *name;
+	Expression *ident;
 	Expression *expr;
 };
 
@@ -270,10 +270,6 @@ Expression *ArithmeticExpr_init(
 
 Expression *Identifier_init(char *ident);
 
-void Identifier_set_stack_offset(Expression *ident, int stack_offset);
-
-bool Identifier_stack_offset_is_set(Expression *ident);
-
 Expression *IntegerLiteral_init(int intgr);
 
 Expression *FNCall_init(char *name, LinkedList *args);
@@ -309,6 +305,8 @@ FNDecl *FNDecl_init(char *name, LinkedList *args, LinkedList *stmts);
 
 bool FNDecl_equals(FNDecl *f1, FNDecl *f2);
 
+void FNDecl_generate_offsets(FNDecl *func);
+
 void FNDecl_free(FNDecl *func);
 
 Program *Program_init(LinkedList *function_list);
@@ -316,6 +314,8 @@ Program *Program_init(LinkedList *function_list);
 FNDecl *Program_get_FNDecl(Program *prog, char *name);
 
 bool Program_equals(Program *p1, Program *p2);
+
+void Program_generate_offsets(Program *prog);
 
 void Program_free(Program *prog);
 

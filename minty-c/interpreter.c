@@ -490,7 +490,8 @@ void interpret_statement(Statement *stmt, Scope *scope, Program *prog) {
 		}
 		case stmt_Assignment: {
 			// Update the scope with a value for the variable name
-			Scope_update(scope, stmt->stmt->_assignment->name, 
+			Scope_update(scope,
+				stmt->stmt->_assignment->ident->expr->ident->name, 
 				interpret_expression(
 					stmt->stmt->_assignment->expr, scope, prog));
 
