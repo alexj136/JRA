@@ -19,4 +19,8 @@ char *codegen_statement_list(LinkedList *stmts, Program *prog);
 
 char *codegen_statement(Statement *stmt, Program *prog);
 
+char *codegen_function(FNDecl *func, Program *prog);
+
+char *codegen_program(Program *prog);
+
 #endif // CODEGEN

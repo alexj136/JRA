@@ -78,31 +78,31 @@ static char *label_number(int *label) {
 	return str;
 }
 
-static int label_ternary    = 0;
-static int label_arithmetic = 0;
 static int label_boolean    = 0;
-static int label_print      = 0;
-static int label_return     = 0;
+static int label_arithmetic = 0;
+static int label_fncall     = 0;
+static int label_ternary    = 0;
 static int label_for        = 0;
 static int label_while      = 0;
 static int label_if         = 0;
+static int label_print      = 0;
 static int label_assignment = 0;
-static int label_identifier = 0;
+static int label_return     = 0;
 
 /*
  * Sets all the label numbers back to zero
  */
 static void reset_labels() {
-	label_ternary    = 0;
-	label_arithmetic = 0;
 	label_boolean    = 0;
-	label_print      = 0;
-	label_return     = 0;
+	label_arithmetic = 0;
+	label_fncall     = 0;
+	label_ternary    = 0;
 	label_for        = 0;
 	label_while      = 0;
 	label_if         = 0;
+	label_print      = 0;
 	label_assignment = 0;
-	label_identifier = 0;
+	label_return     = 0;
 }
 
 /*
@@ -142,7 +142,7 @@ char *codegen_expression(Expression *expr, Program *prog) {
 			}
 
 			// Concatenate everything together to get the compiled AST
-			out = str_concat(11,
+			out = str_concat(15,
 				"# BEGIN BOOLEAN EXPRESSION ", label_no, "\n",
 				rhs,
 				"pushl %eax\n",
@@ -246,39 +246,51 @@ char *codegen_expression(Expression *expr, Program *prog) {
 
 		case expr_FNCall: {
 
+			// Get the label number for this function call
+			char *label_no = label_number(&label_fncall);
+
 			// Obtain a string that represents an integer which is the amount of
 			// space which the arguments being passed to the function will
 			// occupy on the stack
 			char *stack_space = malloc(sizeof(char) * 12);
-			sprintf(stack_space, "%d",
-				4 * LinkedList_length(expr->expr->fncall->args));
+			
+			// Create a pointer to the callee function's name
+			char *fn_name = expr->expr->fncall->name;
 
-			char *push_args = "";
+			sprintf(stack_space, "%d", 4 * (Program_get_FNDecl(
+				prog, fn_name))->variable_count);
 
-			int i;
-			for(i = 0; i < LinkedList_length(expr->expr->fncall->args); i++) {
+			char *str_builder_args = safe_strdup("");
+
+			LLIterator *args_iter = LLIterator_init(expr->expr->fncall->args);
+			while(!LLIterator_ended(args_iter)) {
 				
 				// Generate the code for this argument
 				char *arg = codegen_expression(
-					(Expression *)LinkedList_get(expr->expr->fncall->args, i),
+					(Expression *)LLIterator_get_current(args_iter),
 					prog);
 
 				// Append to the current string the compilation of the argument,
 				// followed by storing that argument at the appropriate position
 				// on the stack
-				char *temp = str_concat(5,
-					push_args,
+				char *temp = str_concat(3,
+					str_builder_args,
 					arg,
 					"pushl %eax\n");
 
-				free(push_args);
-				push_args = temp;
-			}
+				free(str_builder_args);
+				str_builder_args = temp;
 
-			char *out = str_concat(20,
+				LLIterator_advance(args_iter);
+
+			} free(args_iter);
+
+			char *out = str_concat(21,
+				"BEGIN CALL ", label_no, " TO '", fn_name, "'\n",
+
 				// Save our stack base pointer for restoration later
 				"pushl %ebp\n",
-				push_args,
+				str_builder_args,
 
 				// Subtract from OUR stack pointer the size that the arguments
 				// occupy, thereby putting them into the callee's frame
@@ -289,7 +301,7 @@ char *codegen_expression(Expression *expr, Program *prog) {
 				"movl %esp, %ebp\n",
 
 				// Call the function
-				"call ", expr->expr->fncall->name, "\n",
+				"call ", fn_name, "\n",
 
 				// Now the function has run, set out stack pointer as the
 				// callee's base pointer (this pops off all the arguments we
@@ -297,9 +309,11 @@ char *codegen_expression(Expression *expr, Program *prog) {
 				"movl %ebp, %esp\n",
 				
 				// Finally restore our base pointer
-				"popl %ebp\n");
+				"popl %ebp\n"
 
-			free(push_args);
+				"END CALL ", label_no, " TO '", fn_name, "'\n");
+
+			free(str_builder_args);
 
 			return out;
 		}
@@ -350,7 +364,7 @@ char *codegen_statement_list(LinkedList *stmts, Program *prog) {
 	// If the list is empty, this is valid, but produces no output, so return
 	// the empty string, rather than null
 	if(LinkedList_length(stmts) == 0) {
-		return "";
+		return safe_strdup("");
 	}
 
 	// Generate the code for the first expression
@@ -522,8 +536,6 @@ char *codegen_statement(Statement *stmt, Program *prog) {
 		
 		case stmt_Assignment: {
 
-			char *stack_offset = "VARIABLES NOT YET IMPLEMENTED ";
-
 			// Get the label number for this assignment statement (only used in
 			// generated comments, there are no jumps in assignment statements)
 			char *label_no = label_number(&label_assignment);
@@ -581,4 +593,66 @@ char *codegen_statement(Statement *stmt, Program *prog) {
 	printf("Invalid statement type in AST\n");
 	exit(EXIT_FAILURE);
 	return NULL;
+}
+
+char *codegen_function(FNDecl *func, Program *prog) {
+
+	char *stmts_code = codegen_statement_list(func->stmts, prog);
+	
+	char *out = str_concat(13,
+		// Declare the function as global
+		"\n.globl ", func->name, "\n",
+
+		// Add the function label
+		func->name, ":\n\n",
+
+		// Add the code
+		stmts_code, "\n",
+
+		// If we reach the end of a function without returning to the caller,
+		// print an error message and exit:
+		"# END OF FUNCTION ERROR CODE\n",
+		"pushl $error_str\n",
+		"call printf\n",
+		"movl $0, %ebx\n",
+		"movl $1, %eax\n",
+		"int $0x80\n");
+
+
+	free(stmts_code);
+	return out;
+}
+
+char *codegen_program(Program *prog) {
+	Program_generate_offsets(prog);
+
+	if(LinkedList_length(prog->function_list) < 1) {
+		printf("Error: empty program object given to codegen_program()\n");
+		exit(EXIT_FAILURE);
+	}
+
+	LLIterator *function_iter = LLIterator_init(prog->function_list);
+	char *function_code = codegen_function(
+		(FNDecl *)LLIterator_get_current(function_iter), prog);
+	LLIterator_advance(function_iter);
+
+	while(!LLIterator_ended(function_iter)) {
+		char *temp = str_concat_2(function_code, codegen_function(
+			(FNDecl *)LLIterator_get_current(function_iter), prog));
+		free(function_code);
+		function_code = temp;
+		LLIterator_advance(function_iter);
+	}
+	free(function_iter);
+
+	char *out = str_concat(4,
+		".text\n",
+		"printf_str: .asciz \"%d\n\"",
+		"error_str: .asciz \"Error: control reached end of function without \
+		returning\n\"",
+		function_code);
+
+	free(function_code);
+	reset_labels();
+	return out;
 }

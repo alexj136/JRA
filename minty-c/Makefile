@@ -71,7 +71,10 @@ test/test_interpreter: test/test_interpreter.c minty_util.o token.o AST.o \
 		parser.o interpreter.o -o test/test_interpreter
 	@test/test_interpreter
 
-test/test_codegen: test/test_codegen.c minty_util.o token.o AST.o codegen.o
-	$(LINK) test/test_codegen.c minty_util.o token.o lexer.o AST.o codegen.o \
-		-o test/test_codegen
+test/test_codegen: test/test_codegen.c minty_util.o token.o AST.o parser.o \
+	codegen.o
+	$(LINK) test/test_codegen.c minty_util.o token.o lexer.o AST.o parser.o \
+		codegen.o -o test/test_codegen
 	@test/test_codegen
+
+.PRECIOUS: $(TESTS)

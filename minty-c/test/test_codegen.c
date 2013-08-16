@@ -4,6 +4,7 @@
 #include "../minty_util.h"
 #include "../token.h"
 #include "../AST.h"
+#include "../parser.h"
 #include "../codegen.h"
 
 int tests_run = 0;
@@ -41,7 +42,7 @@ char *test_large_expression() {
 		)
 	);
 
-	int result;
+	// int result;
 	char *code = codegen_expression(expr, NULL);
 	// asm(code
 	// 	: "=r"(result)
@@ -64,4 +65,27 @@ char *all_tests() {
 	return NULL;
 }
 
-RUN_TESTS(all_tests);
+//RUN_TESTS(all_tests);
+
+int main() {
+	char *fib = "fn main(x) { return fibonacci(x); }\
+	fn fibonacci(x) {\
+		if x = 0 {\
+			return 0;\
+		}\
+		else {} if x = 1 {\
+			return 1;\
+		}\
+		else {\
+			return fibonacci(x - 1) + fibonacci(x - 2);\
+		}\
+	}";
+
+	LinkedList *tokens = lex(fib);
+	Program *ast = parse_program(tokens);
+	printf("%s\n", codegen_program(ast));
+	Program_free(ast);
+	LLMAP(tokens, Token *, Token_free);
+	LinkedList_free(tokens);
+	return 0;
+}
