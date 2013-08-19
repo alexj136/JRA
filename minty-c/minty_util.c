@@ -76,7 +76,7 @@ char *str_concat(int count, ...) {
 		str = str_temp_2;
 	}
 
-	// Clean up varargs and use 
+	// Clean up varargs and return
 	va_end(args);
 	return str;
 }

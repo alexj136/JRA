@@ -65,10 +65,11 @@ char *all_tests() {
 	return NULL;
 }
 
-//RUN_TESTS(all_tests);
+RUN_TESTS(all_tests);
 
+/*
 int main() {
-	char *fib = "fn main(x) { return fibonacci(x); }\
+	LinkedList *tokens = lex("fn main(x) { return fibonacci(x); }\
 	fn fibonacci(x) {\
 		if x = 0 {\
 			return 0;\
@@ -79,13 +80,15 @@ int main() {
 		else {\
 			return fibonacci(x - 1) + fibonacci(x - 2);\
 		}\
-	}";
+	}");
 
-	LinkedList *tokens = lex(fib);
 	Program *ast = parse_program(tokens);
-	printf("%s\n", codegen_program(ast));
+	char *asm_prog = codegen_program(ast);
+	// printf("%s\n", asm_prog);
+	free(asm_prog);
 	Program_free(ast);
 	LLMAP(tokens, Token *, Token_free);
 	LinkedList_free(tokens);
 	return 0;
 }
+*/
