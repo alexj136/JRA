@@ -73,10 +73,76 @@ char *test_ArrLen_concat() {
 	return NULL;
 }
 
+char *test_jit_nothing() {
+
+	// Empty ArrLen object
+	ArrLen *jitcode = ArrLen_init(NULL, 0);
+
+	// Run the empty machine code. No assertions to make, but simply checking
+	// that we can jump to some mmaped region and return without causing a
+	// segfault.
+	int i; for(i = 0; i < 10; i++) jitexec_expression(jitcode);
+
+	free(jitcode);
+
+	return NULL;
+}
+
+char *test_jit_integer() {
+	int i;
+	for(i = -2000000000; i < 2000000000; i += 10000000) {
+
+		// Expression to jit
+		Expression *integer = IntegerLiteral_init(i);
+
+		// Convert it to machine code
+		ArrLen *jitcode = jitcode_expression(integer, NULL);
+
+		// Run the machine code
+		int result = jitexec_expression(jitcode);
+
+		// Assert the correct result
+		mu_assert(result == i, "test_jit_integer failed");
+
+		Expression_free(integer);
+		free(jitcode->arr);
+		free(jitcode);
+	}
+
+	return NULL;
+}
+
+char *test_jit_add() {
+	// Create an arithmetic expression
+	Expression *one_plus_two = ArithmeticExpr_init(
+		IntegerLiteral_init(1),
+		PLUS,
+		IntegerLiteral_init(2)
+	);
+
+	// Get its jit code
+	ArrLen *jitcode = jitcode_expression(one_plus_two, NULL);
+	
+	// Execute its jit code and store the result
+	int result = jitexec_expression(jitcode);
+
+	// Assert that the correct result was obtained
+	mu_assert(result == 3, "test_jit_add failed");
+
+	Expression_free(one_plus_two);
+	free(jitcode->arr);
+	free(jitcode);
+
+	return NULL;
+}
+
 char *all_tests() {
 
 	mu_run_test(test_ArrLen_concat_2);
 	mu_run_test(test_ArrLen_concat);
+	mu_run_test(test_jit_nothing);
+	mu_run_test(test_jit_integer);
+	mu_run_test(test_jit_add);
 
 	return NULL;
 }

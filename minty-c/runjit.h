@@ -22,4 +22,6 @@ ArrLen *ArrLen_concat(int count, ...);
 
 ArrLen *jitcode_expression(Expression *expr, Program *prog);
 
+int jitexec_expression(ArrLen *expr_code);
+
 #endif // RUNJIT
