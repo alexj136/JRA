@@ -1,7 +1,8 @@
 #ifndef RUNJIT
 #define RUNJIT
 
-#define byte unsigned char
+#include <stdint.h>
+#define byte uint8_t
 
 /*
  * Struct storing an array and its length in bytes, useful for handling machine

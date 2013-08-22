@@ -70,6 +70,11 @@ char *test_ArrLen_concat() {
 		}
 	}
 
+	free(a->arr);
+	free(a);
+	free(b->arr);
+	free(b);
+
 	return NULL;
 }
 
@@ -79,7 +84,7 @@ char *test_jit_nothing() {
 	ArrLen *jitcode = ArrLen_init(NULL, 0);
 
 	// Run the empty machine code. No assertions to make, but simply checking
-	// that we can jump to some mmaped region and return without causing a
+	// that we can jump to some mmap-ed region and return without causing a
 	// segfault.
 	int i; for(i = 0; i < 10; i++) jitexec_expression(jitcode);
 
@@ -108,31 +113,104 @@ char *test_jit_integer() {
 		free(jitcode->arr);
 		free(jitcode);
 	}
-
 	return NULL;
 }
 
 char *test_jit_add() {
-	// Create an arithmetic expression
-	Expression *one_plus_two = ArithmeticExpr_init(
-		IntegerLiteral_init(1),
-		PLUS,
-		IntegerLiteral_init(2)
-	);
 
-	// Get its jit code
-	ArrLen *jitcode = jitcode_expression(one_plus_two, NULL);
-	
-	// Execute its jit code and store the result
-	int result = jitexec_expression(jitcode);
+	int i, j;
 
-	// Assert that the correct result was obtained
-	mu_assert(result == 3, "test_jit_add failed");
+	for(i = -6378623; i < 3827493; i += 20394)
+	for(j = -4839723; j < 8438758; j += 78347) {
 
-	Expression_free(one_plus_two);
-	free(jitcode->arr);
-	free(jitcode);
+		// Create an arithmetic expression
+		Expression *one_plus_two = ArithmeticExpr_init(
+			IntegerLiteral_init(i),
+			PLUS,
+			IntegerLiteral_init(j)
+		);
 
+		// Get its jit code
+		ArrLen *jitcode = jitcode_expression(one_plus_two, NULL);
+
+		// Execute its jit code and store the result
+		int result = jitexec_expression(jitcode);
+
+		// Assert that the correct result was obtained
+		mu_assert(result == i + j, "test_jit_add failed");
+
+		Expression_free(one_plus_two);
+		free(jitcode->arr);
+		free(jitcode);
+	}
+	return NULL;
+}
+
+char *test_jit_boolean() {
+
+	int i;
+	for(i = 0; i < 10000; i++) {
+		
+		int a = rand() % 100;
+		int b = rand() % 100;
+
+		// Create an ternary expression
+		Expression *blean = BooleanExpr_init(
+			IntegerLiteral_init(a),
+			GREATER_THAN,
+			IntegerLiteral_init(b)
+		);
+
+		// Get its jit code
+		ArrLen *jitcode = jitcode_expression(blean, NULL);
+
+		// Execute its jit code and store the result
+		int result = jitexec_expression(jitcode);
+
+		// Assert that the correct result was obtained
+		mu_assert(result == (a > b), "test_jit_boolean failed");
+
+		Expression_free(blean);
+		free(jitcode->arr);
+		free(jitcode);
+	}
+	return NULL;
+}
+
+char *test_jit_ternary() {
+
+	int i;
+	for(i = 0; i < 10000; i++) {
+		
+		int a = rand() % 100;
+		int b = rand() % 100;
+		int c = rand() % 100;
+		int d = rand() % 100;
+
+		// Create an ternary expression
+		Expression *tern = Ternary_init(
+			BooleanExpr_init(
+				IntegerLiteral_init(a),
+				GREATER_THAN,
+				IntegerLiteral_init(b)
+			),
+			IntegerLiteral_init(c),
+			IntegerLiteral_init(d)
+		);
+
+		// Get its jit code
+		ArrLen *jitcode = jitcode_expression(tern, NULL);
+
+		// Execute its jit code and store the result
+		int result = jitexec_expression(jitcode);
+
+		// Assert that the correct result was obtained
+		mu_assert(result == (a > b)? c : d, "test_jit_ternary failed");
+
+		Expression_free(tern);
+		free(jitcode->arr);
+		free(jitcode);
+	}
 	return NULL;
 }
 
@@ -143,6 +221,8 @@ char *all_tests() {
 	mu_run_test(test_jit_nothing);
 	mu_run_test(test_jit_integer);
 	mu_run_test(test_jit_add);
+	mu_run_test(test_jit_boolean);
+	mu_run_test(test_jit_ternary);
 
 	return NULL;
 }

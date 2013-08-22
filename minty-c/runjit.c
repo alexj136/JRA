@@ -29,6 +29,30 @@ ArrLen *ArrLen_concat_2(ArrLen *al1, ArrLen *al2) {
 	return ArrLen_init(new_mem, al1->len + al2->len);
 }
 
+/*
+ * Writes an integer into a byte buffer in such a way that it can be used by
+ * machine code.
+ * 
+ * buffer: the buffer to write into
+ * offset: the offset from the start of the buffer at which the first byte of
+ *         integer should be written (the other bytes follow immediately)
+ * value:  The value to be written
+ */
+void put_int_as_bytes(byte *buffer, int offset, int value) {
+	
+	*(buffer + (sizeof(byte) * (0 + offset))) =
+		(byte)((value & 0x000000FF) >>  0);
+
+	*(buffer + (sizeof(byte) * (1 + offset))) =
+		(byte)((value & 0x0000FF00) >>  8);
+
+	*(buffer + (sizeof(byte) * (2 + offset))) =
+		(byte)((value & 0x00FF0000) >> 16);
+
+	*(buffer + (sizeof(byte) * (3 + offset))) =
+		(byte)((value & 0xFF000000) >> 24);
+}
+
 ArrLen *ArrLen_concat(int count, ...) {
 
 	// If count is zero, there is nothing to do, return NULL as specified.
@@ -126,22 +150,22 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 
 			// lhs goes here
 
-			byte instr2[15] = {
+			byte instr2[13] = {
 
 				// popl %ebx
 				0x5B,
 
 				// movl $0, %ecx
-				0x8B, 0x0D, 0x00, 0x00, 0x00, 0x00,
+				0xB9, 0x00, 0x00, 0x00, 0x00,
 
 				// movl $1, %edx
-				0x8B, 0x15, 0x01, 0x00, 0x00, 0x00, 
+				0xBA, 0x01, 0x00, 0x00, 0x00, 
 				
 				// cmpl %ebx, %eax
 				0x39, 0xD8
 
 			};
-			ArrLen *arrlen_instr2 = ArrLen_init(&(instr2[0]), 15);
+			ArrLen *arrlen_instr2 = ArrLen_init(&(instr2[0]), 13);
 
 			// opcode goes here
 
@@ -162,8 +186,10 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 
 			// We can free lhs and rhs as their contents are copied into out by
 			// str_concat
+			free(lhs->arr);
 			free(lhs);
 			free(arrlen_instr1);
+			free(rhs->arr);
 			free(rhs);
 			free(arrlen_instr2);
 			free(opcode);
@@ -249,8 +275,10 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 
 			// We can free lhs and rhs as their contents are copied into out by
 			// str_concat
+			free(lhs->arr);
 			free(lhs);
 			free(arrlen_instr1);
+			free(rhs->arr);
 			free(rhs);
 			free(arrlen_instr2);
 			free(opcode);
@@ -266,15 +294,11 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 
 		case expr_IntegerLiteral: {
 
-			int the_int = expr->expr->intgr;
 			byte *opcode = malloc(sizeof(char) * 5);
 
 			// movl <value>, %eax
 			opcode[0] = (byte) 0xB8;
-			opcode[1] = (byte)((the_int & 0x000000FF) >>  0);
-			opcode[2] = (byte)((the_int & 0x0000FF00) >>  8);
-			opcode[3] = (byte)((the_int & 0x00FF0000) >> 16);
-			opcode[4] = (byte)((the_int & 0xFF000000) >> 24);
+			put_int_as_bytes(opcode, 1, expr->expr->intgr);
 
 			return ArrLen_init(opcode, sizeof(char) * 5);
 		}
@@ -285,8 +309,92 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 		}
 
 		case expr_Ternary: {
-			printf("Ternary jit not yet implemented");
-			exit(EXIT_FAILURE);
+
+
+			// Generate jitcode for the boolean, true, and false expressions
+			ArrLen *b_exp = jitcode_expression(
+				expr->expr->trnry->bool_expr, prog);
+			ArrLen *t_exp = jitcode_expression(
+				expr->expr->trnry->true_expr, prog);
+			ArrLen *f_exp = jitcode_expression(
+				expr->expr->trnry->false_expr, prog);
+
+			/*
+			 * The following byte arrays encode the machine code operations
+			 * required to compute the given expression. The assembly code
+			 * comments express the necessary jumps using labels. In reality,
+			 * machine code has no labels, so the machine code shown actually
+			 * encodes relative jumps, which trigger a jump over the specified
+			 * number of bytes.
+			 *     The 0xE9 opcode is an unconditional relative jump, that takes
+			 * a long argument, for example, the instruction:
+			 * { 0xE9, 0x09, 0x00, 0x00, 0x00 } will trigger a jump over the
+			 * next 9 bytes of code. It is important the number of bytes to jump
+			 * is exactly correct, or a misaligned read will likely occur, and
+			 * cause a nonsense instruction to be executed. The information
+			 * about how far to jump is contained in the ArrLen objects obtained
+			 * from each expression.
+			 *     The 0x0F, 0x84 opcode is the conditional 'if-equal' jump. It
+			 * also takes a long argument.
+			 */
+			
+			// b_exp goes here
+			
+			byte instr1[12] = {
+
+				// cmpl $0, %eax
+				0x3B, 0x05, 0x00, 0x00, 0x00, 0x00,
+				
+				// je ternary_false
+				0x0F, 0x84, 0x00, 0x00, 0x00, 0x00
+
+			};
+			
+			// The 4 0x00s in the line 'je ternary_false' above are overwritten
+			// with the length of the jump which is derived from the size of the
+			// true expression. We must also jump over the 'jmp ternary_end'
+			// below the true expession, hence the extra 5 bytes in the 
+			// put_int_as_bytes() call.
+			put_int_as_bytes(instr1, 8, t_exp->len + (sizeof(byte) * 5));
+			ArrLen *arrlen_instr1 = ArrLen_init(&(instr1[0]), 12);
+			
+			// t_exp goes here
+			
+			// jmp ternary_end
+			byte instr2[5] = { 0xE9, 0x00, 0x00, 0x00, 0x00 };
+
+			// As with the first jump, the appropriate jump distance is written
+			// over the initial zero. However there is no extra code to jump, so
+			// no 'sizeof(byte) * X' term.
+			put_int_as_bytes(instr2, 1, f_exp->len);
+			ArrLen *arrlen_instr2 = ArrLen_init(&(instr2[0]), 5);
+
+			// ternary_false:
+			// f_exp goes here
+
+			// ternary_end:
+			// No code required to represent this label as relative jumps are
+			// used
+
+			// Concatenate everything into one ArrLen object
+			ArrLen *out = ArrLen_concat(5,
+				b_exp,
+				arrlen_instr1,
+				t_exp,
+				arrlen_instr2,
+				f_exp
+			);
+
+			free(b_exp->arr);
+			free(b_exp);
+			free(arrlen_instr1);
+			free(t_exp->arr);
+			free(t_exp);
+			free(arrlen_instr2);
+			free(f_exp->arr);
+			free(f_exp);
+
+			return out;
 		}
 	}
 	printf("Invalid expression type in AST\n");
@@ -319,7 +427,7 @@ int jitexec_expression(ArrLen *expr_code) {
 	int result = (*jitexec)();
 
 	// Free the memory that we mapped
-	munmap(jit_memory, expr_code->len);
+	munmap(jit_memory, expr_code->len + sizeof(byte));
 
 	return result;
 }
