@@ -182,10 +182,11 @@ char *test_jit_ternary() {
 	int i;
 	for(i = 0; i < 10000; i++) {
 		
-		int a = rand() % 100;
-		int b = rand() % 100;
-		int c = rand() % 100;
-		int d = rand() % 100;
+		// Random parameters for use in ternary expressions
+		int a = rand() % ((i * 200000) + 1);
+		int b = rand() % ((i * 200000) + 1);
+		int c = rand() % ((i * 200000) + 1);
+		int d = rand() % ((i * 200000) + 1);
 
 		// Create an ternary expression
 		Expression *tern = Ternary_init(
@@ -205,7 +206,7 @@ char *test_jit_ternary() {
 		int result = jitexec_expression(jitcode);
 
 		// Assert that the correct result was obtained
-		mu_assert(result == (a > b)? c : d, "test_jit_ternary failed");
+		mu_assert(result == ((a > b)? c : d), "test_jit_ternary failed");
 
 		Expression_free(tern);
 		free(jitcode->arr);

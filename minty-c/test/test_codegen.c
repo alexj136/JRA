@@ -9,6 +9,30 @@
 
 int tests_run = 0;
 
+char *test_ternary() {
+
+	// AST for the large expression
+	// (10 = 10) ? 5 : 1
+	Expression *expr = Ternary_init(
+		BooleanExpr_init(
+			IntegerLiteral_init(10),
+			EQUAL,
+			IntegerLiteral_init(10)
+		),
+		IntegerLiteral_init(5),
+		IntegerLiteral_init(1)
+	);
+
+	char *code = codegen_expression(expr, NULL);
+	
+	// Assert that code evaluates to  5, but how?
+
+	free(code);
+	Expression_free(expr);
+
+	return NULL;
+}
+
 char *test_large_expression() {
 
 	// AST for the large expression
@@ -59,8 +83,8 @@ char *test_large_expression() {
 }
 
 char *all_tests() {
-
-	mu_run_test(test_large_expression);
+	// mu_run_test(test_ternary);
+	// mu_run_test(test_large_expression);
 
 	return NULL;
 }

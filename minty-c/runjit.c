@@ -340,11 +340,11 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 			
 			// b_exp goes here
 			
-			byte instr1[12] = {
+			byte instr1[9] = {
 
 				// cmpl $0, %eax
-				0x3B, 0x05, 0x00, 0x00, 0x00, 0x00,
-				
+				0x83, 0xF8, 0x00,
+
 				// je ternary_false
 				0x0F, 0x84, 0x00, 0x00, 0x00, 0x00
 
@@ -355,8 +355,8 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog) {
 			// true expression. We must also jump over the 'jmp ternary_end'
 			// below the true expession, hence the extra 5 bytes in the 
 			// put_int_as_bytes() call.
-			put_int_as_bytes(instr1, 8, t_exp->len + (sizeof(byte) * 5));
-			ArrLen *arrlen_instr1 = ArrLen_init(&(instr1[0]), 12);
+			put_int_as_bytes(instr1, 5, t_exp->len + (sizeof(byte) * 5));
+			ArrLen *arrlen_instr1 = ArrLen_init(&(instr1[0]), 9);
 			
 			// t_exp goes here
 			
