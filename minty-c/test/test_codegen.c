@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "minunit.h"
 #include "../minty_util.h"
 #include "../token.h"
@@ -62,29 +64,49 @@ void build(char *src, char *out) {
  * if -1 was returned because an error occured
  */
 bool checked_run(char *file, int expected_result) {
-	if(expected_result == -1) {
-		printf("Cannot execute '%s' with expected result of -1\n", file);
+
+	pid_t child_pid = fork();
+	int status = 0, exec_res = 0;
+
+	// Child process
+	if(child_pid == 0) {
+		char *path = (char *)safe_alloc(sizeof(char) * 100);
+		sprintf(path, "./%s", file);
+
+		execl(path, "0", NULL);
+
+		free(path);
+		printf("execl() failed\n");
 		exit(EXIT_FAILURE);
 	}
-	
-	char *command = (char *)safe_alloc(sizeof(char) * 100);
-	sprintf(command, "./%s", file);
-	
-	int command_result = system(command);
-	if(command_result == -1) {
-		printf("Warning: checked_run(%s, %d) call returned -1\n",
-			file, expected_result);
+
+	// Parent Process
+	else {
+		wait(&status);
+		if(WIFEXITED(status)) exec_res = WEXITSTATUS(status);
+		else {
+			printf("external call did not return successfully\n");
+			return false;
+		}
 	}
 
-	free(command);
-	return command_result == expected_result;
+	return exec_res == expected_result;
 }
 
 int tests_run = 0;
 
 char *test_file_io() {
 
-	WRITE("twelve.s", " .globl main \n main: \n movl $12, %eax \n ret \n");
+	char *prog =
+		".globl main"    "\n"
+		"main:"          "\n"
+		"movl $1, %eax"  "\n"
+		"movl $12, %ebx" "\n"
+		"int $0x80"      "\n";
+
+	WRITE("twelve.s", prog);
+	// free(prog);
+
 	build("twelve.s", "twelve");
 	int success = checked_run("twelve", 12);
 	REMOVE("twelve");
