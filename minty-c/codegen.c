@@ -609,7 +609,7 @@ char *codegen_statement(Statement *stmt, Program *prog) {
 char *codegen_function(FNDecl *func, Program *prog) {
 
 	char *stmts_code = codegen_statement_list(func->stmts, prog);
-	
+
 	char *out = str_concat(13,
 		// Declare the function as global
 		"\n.globl ", func->name, "\n",
@@ -666,10 +666,35 @@ char *codegen_program(Program *prog) {
 	}
 	free(function_iter);
 
-	char *out = str_concat(4,
-		".text\n",
-		"printf_str: .asciz \"%d\"\n",
-		"error_str: .asciz \"Error: reached end of function without return\"\n",
+	// NOT FULLY IMPLEMENTED WARNING (BUT STUFF LEFT IS NOT REQUIRED FOR JIT)
+	printf("Warning: codegen_program() does not call the main function "
+		"correctly yet\n");
+
+	char *out = str_concat_2(
+		// Strings used by implementation
+		"# WARNING: COMMAND-LINE ARGUMENTS NOT YET SUPPORTED\n"
+		".text\n"
+		"printf_str: .asciz \"%d\"\n"
+		"error_str: .asciz \"Error: reached end of function without return\"\n"
+		
+		// Actual entry point is not main, but STARTPROG
+		".globl STARTPROG\n"
+		"STARTPROG:\n"
+		
+			// STARTPROG calls the main function and returns its result as the
+			// exit code of the function
+			"movl $6, %eax\n"
+			"pushl %eax\n"
+			"addl $4, %esp\n"
+			"movl %esp, %ebp\n"
+
+			"call fibonacci\n"
+			
+			// Exit system call with result as exit status
+			"movl %eax, %ebx\n"
+			"movl $1, %eax\n"
+			"int $0x80\n",
+		
 		function_code);
 
 	free(function_code);

@@ -65,6 +65,7 @@ void build(char *src, char *out) {
  */
 bool checked_run(char *file, int expected_result) {
 
+	// Fork a child process
 	pid_t child_pid = fork();
 	int status = 0, exec_res = 0;
 
@@ -75,21 +76,33 @@ bool checked_run(char *file, int expected_result) {
 
 		execl(path, "0", NULL);
 
+		// If the exec fails, print a warning and exit the child process (does
+		// not kill the parent)
 		free(path);
-		printf("execl() failed\n");
+		printf("Warning: execl() failed in checked_run(%s, %d)\n",
+			file, expected_result);
 		exit(EXIT_FAILURE);
 	}
 
 	// Parent Process
 	else {
+		// Wait for the child to finish. When the child finishes, its exit
+		// status will be put into the status variable (hence the pass by
+		// reference - there is no way for it to be passed to us by value)
 		wait(&status);
+
+		// If the process exited successfully, get its exit code 
 		if(WIFEXITED(status)) exec_res = WEXITSTATUS(status);
 		else {
-			printf("external call did not return successfully\n");
+			// Otherwise print an error message and return false
+			printf("execl() did not return a valid exit "
+				"code in checked_run(%s, %d)\n", file, expected_result);
 			return false;
 		}
 	}
 
+	// If the exit code matched our expected result, return true, otherwise
+	// return false
 	return exec_res == expected_result;
 }
 
@@ -104,13 +117,13 @@ char *test_file_io() {
 		"movl $12, %ebx" "\n"
 		"int $0x80"      "\n";
 
-	WRITE("twelve.s", prog);
+	WRITE("test/twelve.s", prog);
 	// free(prog);
 
-	build("twelve.s", "twelve");
-	int success = checked_run("twelve", 12);
-	REMOVE("twelve");
-	REMOVE("twelve.s");
+	build("test/twelve.s", "test/twelve");
+	bool success = checked_run("test/twelve", 12);
+	REMOVE("test/twelve");
+	REMOVE("test/twelve.s");
 	mu_assert(success, "test_file_io failed");
 
 	return NULL;
@@ -174,57 +187,98 @@ char *test_large_expression() {
 	);
 
 	// int result;
-	char *code = codegen_expression(expr, NULL);
-	// asm(code
-	// 	: "=r"(result)
-	// 	:  // no input 
-	// 	: "%eax", "%ebx", "%esp", "%ebp");
+	char *expr_code = codegen_expression(expr, NULL);
+	char *testable_code = str_concat(3,
+		".globl main\n"
+		"main:\n",
+		expr_code,
+		"movl %eax, %ebx\n"
+		"movl $1, %eax\n"
+		"int $0x80\n"
+	);
 
-	// Assert that the result indeed equals 6
-	// mu_assert(result == 6, "test_large_expression failed");
+	WRITE("test/large_expr.s", testable_code);
+	build("test/large_expr.s", "test/large_expr");
+	bool success = checked_run("test/large_expr", 6);
+	REMOVE("test/large_expr");
+	REMOVE("test/large_expr.s");
 
-	free(code);
+	free(expr_code);
+	free(testable_code);
 	Expression_free(expr);
 
+	mu_assert(success, "test_large_expression failed");
+	
 	return NULL;
 }
 
 char *test_fibonacci() {
-	LinkedList *tokens = lex("fn main() { return fibonacci(6); }\
-	fn fibonacci(x) {\
-		if x = 0 {\
-			return 0;\
-		}\
-		else {} if x = 1 {\
-			return 1;\
-		}\
-		else {\
-			return fibonacci(x - 1) + fibonacci(x - 2);\
-		}\
-	}");
+	LinkedList *tokens = lex(
+		"fn fibonacci(x) {"                                  "\n"
+		"	if x = 0 {"                                      "\n"
+		"		return 0;"                                   "\n"
+		"	}"                                               "\n"
+		"	else {} if x = 1 {"                              "\n"
+		"		return 1;"                                   "\n"
+		"	}"                                               "\n"
+		"	else {"                                          "\n"
+		"		return fibonacci(x - 1) + fibonacci(x - 2);" "\n"
+		"	}"                                               "\n"
+		"}"
+	);
 
-	Program *ast = parse_program(tokens);
-	char *asm_prog = codegen_program(ast);
+	FNDecl *fn = parse_function(tokens);
+	Program *prog = Program_init(LinkedList_init_with(fn));
+	Program_generate_offsets(prog);
+	char *asm_function = codegen_function(fn, prog);
 	
+	char *asm_prog = str_concat_2(
+		
+		".text\n"
+		
+		"printf_str: .asciz \"%d\"\n"
+		"error_str: .asciz \"Error: reached end of function without return\"\n"
+		
+		".globl main\n"
+		"main:\n"
+			
+			// Set up stack to call fibonacci
+			"movl $6, %eax\n"
+			"pushl %eax\n"
+			"addl $4, %esp\n"
+			"movl %esp, %ebp\n"
+
+			"call fibonacci\n"
+			
+			// Exit system call with result as exit status
+			"movl %eax, %ebx\n"
+			"movl $1, %eax\n"
+			"int $0x80\n",
+
+		asm_function
+	);
+
 	WRITE("test/fib.s", asm_prog);
 	build("test/fib.s", "test/fib");
 	int success = checked_run("test/fib", 8);
 	REMOVE("test/fib");
-	REMOVE("test/fib.s");
-	mu_assert(success, "test_fibonacci failed");
+	// REMOVE("test/fib.s");
 
 	free(asm_prog);
-	Program_free(ast);
+	free(asm_function);
+	Program_free(prog);
 	LLMAP(tokens, Token *, Token_free);
 	LinkedList_free(tokens);
 
+	mu_assert(success, "test_fibonacci failed");
+	
 	return NULL;
 }
 
 char *all_tests() {
 	mu_run_test(test_file_io);
 	// mu_run_test(test_ternary);
-	// mu_run_test(test_large_expression);
+	mu_run_test(test_large_expression);
 	mu_run_test(test_fibonacci);
 
 	return NULL;
