@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -108,6 +109,11 @@ bool checked_run(char *file, int expected_result) {
 
 int tests_run = 0;
 
+/*
+ * Tests that the file io concept for the tests in this file work correctly.
+ * writes a small assembly program to disk, assembles it, runs it, and checks
+ * that it gives the correct result. The files (source/binary) are then removed.
+ */
 char *test_file_io() {
 
 	char *prog =
@@ -118,7 +124,6 @@ char *test_file_io() {
 		"int $0x80"      "\n";
 
 	WRITE("test/twelve.s", prog);
-	// free(prog);
 
 	build("test/twelve.s", "test/twelve");
 	bool success = checked_run("test/twelve", 12);
@@ -129,6 +134,9 @@ char *test_file_io() {
 	return NULL;
 }
 
+/*
+ * Test that ternary expressions give the correct result
+ */
 char *test_ternary() {
 
 	// AST for the large expression
@@ -143,50 +151,84 @@ char *test_ternary() {
 		IntegerLiteral_init(1)
 	);
 
+	// Generate assembly code to 'call' the ternary expression
 	char *code = codegen_expression(expr, NULL);
+	char *testable_code = str_concat(3,
+		".globl main\n"
+		"main:\n",
+		code,
+		"movl %eax, %ebx\n"
+		"movl $1, %eax\n"
+		"int $0x80\n"
+	);
 	
-	// Assert that code evaluates to  5, but how?
+	// Write the assembly file to disk, assemble it, test that it gives the
+	// correct result, and remove the files
+	WRITE("test/tern.s", testable_code);
+	build("test/tern.s", "test/tern");
+	bool success = checked_run("test/tern", 5);
+	REMOVE("test/tern");
+	REMOVE("test/tern.s");
 
+	// Free things
 	free(code);
+	free(testable_code);
 	Expression_free(expr);
+
+	// Assert that the program gave the correct result
+	mu_assert(success, "test_ternary failed")
 
 	return NULL;
 }
 
 char *test_large_expression() {
 
+	int *randoms = (int *)malloc(sizeof(int) * 11);
+
+	int j;
+	for(j = 1; j < 11; j++) {
+		randoms[j] = (rand() % 1) + 10;
+		// randoms[j] = j + 1;
+	}
+
 	// AST for the large expression
-	// (4 * 5) % (4 + (4 < 5 ? (10 != 9 ? 3 : 123) : 500)) should equal 6
 	Expression *expr = ArithmeticExpr_init(
 		ArithmeticExpr_init(
-			IntegerLiteral_init(4),
+			IntegerLiteral_init(randoms[10]),
 			MULTIPLY,
-			IntegerLiteral_init(5)),
+			IntegerLiteral_init(randoms[1])),
 		MODULO,
 		ArithmeticExpr_init(
-			IntegerLiteral_init(4),
+			IntegerLiteral_init(randoms[2]),
 			PLUS,
 			Ternary_init(
 				BooleanExpr_init(
-					IntegerLiteral_init(4),
+					IntegerLiteral_init(randoms[3]),
 					LESS_THAN,
-					IntegerLiteral_init(5)
+					IntegerLiteral_init(randoms[4])
 				),
 				Ternary_init(
 					BooleanExpr_init(
-						IntegerLiteral_init(10),
+						IntegerLiteral_init(randoms[5]),
 						NOT_EQUAL,
-						IntegerLiteral_init(9)
+						IntegerLiteral_init(randoms[6])
 					),
-					IntegerLiteral_init(3),
-					IntegerLiteral_init(123)
+					IntegerLiteral_init(randoms[7]),
+					IntegerLiteral_init(randoms[8])
 				),
-				IntegerLiteral_init(500)
+				IntegerLiteral_init(randoms[9])
 			)
 		)
 	);
 
-	// int result;
+	int expected_value = (randoms[10] * randoms[1]) % (randoms[2] +
+			((randoms[3] < randoms[4])?
+				((randoms[5] !=	randoms[6])?
+					randoms[7] :
+					randoms[8]) :
+				randoms[9]));
+
+	// Generate the code
 	char *expr_code = codegen_expression(expr, NULL);
 	char *testable_code = str_concat(3,
 		".globl main\n"
@@ -197,18 +239,22 @@ char *test_large_expression() {
 		"int $0x80\n"
 	);
 
+	// Test the code in the way used previously
 	WRITE("test/large_expr.s", testable_code);
 	build("test/large_expr.s", "test/large_expr");
-	bool success = checked_run("test/large_expr", 6);
+	bool success = checked_run("test/large_expr", expected_value);
 	REMOVE("test/large_expr");
 	REMOVE("test/large_expr.s");
 
+	// Free stuff
 	free(expr_code);
 	free(testable_code);
+	free(randoms);
 	Expression_free(expr);
 
+	// Assert that the test succeeded
 	mu_assert(success, "test_large_expression failed");
-	
+
 	return NULL;
 }
 
@@ -262,7 +308,7 @@ char *test_fibonacci() {
 	build("test/fib.s", "test/fib");
 	int success = checked_run("test/fib", 8);
 	REMOVE("test/fib");
-	// REMOVE("test/fib.s");
+	REMOVE("test/fib.s");
 
 	free(asm_prog);
 	free(asm_function);
@@ -277,7 +323,7 @@ char *test_fibonacci() {
 
 char *all_tests() {
 	mu_run_test(test_file_io);
-	// mu_run_test(test_ternary);
+	mu_run_test(test_ternary);
 	mu_run_test(test_large_expression);
 	mu_run_test(test_fibonacci);
 
