@@ -183,50 +183,30 @@ char *test_ternary() {
 
 char *test_large_expression() {
 
-	int *randoms = (int *)malloc(sizeof(int) * 11);
+	int *randoms = (int *)malloc(sizeof(int) * 10);
 
+	srand(time(NULL));
 	int j;
-	for(j = 1; j < 11; j++) {
-		randoms[j] = (rand() % 1) + 10;
-		// randoms[j] = j + 1;
+	for(j = 0; j < 10; j++) {
+		randoms[j] = (rand() % 1000) - (rand() % 300);
+		if(randoms[j] == 0) randoms[j] = 1;
 	}
 
-	// AST for the large expression
-	Expression *expr = ArithmeticExpr_init(
-		ArithmeticExpr_init(
-			IntegerLiteral_init(randoms[10]),
-			MULTIPLY,
-			IntegerLiteral_init(randoms[1])),
-		MODULO,
-		ArithmeticExpr_init(
-			IntegerLiteral_init(randoms[2]),
-			PLUS,
-			Ternary_init(
-				BooleanExpr_init(
-					IntegerLiteral_init(randoms[3]),
-					LESS_THAN,
-					IntegerLiteral_init(randoms[4])
-				),
-				Ternary_init(
-					BooleanExpr_init(
-						IntegerLiteral_init(randoms[5]),
-						NOT_EQUAL,
-						IntegerLiteral_init(randoms[6])
-					),
-					IntegerLiteral_init(randoms[7]),
-					IntegerLiteral_init(randoms[8])
-				),
-				IntegerLiteral_init(randoms[9])
-			)
-		)
-	);
-
-	int expected_value = (randoms[10] * randoms[1]) % (randoms[2] +
+	int expected_value = (randoms[0] * randoms[1]) % (randoms[2] +
 			((randoms[3] < randoms[4])?
 				((randoms[5] !=	randoms[6])?
 					randoms[7] :
 					randoms[8]) :
 				randoms[9]));
+
+	char *src = (char *)malloc(sizeof(char) * 200);
+	sprintf(src, "(%d*%d)%%(%d + ( (%d<%d) ? ( (%d!=%d)?%d:%d) : %d) );",
+		randoms[0], randoms[1], randoms[2], randoms[3], randoms[4],
+		randoms[5], randoms[6], randoms[7], randoms[8], randoms[9]
+	);
+
+	LinkedList *tokens = lex(src);
+	Expression *expr = parse_expression(tokens);
 
 	// Generate the code
 	char *expr_code = codegen_expression(expr, NULL);
@@ -247,6 +227,9 @@ char *test_large_expression() {
 	REMOVE("test/large_expr.s");
 
 	// Free stuff
+	free(src);
+	LLMAP(tokens, Token *, Token_free);
+	LinkedList_free(tokens);
 	free(expr_code);
 	free(testable_code);
 	free(randoms);
