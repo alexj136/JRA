@@ -5,7 +5,7 @@
 #include "minunit.h"
 #include "../minty_util.h"
 #include "../AST.h"
-#include "../runjit.h"
+#include "../jitcode.h"
 
 int tests_run = 0;
 

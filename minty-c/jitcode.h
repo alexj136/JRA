@@ -1,5 +1,5 @@
-#ifndef RUNJIT
-#define RUNJIT
+#ifndef JITCODE
+#define JITCODE
 
 #include <stdint.h>
 #define byte uint8_t
@@ -25,4 +25,4 @@ ArrLen *jitcode_expression(Expression *expr, Program *prog);
 
 int jitexec_expression(ArrLen *expr_code);
 
-#endif // RUNJIT
+#endif // JITCODE

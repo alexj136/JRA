@@ -7,7 +7,7 @@
 #include "minty_util.h"
 #include "token.h"
 #include "AST.h"
-#include "runjit.h"
+#include "jitcode.h"
 
 ArrLen *ArrLen_init(byte *arr, int len) {
 	ArrLen *al = (ArrLen *)malloc(sizeof(ArrLen));

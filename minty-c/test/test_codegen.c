@@ -188,8 +188,8 @@ char *test_large_expression() {
 	srand(time(NULL));
 	int j;
 	for(j = 0; j < 10; j++) {
-		randoms[j] = (rand() % 1000) - (rand() % 300);
-		if(randoms[j] == 0) randoms[j] = 1;
+		randoms[j] = (rand() % 1000)/* - (rand() % 300)*/;
+		// if(randoms[j] == 0) randoms[j] = 1;
 	}
 
 	int expected_value = (randoms[0] * randoms[1]) % (randoms[2] +
@@ -200,7 +200,7 @@ char *test_large_expression() {
 				randoms[9]));
 
 	char *src = (char *)malloc(sizeof(char) * 200);
-	sprintf(src, "(%d*%d)%%(%d + ( (%d<%d) ? ( (%d!=%d)?%d:%d) : %d) );",
+	sprintf(src, "(%d*%d) %% (%d + ( %d < %d ? ( %d != %d ? %d : %d ) : %d) );",
 		randoms[0], randoms[1], randoms[2], randoms[3], randoms[4],
 		randoms[5], randoms[6], randoms[7], randoms[8], randoms[9]
 	);

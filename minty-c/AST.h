@@ -68,7 +68,6 @@ typedef union {
 typedef struct {
 	expr_type type;
 	u_expr *expr;
-	int exec_count;
 } Expression;
 
 /*

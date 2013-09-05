@@ -52,7 +52,6 @@ Expression *BooleanExpr_init(Expression *lhs, token_type op, Expression *rhs) {
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_BooleanExpr;
  	the_exp->expr = u_booleanexpr;
- 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -86,7 +85,6 @@ Expression *ArithmeticExpr_init(
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_ArithmeticExpr;
  	the_exp->expr = u_arithmeticexpr;
- 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -113,7 +111,6 @@ Expression *Identifier_init(char *ident) {
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_Identifier;
 	the_exp->expr = u_identifier;
-	the_exp->exec_count = 0;
 	return the_exp;
 }
 
@@ -129,7 +126,6 @@ Expression *IntegerLiteral_init(int intgr) {
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_IntegerLiteral;
 	the_exp->expr = u_expr_int;
-	the_exp->exec_count = 0;
 	return the_exp;
 }
 
@@ -150,7 +146,6 @@ Expression *FNCall_init(char *name, LinkedList *args) {
  	Expression *the_exp = safe_alloc(sizeof(Expression));
  	the_exp->type = expr_FNCall;
  	the_exp->expr = u_fncall;	
- 	the_exp->exec_count = 0;
 
  	// Return the wrapped Expression
  	return the_exp;
@@ -181,7 +176,6 @@ Expression *Ternary_init(Expression *bool_expr,
 	Expression *the_exp = safe_alloc(sizeof(Expression));
 	the_exp->type = expr_Ternary;
 	the_exp->expr = u_ternary;
-	the_exp->exec_count = 0;
 
 	// Return the wrapped Expression
 	return the_exp;

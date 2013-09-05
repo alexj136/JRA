@@ -5,14 +5,14 @@ COMPILE = $(COMPILER) -Wall -g -c
 
 # File lists
 SOURCES = minty_util.c token.c lexer.c AST.c parser.c interpreter.c codegen.c \
-	runjit.c minty.c
+	jitcode.c minty.c
 TESTSRC = test/test_parser.c test/test_minty_util.c test/test_interpreter.c \
-	test/test_codegen.c test/test_runjit.c
+	test/test_codegen.c test/test_jitcode.c
 
 OBJECTS = minty_util.o token.o lexer.o AST.o parser.o interpreter.o codegen.o \
-	runjit.o
+	jitcode.o
 TESTS = test/test_parser test/test_minty_util test/test_interpreter \
-	test/test_codegen test/test_runjit
+	test/test_codegen test/test_jitcode
 OUTPUTS = $(OBJECTS) $(TESTS) minty
 
 # Adding this line means you can just run 'make' and everything than needs
@@ -29,7 +29,7 @@ test: $(TESTS)
 	test/test_parser
 	test/test_interpreter
 	test/test_codegen
-	test/test_runjit
+	test/test_jitcode
 
 # Final compilation & linkage:
 minty: $(OBJECTS) minty.c
@@ -57,8 +57,8 @@ interpreter.o: interpreter.c
 codegen.o: codegen.c
 	$(COMPILE) codegen.c -o codegen.o
 
-runjit.o: runjit.c
-	$(COMPILE) runjit.c -o runjit.o
+jitcode.o: jitcode.c
+	$(COMPILE) jitcode.c -o jitcode.o
 
 # Compile, link & run tests:
 test/test_minty_util: test/test_minty_util.c
@@ -82,9 +82,9 @@ test/test_codegen: test/test_codegen.c minty_util.o token.o AST.o parser.o \
 		codegen.o -o test/test_codegen
 	@test/test_codegen
 
-test/test_runjit: test/test_runjit.c minty_util.o token.o AST.o runjit.o
-	$(LINK) test/test_runjit.c minty_util.o token.o AST.o runjit.o \
-		-o test/test_runjit
-	@test/test_runjit
+test/test_jitcode: test/test_jitcode.c minty_util.o token.o AST.o jitcode.o
+	$(LINK) test/test_jitcode.c minty_util.o token.o AST.o jitcode.o \
+		-o test/test_jitcode
+	@test/test_jitcode
 
 .PRECIOUS: $(TESTS)

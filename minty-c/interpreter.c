@@ -269,9 +269,6 @@ void Scope_free(Scope *scope) {
  */
 int interpret_expression(Expression *expr, Scope *scope, Program *prog) {
 
-	// Increment the counter for number of executions
-	expr->exec_count++;
-
 	// Interpret the expression in the appropriate way
 	switch(expr->type) {
 	
